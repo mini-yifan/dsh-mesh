@@ -517,7 +517,9 @@ export class MeshService {
     if (task === undefined) throw new MeshError('task_not_found', 'Task not found.', 404)
     const peer = this.peers?.peer(task.targetNodeId)
     if (peer?.gateway === undefined) {
-      task.status = 'unknown'
+      // A user stop is already terminal; losing the peer must not turn it into a
+      // generic unknown result that invites the caller to retry.
+      if (task.status !== 'cancelled') task.status = 'unknown'
       saveState(this.config.stateDir, state)
       return task
     }
@@ -534,7 +536,9 @@ export class MeshService {
       if (row?.running === false) {
         idle += 1
         if (idle >= 2) {
-          task.status = 'done'
+          // Only a normal completion becomes `done`. A manual stop is already
+          // `cancelled`, and the caller needs that reason, not a silent retry.
+          if (task.status === 'running') task.status = 'done'
           task.updatedAt = Date.now()
           saveState(this.config.stateDir, state)
           return task
@@ -543,7 +547,7 @@ export class MeshService {
         idle = 0
       }
     }
-    task.status = 'unknown'
+    if (task.status === 'running') task.status = 'unknown'
     task.updatedAt = Date.now()
     saveState(this.config.stateDir, state)
     return task
