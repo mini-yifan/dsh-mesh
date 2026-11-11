@@ -25,3 +25,6 @@ artifacts/
 
 # Minimal self-hosted Server credentials and local state
 apps/server/data/
+deploy/certs/
+deploy/server.env
+packages/mesh-plugin/bundle/

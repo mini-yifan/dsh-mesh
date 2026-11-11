@@ -19,14 +19,14 @@ export interface GatewayTimingOptions {
 export type NormalizedGatewayOptions = Required<GatewayTimingOptions>
 
 export const HELLO_TIMEOUT_MS_RANGE = { min: 1000, max: 60_000, fallback: 5000 } as const
-export const HEARTBEAT_INTERVAL_MS_RANGE = { min: 5000, max: 120_000, fallback: 25_000 } as const
+export const HEARTBEAT_INTERVAL_MS_RANGE = { min: 5000, max: 120_000, fallback: 10_000 } as const
 export const FORCE_TERMINATE_GRACE_MS_RANGE = { min: 100, max: 10_000, fallback: 1000 } as const
 export const MAX_FRAMES_PER_SEC_RANGE = { min: 64, max: 65_536, fallback: 512 } as const
 /** A heartbeat disconnect threshold below two intervals drops healthy peers. */
 export const HEARTBEAT_DISCONNECT_MS_MIN_FACTOR = 2
 export const HEARTBEAT_DISCONNECT_MS_MAX = 600_000
-export const HEARTBEAT_DISCONNECT_MS_FLOOR = 75_000
-export const HEARTBEAT_DISCONNECT_MS_FACTOR = 3
+export const HEARTBEAT_DISCONNECT_MS_FLOOR = 20_000
+export const HEARTBEAT_DISCONNECT_MS_FACTOR = 2
 
 type Range = { readonly min: number; readonly max: number; readonly fallback: number }
 

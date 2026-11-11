@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { accountDeviceDescriptorSchema, type AccountDeviceDescriptor } from '@dsh-remote/protocol'
@@ -14,10 +14,60 @@ const tokenSchema = z.object({
   kind: z.enum(['access', 'refresh']), deviceId: z.string(), expires: z.number(), used: z.boolean(),
   recovery: z.object({ nonce: z.string().regex(/^[A-Za-z0-9_-]{43}$/), accessExpires: z.number().int().positive() }).optional(),
 })
-const savedDeviceSchema = z.object({ descriptor: accountDeviceDescriptorSchema, revoked: z.boolean(), lastSeenAt: z.number() })
-const stateSchema = z.object({ version: z.literal(1), account: z.string(), salt: z.string(), verifier: z.string(), devices: z.record(z.string(), savedDeviceSchema), tokens: z.record(z.string(), tokenSchema) })
-type SavedDevice = z.infer<typeof savedDeviceSchema>
+const savedDeviceSchema = z.object({
+  descriptor: accountDeviceDescriptorSchema,
+  revoked: z.boolean(),
+  lastSeenAt: z.number(),
+  /** v0 node binding. Optional so a v1 state file can still be parsed. */
+  nodeId: z.string().optional(),
+})
+export const nodeSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(80),
+  platform: z.string().max(32),
+  createdAt: z.number(),
+  revoked: z.boolean(),
+  hostDeviceId: z.string(),
+  clientDeviceId: z.string().optional(),
+})
+export const pairingCodeSchema = z.object({
+  id: z.string(),
+  codeHash: z.string(),
+  label: z.string().max(120),
+  platform: z.string().max(32).optional(),
+  createdAt: z.number(),
+  expiresAt: z.number(),
+  usedAt: z.number().optional(),
+  revokedAt: z.number().optional(),
+  nodeId: z.string().optional(),
+})
+const legacyStateSchema = z.object({
+  version: z.literal(1),
+  account: z.string(),
+  salt: z.string(),
+  verifier: z.string(),
+  devices: z.record(z.string(), savedDeviceSchema),
+  tokens: z.record(z.string(), tokenSchema),
+})
+const stateSchema = z.object({
+  version: z.literal(2),
+  account: z.string(),
+  salt: z.string(),
+  verifier: z.string(),
+  devices: z.record(z.string(), savedDeviceSchema),
+  tokens: z.record(z.string(), tokenSchema),
+  nodes: z.record(z.string(), nodeSchema),
+  pairingCodes: z.record(z.string(), pairingCodeSchema),
+})
+export type SavedDevice = z.infer<typeof savedDeviceSchema>
+export type MeshNode = z.infer<typeof nodeSchema>
+export type PairingCode = z.infer<typeof pairingCodeSchema>
 type SavedToken = z.infer<typeof tokenSchema>
+type State = z.infer<typeof stateSchema>
+
+const PAIRING_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+const PAIRING_TTL_MS = 30 * 60_000
+const MAX_PAIRING_CODES = 512
 
 // Domain-separated HMACs keyed by the presented bearer, NOT its stored digest.
 // The nonce alone cannot recover credentials from a copy of state.json.
@@ -27,20 +77,91 @@ function successor(token: string, nonce: string, deviceId: string) {
   return { accessToken: derive('access'), refreshToken: derive('refresh') }
 }
 
+function pairingCode(): string {
+  const bytes = randomBytes(8)
+  let code = ''
+  for (const byte of bytes) code += PAIRING_ALPHABET[byte % PAIRING_ALPHABET.length]
+  return code
+}
+
+function platformPrefix(platform: string): string {
+  switch (platform) {
+    case 'darwin': return 'Mac'
+    case 'win32': return 'Windows'
+    case 'android': return 'Phone'
+    case 'linux': return 'Linux'
+    default: return 'Device'
+  }
+}
+
 /** Single-process store. Only token digests and public identities reach disk. */
 export class Store {
-  private state: z.infer<typeof stateSchema>
+  private state: State
   onInvalidate: (id: string) => void = () => {}
   constructor(private readonly file: string, readonly account: string, password: string) {
-    const previous = existsSync(file) ? stateSchema.parse(JSON.parse(readFileSync(file, 'utf8'))) : undefined
-    const salt = previous?.salt ?? secret()
+    const previous = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) as unknown : undefined
+    const parsed = previous === undefined ? undefined : stateSchema.safeParse(previous)
+    const legacy = parsed?.success === false && previous !== undefined ? legacyStateSchema.safeParse(previous) : undefined
+    const salt = (parsed?.success ? parsed.data.salt : legacy?.success ? legacy.data.salt : undefined) ?? secret()
     const verifier = scryptSync(password, salt, 32).toString('hex')
-    this.state = previous ?? { version: 1, account, salt, verifier, devices: {}, tokens: {} }
-    if (this.state.account !== account) this.state.devices = {}
-    if (this.state.account !== account || !equal(this.state.verifier, verifier)) this.state.tokens = {}
+    this.state = parsed?.success
+      ? parsed.data
+      : legacy?.success
+        ? this.migrate(legacy.data)
+        : { version: 2, account, salt, verifier, devices: {}, tokens: {}, nodes: {}, pairingCodes: {} }
+    if (this.state.account !== account) {
+      this.state.devices = {}
+      this.state.tokens = {}
+      this.state.nodes = {}
+      this.state.pairingCodes = {}
+    } else if (!equal(this.state.verifier, verifier)) {
+      this.state.tokens = {}
+    }
     Object.assign(this.state, { account, verifier })
     this.save()
   }
+
+  /** v1 had no node layer. Give every existing identity a node so the upgrade is lossless enough to re-pair. */
+  private migrate(legacy: z.infer<typeof legacyStateSchema>): State {
+    const state: State = {
+      version: 2,
+      account: legacy.account,
+      salt: legacy.salt,
+      verifier: legacy.verifier,
+      devices: {},
+      tokens: legacy.tokens,
+      nodes: {},
+      pairingCodes: {},
+    }
+    const names = new Set<string>()
+    for (const [deviceId, saved] of Object.entries(legacy.devices)) {
+      const name = this.uniqueName(saved.descriptor.name, saved.descriptor.platform, names)
+      const nodeId = randomUUID()
+      state.nodes[nodeId] = {
+        id: nodeId,
+        name,
+        platform: saved.descriptor.platform,
+        createdAt: Date.now(),
+        revoked: false,
+        hostDeviceId: saved.descriptor.role === 'host' ? deviceId : '',
+        ...(saved.descriptor.role === 'client' ? { clientDeviceId: deviceId } : {}),
+      }
+      saved.descriptor.name = name
+      state.devices[deviceId] = { ...saved, nodeId }
+    }
+    return state
+  }
+
+  private transaction<T>(fn: () => T): T {
+    const before = structuredClone(this.state)
+    try {
+      return fn()
+    } catch (error) {
+      this.state = before
+      throw error
+    }
+  }
+
   private save(): void {
     mkdirSync(dirname(this.file), { recursive: true, mode: 0o700 })
     const tmp = `${this.file}.tmp`
@@ -54,15 +175,177 @@ export class Store {
     return d
   }
   list(): SavedDevice[] { return Object.values(this.state.devices).filter(d => !d.revoked) }
-  register(descriptor: AccountDeviceDescriptor): ReturnType<Store['issue']> {
+
+  listNodes(): MeshNode[] { return Object.values(this.state.nodes).filter(node => !node.revoked) }
+  getNode(id: string): MeshNode {
+    const node = Object.hasOwn(this.state.nodes, id) ? this.state.nodes[id] : undefined
+    if (!node) throw new ApiError('NODE_NOT_FOUND', 404)
+    if (node.revoked) throw new ApiError('NODE_REVOKED', 403)
+    return node
+  }
+  nodeForDevice(deviceId: string): MeshNode {
+    const device = this.get(deviceId)
+    if (!device.nodeId) throw new ApiError('NODE_NOT_FOUND', 404)
+    return this.getNode(device.nodeId)
+  }
+
+  private uniqueName(desired: string | undefined, platform: string, taken = new Set(Object.values(this.state.nodes).filter(n => !n.revoked).map(n => n.name.toLowerCase()))): string {
+    const candidate = desired?.trim()
+    if (candidate && candidate.length > 0 && candidate.length <= 80 && !taken.has(candidate.toLowerCase())) return candidate
+    const prefix = platformPrefix(platform)
+    for (let index = 1; index < 10_000; index += 1) {
+      const name = `${prefix}${index}`
+      if (!taken.has(name.toLowerCase())) return name
+    }
+    throw new ApiError('RATE_LIMITED', 429)
+  }
+
+  private createNode(descriptor: AccountDeviceDescriptor, desiredName?: string): MeshNode {
+    const node: MeshNode = {
+      id: randomUUID(),
+      name: this.uniqueName(desiredName ?? descriptor.name, descriptor.platform),
+      platform: descriptor.platform,
+      createdAt: Date.now(),
+      revoked: false,
+      hostDeviceId: descriptor.role === 'host' ? descriptor.deviceId : '',
+      ...(descriptor.role === 'client' ? { clientDeviceId: descriptor.deviceId } : {}),
+    }
+    this.state.nodes[node.id] = node
+    return node
+  }
+
+  private registerDevice(descriptor: AccountDeviceDescriptor, nodeId: string): ReturnType<Store['issue']> {
     const old = this.state.devices[descriptor.deviceId]
     if (old?.revoked) throw new ApiError('DEVICE_REVOKED', 403)
     if (old && (old.descriptor.identityKey !== descriptor.identityKey || old.descriptor.role !== descriptor.role)) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
     if (!old && Object.keys(this.state.devices).length >= 256) throw new ApiError('RATE_LIMITED', 429)
-    this.state.devices[descriptor.deviceId] = { descriptor, revoked: false, lastSeenAt: old?.lastSeenAt ?? 0 }
+    this.state.devices[descriptor.deviceId] = {
+      descriptor,
+      revoked: false,
+      lastSeenAt: old?.lastSeenAt ?? 0,
+      nodeId,
+    }
     this.invalidate(descriptor.deviceId)
     return this.issue(descriptor.deviceId)
   }
+
+  register(descriptor: AccountDeviceDescriptor): ReturnType<Store['issue']> {
+    return this.transaction(() => {
+      const existing = this.state.devices[descriptor.deviceId]
+      if (existing?.nodeId && this.state.nodes[existing.nodeId]) return this.registerDevice(descriptor, existing.nodeId)
+      const node = this.createNode(descriptor)
+      return this.registerDevice(descriptor, node.id)
+    })
+  }
+
+  /**
+   * Host-only registration with a one-time administrative pairing code.
+   * Creates the node and binds the Host identity to it.
+   */
+  registerWithCode(code: string, descriptor: AccountDeviceDescriptor): ReturnType<Store['issue']> {
+    return this.transaction(() => {
+      if (descriptor.role !== 'host') throw new ApiError('CODE_INVALID', 400)
+      const normalized = code.trim().toUpperCase()
+      const codeHash = hash(normalized)
+      const record = Object.values(this.state.pairingCodes).find(entry =>
+        timingSafeEqual(Buffer.from(entry.codeHash, 'hex'), Buffer.from(codeHash, 'hex')))
+      if (!record) throw new ApiError('CODE_INVALID', 400)
+      if (record.revokedAt) throw new ApiError('CODE_INVALID', 400)
+      if (record.usedAt) throw new ApiError('CODE_USED', 409)
+      if (record.expiresAt <= Date.now()) throw new ApiError('CODE_EXPIRED', 410)
+      if (Object.keys(this.state.nodes).filter(id => !this.state.nodes[id]!.revoked).length >= 256) throw new ApiError('RATE_LIMITED', 429)
+      const node = this.createNode(descriptor)
+      record.usedAt = Date.now()
+      record.nodeId = node.id
+      return this.registerDevice(descriptor, node.id)
+    })
+  }
+
+  /**
+   * Register the opposite role with an existing device access token. The
+   * upstream endpoint is symmetric (host token -> client identity, or client
+   * token -> host identity); both identities are bound to the same node.
+   */
+  registerOwnedRole(descriptor: AccountDeviceDescriptor, sourceDeviceId: string): ReturnType<Store['issue']> {
+    return this.transaction(() => {
+      const source = this.get(sourceDeviceId)
+      if (source.descriptor.role === descriptor.role) throw new ApiError('INVALID_MESSAGE', 409)
+      if (!source.nodeId) throw new ApiError('NODE_NOT_FOUND', 404)
+      const node = this.getNode(source.nodeId)
+      if (descriptor.role === 'host') {
+        if (node.hostDeviceId !== '' && node.hostDeviceId !== descriptor.deviceId) throw new ApiError('NODE_HOST_CONFLICT', 409)
+        node.hostDeviceId = descriptor.deviceId
+      } else {
+        if (node.clientDeviceId !== undefined && node.clientDeviceId !== descriptor.deviceId) throw new ApiError('NODE_CLIENT_CONFLICT', 409)
+        node.clientDeviceId = descriptor.deviceId
+      }
+      return this.registerDevice(descriptor, node.id)
+    })
+  }
+
+  createPairingCode(label: string, platform?: string, ttlMs = PAIRING_TTL_MS) {
+    return this.transaction(() => {
+      const code = pairingCode()
+      const id = randomUUID()
+      const now = Date.now()
+      for (const [key, value] of Object.entries(this.state.pairingCodes)) {
+        if (value.expiresAt <= now || value.revokedAt || value.usedAt) {
+          if (now - (value.usedAt ?? value.expiresAt) > 7 * 86400_000) delete this.state.pairingCodes[key]
+        }
+      }
+      if (Object.keys(this.state.pairingCodes).length >= MAX_PAIRING_CODES) throw new ApiError('RATE_LIMITED', 429)
+      const expiresAt = now + Math.max(60_000, Math.min(ttlMs, 24 * 3600_000))
+      this.state.pairingCodes[id] = { id, codeHash: hash(code), label: label.slice(0, 120), platform, createdAt: now, expiresAt }
+      this.save()
+      return { id, code, label: label.slice(0, 120), platform, createdAt: now, expiresAt }
+    })
+  }
+
+  listPairingCodes(): Array<Omit<PairingCode, 'codeHash'>> {
+    return Object.values(this.state.pairingCodes)
+      .sort((left, right) => right.createdAt - left.createdAt)
+      .slice(0, 100)
+      .map(({ codeHash: _hash, ...rest }) => rest)
+  }
+
+  revokePairingCode(id: string): void {
+    const record = this.state.pairingCodes[id]
+    if (!record) throw new ApiError('CODE_INVALID', 404)
+    record.revokedAt = Date.now()
+    this.save()
+  }
+
+  /** Only the owning device may rename its node; the node name is canonical for both identities. */
+  renameNodeForDevice(deviceId: string, name: string): MeshNode {
+    return this.transaction(() => {
+      const node = this.nodeForDevice(deviceId)
+      node.name = name.trim().slice(0, 80)
+      for (const id of [node.hostDeviceId, node.clientDeviceId]) {
+        if (!id) continue
+        const device = this.state.devices[id]
+        if (device) device.descriptor.name = node.name
+      }
+      this.save()
+      return node
+    })
+  }
+
+  revokeNode(nodeId: string): void {
+    this.transaction(() => {
+      const node = this.getNode(nodeId)
+      node.revoked = true
+      for (const deviceId of [node.hostDeviceId, node.clientDeviceId]) {
+        if (!deviceId) continue
+        const device = this.state.devices[deviceId]
+        if (!device) continue
+        device.revoked = true
+        for (const [key, value] of Object.entries(this.state.tokens)) if (value.deviceId === deviceId) delete this.state.tokens[key]
+        this.onInvalidate(deviceId)
+      }
+      this.save()
+    })
+  }
+
   private issue(deviceId: string, refreshTokenExpiresAt = Date.now() + 30 * 86400_000, previous?: { token: string; record: SavedToken }) {
     const tokens = { ...this.state.tokens }
     for (const [key, value] of Object.entries(tokens)) if (value.expires <= Date.now()) delete tokens[key]

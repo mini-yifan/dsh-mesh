@@ -1,4 +1,7 @@
 FROM node:22-bookworm-slim AS build
+# The Aliyun build host cannot reliably reach registry.npmjs.org.
+ARG NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
+ENV NPM_CONFIG_REGISTRY=$NPM_CONFIG_REGISTRY
 WORKDIR /workspace
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { isIP } from 'node:net'
 import { z } from 'zod'
-import { deviceRegistrationRequestSchema, deviceRefreshRequestSchema } from '@dsh-remote/protocol'
+import { accountDeviceDescriptorSchema, deviceRegistrationRequestSchema, deviceRefreshRequestSchema } from '@dsh-remote/protocol'
 import { ApiError, Store, equal, hash, secret } from './store.js'
 import { Gateway } from './gateway.js'
 import { buildIceServers, parseIceConfig, type IceConfig } from './ice.js'
@@ -29,6 +29,8 @@ export interface Config {
   password: string
   dataFile: string
   publicUrl: string
+  /** SPKI SHA-256 (base64url) embedded in pairing strings; empty disables pairing. */
+  certFingerprint?: string
   trustedProxyIps?: readonly string[]
   helloTimeoutMs?: number
   heartbeatIntervalMs?: number
@@ -81,6 +83,15 @@ export {
 export type { GatewayTimingOptions, NormalizedGatewayOptions } from './config.js'
 
 const loginSchema = z.object({ email: z.string().min(1).max(254), password: z.string().min(1).max(1024) }).strict()
+const adminLoginSchema = z.object({ password: z.string().min(1).max(1024) }).strict()
+const pairingRegistrationSchema = z.object({ v: z.literal(1), code: z.string().trim().min(1).max(64), device: accountDeviceDescriptorSchema }).strict()
+const createPairingSchema = z.object({
+  label: z.string().trim().min(1).max(120),
+  platform: z.string().trim().max(32).optional(),
+  ttlMinutes: z.number().int().min(1).max(1440).optional(),
+}).strict()
+const renameSchema = z.object({ name: z.string().trim().min(1).max(80) }).strict()
+const MESH_API = 1
 const publicDir = fileURLToPath(new URL('../dist/public/', import.meta.url))
 function readAssets(): Map<string, Buffer> {
   if (!existsSync(publicDir)) return new Map()
@@ -220,7 +231,38 @@ export function createRemoteServer(config: Config) {
     turnEnabled: ice.turnUrls.length > 0,
   })
   function descriptor(d: ReturnType<Store['get']>) {
-    return { ...d.descriptor, membershipId: `account:${hash(store.account).slice(0, 16)}`, online: gateway.peers.has(d.descriptor.deviceId), lastSeenAt: d.lastSeenAt }
+    return { ...d.descriptor, membershipId: `account:${hash(store.account).slice(0, 16)}`, online: gateway.isOnline(d.descriptor.deviceId), lastSeenAt: d.lastSeenAt }
+  }
+  function deviceWithNode(d: ReturnType<Store['get']>) {
+    const node = nodeOf(d)
+    return { ...descriptor(d), nodeId: d.nodeId, nodeName: node?.name }
+  }
+  function nodeOf(device: ReturnType<Store['get']>) {
+    return device.nodeId === undefined ? undefined : store.listNodes().find(node => node.id === device.nodeId)
+  }
+  function nodeSummary(node: ReturnType<Store['listNodes']>[number]) {
+    const devices = [node.hostDeviceId, node.clientDeviceId]
+      .filter((id): id is string => id !== undefined && id !== '')
+      .map(id => store.list().find(device => device.descriptor.deviceId === id))
+      .filter((device): device is NonNullable<typeof device> => device !== undefined)
+    const online = devices.some(device => gateway.isOnline(device.descriptor.deviceId))
+    const lastSeenAt = devices.reduce((latest, device) => Math.max(latest, device.lastSeenAt), 0)
+    const host = devices.find(device => device.descriptor.deviceId === node.hostDeviceId)
+    return {
+      nodeId: node.id,
+      name: node.name,
+      platform: node.platform,
+      online,
+      lastSeenAt: lastSeenAt || undefined,
+      hostDeviceId: node.hostDeviceId,
+      clientDeviceId: node.clientDeviceId,
+      harnessVersion: host !== undefined && 'harnessVersion' in host.descriptor ? host.descriptor.harnessVersion : undefined,
+      appVersion: host?.descriptor.clientVersion,
+    }
+  }
+  function pairingString(code: string): string {
+    const fingerprint = config.certFingerprint?.trim() ?? ''
+    return `dshmesh://${url.host}/pair?v=1&code=${encodeURIComponent(code)}&fp=${encodeURIComponent(fingerprint)}`
   }
   async function route(req: IncomingMessage, res: ServerResponse) {
     const requestUrl = new URL(req.url ?? '/', url)
@@ -241,9 +283,51 @@ export function createRemoteServer(config: Config) {
       res.setHeader('Content-Type', contentType)
       res.end(asset); return
     }
-    if (method === 'GET' && (path === '/health' || path === '/healthz' || path === '/ready')) { json(res, 200, { status: 'ok' }); return }
+    if (method === 'GET' && (path === '/health' || path === '/healthz' || path === '/ready')) { json(res, 200, { status: 'ok', meshApi: MESH_API }); return }
     const client = clientAddress(req, trustedProxyIps)
-    rate(`api:${client}`, 240)
+    rate(`api:${client}`, 1200)
+    if (method === 'POST' && path === '/api/v1/admin/login') {
+      rate(`admin-login:${client}`, 10)
+      const credentials = adminLoginSchema.parse(await body(req))
+      if (!equal(credentials.password, config.password)) throw new ApiError('AUTH_INVALID', 401)
+      for (const [key, expires] of sessions) if (expires <= Date.now()) sessions.delete(key)
+      if (sessions.size >= 256) throw new ApiError('RATE_LIMITED', 429)
+      const value = secret(), expiresAt = Date.now() + 8 * 3600_000
+      sessions.set(hash(value), expiresAt)
+      res.setHeader('Set-Cookie', cookie(value, 8 * 3600))
+      json(res, 200, { status: 'ok', token: value, expiresAt }); return
+    }
+    if (method === 'GET' && path === '/api/v1/admin/nodes') {
+      accountAuth(req)
+      json(res, 200, { items: store.listNodes().map(nodeSummary) }); return
+    }
+    if (method === 'POST' && path === '/api/v1/admin/pairing-codes') {
+      accountAuth(req)
+      const input = createPairingSchema.parse(await body(req))
+      const created = store.createPairingCode(input.label, input.platform, (input.ttlMinutes ?? 30) * 60_000)
+      json(res, 201, { ...created, pairing: pairingString(created.code) }); return
+    }
+    if (method === 'GET' && path === '/api/v1/admin/pairing-codes') {
+      accountAuth(req)
+      json(res, 200, { items: store.listPairingCodes() }); return
+    }
+    const pairingCodeMatch = /^\/api\/v1\/admin\/pairing-codes\/([^/]+)$/.exec(path)
+    if (method === 'DELETE' && pairingCodeMatch) {
+      accountAuth(req)
+      store.revokePairingCode(pairingCodeMatch[1]!)
+      json(res, 200, { status: 'revoked' }); return
+    }
+    const nodeRevokeMatch = /^\/api\/v1\/admin\/nodes\/([^/]+)\/revoke$/.exec(path)
+    if (method === 'POST' && nodeRevokeMatch) {
+      accountAuth(req)
+      store.revokeNode(nodeRevokeMatch[1]!)
+      json(res, 200, { status: 'revoked' }); return
+    }
+    if (method === 'POST' && path === '/api/v1/devices/register-with-code') {
+      rate(`pair:${client}`, 20)
+      const { code, device } = pairingRegistrationSchema.parse(await body(req))
+      json(res, 200, store.registerWithCode(code, device)); return
+    }
     if (method === 'POST' && path === '/api/v1/auth/login') {
       rate(`login:${client}`, 20)
       const credentials = loginSchema.parse(await body(req))
@@ -263,11 +347,12 @@ export function createRemoteServer(config: Config) {
       accountAuth(req); json(res, 200, { items: store.list().map(descriptor), serverUrl: url.origin, transport: 'webrtc' }); return
     }
     if (method === 'POST' && (path === '/api/v1/devices/register' || path === '/api/v1/devices/register-owned-role')) {
-      const source = path.endsWith('register-owned-role') ? deviceAuth(req) : undefined
+      const owned = path.endsWith('register-owned-role')
+      const source = owned ? deviceAuth(req) : undefined
       if (!source) accountAuth(req)
       const { device } = deviceRegistrationRequestSchema.parse(await body(req))
       if (source && (source.descriptor.deviceId === device.deviceId || source.descriptor.role === device.role)) throw new ApiError('INVALID_MESSAGE', 409)
-      json(res, 200, store.register(device)); return
+      json(res, 200, source ? store.registerOwnedRole(device, source.descriptor.deviceId) : store.register(device)); return
     }
     if (method === 'POST' && path === '/api/v1/auth/refresh') {
       const data = deviceRefreshRequestSchema.parse(await body(req))
@@ -276,7 +361,15 @@ export function createRemoteServer(config: Config) {
     if (method === 'DELETE' && path === '/api/v1/devices/self') {
       store.revoke(deviceAuth(req).descriptor.deviceId); json(res, 200, { status: 'revoked' }); return
     }
-    if (method === 'GET' && path === '/api/v1/me') { json(res, 200, descriptor(deviceAuth(req))); return }
+    if (method === 'GET' && path === '/api/v1/nodes/self') {
+      json(res, 200, nodeSummary(store.nodeForDevice(deviceAuth(req).descriptor.deviceId))); return
+    }
+    if (method === 'DELETE' && path === '/api/v1/nodes/self') {
+      const node = store.nodeForDevice(deviceAuth(req).descriptor.deviceId)
+      store.revokeNode(node.id)
+      json(res, 200, { status: 'revoked' }); return
+    }
+    if (method === 'GET' && path === '/api/v1/me') { json(res, 200, deviceWithNode(deviceAuth(req))); return }
     if (method === 'GET' && path === '/api/v1/turn/credentials') {
       const source = deviceAuth(req)
       const connectionId = requestUrl.searchParams.get('connection_id') ?? ''
@@ -288,23 +381,26 @@ export function createRemoteServer(config: Config) {
       const source = deviceAuth(req)
       if (source.descriptor.role !== 'client') throw new ApiError('MEMBERSHIP_REQUIRED', 403)
       const items = store.list().filter(d => d.descriptor.role === 'host').map(d => {
-        const { identityKey: _key, ...item } = descriptor(d)
+        const { identityKey: _key, ...item } = deviceWithNode(d)
         return item
       })
       json(res, 200, { items, nextCursor: null }); return
     }
     const renameMatch = /^\/api\/v1\/devices\/([^/]+)\/name$/.exec(path)
     if (method === 'POST' && renameMatch) {
-      accountAuth(req)
-      const { name } = z.object({ name: z.string().trim().min(1).max(80) }).parse(await body(req))
-      store.rename(renameMatch[1]!, name)
-      json(res, 200, descriptor(store.get(renameMatch[1]!))); return
+      // Identity rule: a device may rename only the node it belongs to. There is
+      // no account/admin rename path in v0.
+      const source = deviceAuth(req)
+      if (source.descriptor.deviceId !== renameMatch[1]) throw new ApiError('NAME_NOT_OWNED', 403)
+      const { name } = renameSchema.parse(await body(req))
+      const node = store.renameNodeForDevice(source.descriptor.deviceId, name)
+      json(res, 200, { node: nodeSummary(node), device: deviceWithNode(store.get(source.descriptor.deviceId)) }); return
     }
     const match = /^\/api\/v1\/devices\/([^/]+)(\/presence)?$/.exec(path)
     if (method === 'GET' && match) {
       const source = deviceAuth(req), target = store.get(match[1]!)
       if (source.descriptor.role === target.descriptor.role) throw new ApiError('MEMBERSHIP_REQUIRED', 403)
-      const d = descriptor(target)
+      const d = deviceWithNode(target)
       json(res, 200, match[2] ? { deviceId: d.deviceId, online: d.online, lastSeenAt: d.lastSeenAt } : d); return
     }
     throw new ApiError('METHOD_NOT_FOUND', 404)
