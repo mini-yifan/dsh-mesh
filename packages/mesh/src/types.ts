@@ -57,6 +57,10 @@ export interface MeshTask {
   sessionId: string
   workspaceId?: string
   status: 'running' | 'waiting-input' | 'done' | 'failed' | 'cancelled' | 'unknown'
+  /** The asking text, for the Orb bookmark strip and Mesh task cards. */
+  prompt?: string
+  /** The local conversation that called device_agent; used for attribution labels. */
+  callerSessionId?: string
   files: Array<{
     name: string
     size: number

@@ -82,6 +82,7 @@ export function apply(ctx: Context): void {
       const taskText = args.task.trim()
       if (taskText === '') throw new Error('device_agent task must not be empty')
       const callerWorkspace = exec.agent?.session?.header?.cwd
+      const callerSessionId = exec.agent?.session?.id
       const attachments = (args.attachments ?? []).map(value => {
         const trimmed = value.trim()
         if (trimmed === '') throw new Error('device_agent attachment paths must not be empty')
@@ -142,6 +143,7 @@ export function apply(ctx: Context): void {
       const { task } = await mesh.createTaskSession(target.nodeId, workspace.workspaceId, taskText, {
         attachments,
         ...(callerWorkspace === undefined ? {} : { receiveRoot: callerWorkspace }),
+        ...(callerSessionId === undefined ? {} : { callerSessionId }),
       })
       if (exec.agent !== undefined) void notifyCompletion(mesh, task, target, exec.agent)
       return {

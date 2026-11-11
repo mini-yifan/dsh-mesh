@@ -67,6 +67,8 @@ export interface TaskCreateOptions {
   attachments?: string[]
   /** Workspace of the calling Agent; returned files land under `.mesh-in/<taskId>`. */
   receiveRoot?: string
+  /** Local conversation that started this task, for Orb attribution. */
+  callerSessionId?: string
 }
 
 /**
@@ -209,7 +211,12 @@ export class MeshService {
   async tree(): Promise<MeshTree> {
     const nodes: Array<MeshNode & { workspaces: MeshTree['nodes'][number]['workspaces'] }> = []
     const localCatalog = await readRemoteCatalog(this.localGateway, new AbortController().signal).catch(() => undefined)
-    nodes.push({ ...this.localNode, online: true, self: true, workspaces: localCatalog?.workspaces ?? [] })
+    nodes.push({
+      ...this.localNode,
+      online: true,
+      self: true,
+      workspaces: this.markTaskSessions(this.localNode.nodeId, localCatalog?.workspaces ?? []),
+    })
     for (const entry of this.peers?.nodes() ?? []) {
       if (entry.nodeId === this.localNode.nodeId) continue
       const peer = this.peers?.peer(entry.nodeId)
@@ -218,10 +225,28 @@ export class MeshService {
         continue
       }
       const catalog = await readRemoteCatalog(peer.gateway, new AbortController().signal).catch(() => undefined)
-      nodes.push({ ...entry, workspaces: catalog?.workspaces ?? [] })
+      nodes.push({
+        ...entry,
+        workspaces: this.markTaskSessions(entry.nodeId, catalog?.workspaces ?? []),
+      })
     }
     this.treeCursor += 1
     return { nodes, cursor: this.treeCursor }
+  }
+
+  /** Only a Session this device started through device_agent accepts prompt/cancel. */
+  private markTaskSessions(
+    nodeId: string,
+    workspaces: MeshTree['nodes'][number]['workspaces'],
+  ): MeshTree['nodes'][number]['workspaces'] {
+    const tasks = this.state?.tasks ?? []
+    return workspaces.map(workspace => ({
+      ...workspace,
+      sessions: workspace.sessions.map(session => ({
+        ...session,
+        controllable: tasks.some(task => task.targetNodeId === nodeId && task.sessionId === session.sessionId),
+      })),
+    }))
   }
 
   async page(nodeId: string, sessionId: string, maxMessages = 50): Promise<unknown> {
@@ -362,6 +387,8 @@ export class MeshService {
       sessionId,
       workspaceId,
       status: 'running',
+      prompt: taskText.slice(0, 2000),
+      ...(options.callerSessionId === undefined ? {} : { callerSessionId: options.callerSessionId }),
       files: [],
       ...(options.receiveRoot === undefined ? {} : { receiveRoot: options.receiveRoot }),
       createdAt: now,
