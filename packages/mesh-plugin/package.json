@@ -21,7 +21,12 @@
       "import": "./dist/types.js",
       "default": "./dist/types.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./return-files": {
+      "types": "./dist/return-files.d.ts",
+      "import": "./dist/return-files.js",
+      "default": "./dist/return-files.js"
+    }
   },
   "files": [
     "dist",

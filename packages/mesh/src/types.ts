@@ -62,9 +62,13 @@ export interface MeshTask {
     size: number
     direction: 'out' | 'in'
     localPath?: string
+    remotePath?: string
     state: 'transferring' | 'done' | 'failed'
     progress?: number
+    error?: string
   }>
+  /** Workspace that receives files returned by the remote worker. */
+  receiveRoot?: string
   createdAt: number
   updatedAt: number
 }

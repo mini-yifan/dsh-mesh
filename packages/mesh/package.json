@@ -20,6 +20,11 @@
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js",
       "default": "./dist/types.js"
+    },
+    "./return-files": {
+      "types": "./dist/return-files.d.ts",
+      "import": "./dist/return-files.js",
+      "default": "./dist/return-files.js"
     }
   },
   "files": [

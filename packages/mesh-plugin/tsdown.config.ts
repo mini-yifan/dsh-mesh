@@ -10,6 +10,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     'device-agent': 'src/device-agent.ts',
+    'return-files': 'src/return-files.ts',
   },
   format: ['esm'],
   platform: 'node',
