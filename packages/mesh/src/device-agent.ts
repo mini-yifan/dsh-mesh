@@ -12,7 +12,7 @@ export const DEVICE_AGENT = 'device_agent'
 export const DEVICE_AGENT_STATUS = 'device_agent_status'
 export const DEVICE_AGENT_STOP = 'device_agent_stop'
 
-const DESCRIPTION = 'Send one task to the standard-mode background Agent on another paired device. '
+const DESCRIPTION = 'Send one task to the background desktop Agent on another paired device. '
   + 'Use it when the work needs files, commands, or a long-running session on a specific device. '
   + 'The target must be online. Omit workspace to use the target dsh_orb floating-ball workspace; only pass workspace when the user named a different one. '
   + 'The call returns as soon as the remote session accepts the message. The remote session appears in the Mesh tree; only sessions created this way can be prompted or stopped from here.'
