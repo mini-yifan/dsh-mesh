@@ -48,21 +48,42 @@ export class MeshHost {
       void fallbackPeer?.dispose?.()
     }, 'dsh-mesh fallback owner peer')
     const switchGateway = new TypertGatewaySwitch(native, () => fallbackPeer)
-    const local = switchGateway.local()
+    // Remote sessions are dispatched through a per-peer gateway created by
+    // createPeer(), not through `local`, so both paths need the same wrapper.
+    const enforceIncomingPreset = (gateway: LocalTypertGateway): LocalTypertGateway => {
+      const dispatch = gateway.dispatch.bind(gateway)
+      gateway.dispatch = async (endpoint, payload, signal) => {
+        const result = await dispatch(endpoint, withIncomingPreset(endpoint, payload, this.config.incomingPreset), signal)
+        // DSH may ignore `agentPreset` on session/create. Select it explicitly
+        // before the caller sends the first prompt, so an incoming task always
+        // runs the configured background preset (desktop in the desktop bundle).
+        if (endpoint === 'session/create' && result.ok && result.value !== null && typeof result.value === 'object') {
+          const value = result.value as Record<string, unknown>
+          const sessionId = value.sessionId
+          if (typeof sessionId === 'string' && value.agentPreset !== this.config.incomingPreset) {
+            const selected = await dispatch('agentPresets/select', {
+              args: { agentId: sessionId, agentPreset: this.config.incomingPreset },
+            }, signal)
+            if (!selected.ok) {
+              this.logger.warn('incoming preset select failed', {
+                preset: this.config.incomingPreset,
+                code: selected.error.code,
+              })
+            }
+          }
+        }
+        return result
+      }
+      return gateway
+    }
+    const local = enforceIncomingPreset(switchGateway.local())
     local.createPeer = (): LocalTypertGateway => {
       const peer = createOwnerPeer()
       if (peer === undefined) return local
       return {
-        ...switchGateway.local(peer),
+        ...enforceIncomingPreset(switchGateway.local(peer)),
         dispose: async () => { await peer.dispose?.() },
       }
-    }
-    // Remote-created Sessions must run the configured incoming preset, regardless
-// of the target user's current UI preset. The bridge forwards session/create
-// through this local dispatch, so this is the enforcement point.
-    const dispatch = local.dispatch.bind(local)
-    local.dispatch = async (endpoint, payload, signal) => {
-      return dispatch(endpoint, withIncomingPreset(endpoint, payload, this.config.incomingPreset), signal)
     }
     this.localGateway = local
   }
