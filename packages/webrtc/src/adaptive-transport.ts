@@ -55,6 +55,8 @@ export interface AdaptiveTransportOptions {
   iceServersTimeoutMs?: number
   signal?: AbortSignal
   rtcFactory?: RtcPeerConnectionFactory
+  /** Pin/custom-TLS WebSocket factory; defaults to the platform WebSocket. */
+  createWebSocket?: (url: string) => WebSocket
   fetchIceServers?: (connectionId: string, signal?: AbortSignal) => Promise<RtcIceServer[]>
   onWebRtcFallback?: (error: Error, diagnostics?: RtcConnectionDiagnostics) => void
   onWebRtcDiagnostic?: (event: RtcDiagnosticEvent) => void
@@ -141,6 +143,10 @@ export class AdaptiveTransport extends BaseTransport {
     super()
   }
 
+  private openSocket(url: string): WebSocket {
+    return this.options.createWebSocket?.(url) ?? new WebSocket(url)
+  }
+
   async connect(): Promise<void> {
     if (this.socket !== undefined || this.connectedAt !== undefined) return
     throwIfAborted(this.options.signal)
@@ -152,7 +158,7 @@ export class AdaptiveTransport extends BaseTransport {
     this.selected = undefined
     this.connectedAt = undefined
     this.relayCounter = 0
-    this.socket = new WebSocket(this.url)
+    this.socket = this.openSocket(this.url)
     this.controlFrameLimits = {}
     this.socket.binaryType = 'arraybuffer'
     await new Promise<void>((resolve, reject) => {
@@ -586,7 +592,7 @@ export class AdaptiveTransport extends BaseTransport {
     try {
       const token = this.options.refreshAccessToken ? await this.options.refreshAccessToken() : this.options.accessToken
       if (this.lifetime !== lifetime || !this.lease?.canDetach()) return
-      const socket = new WebSocket(this.url)
+      const socket = this.openSocket(this.url)
       this.socket = socket
       socket.binaryType = 'arraybuffer'
       this.recoveryOpeningTimer = setTimeout(() => {
@@ -673,7 +679,7 @@ export class AdaptiveTransport extends BaseTransport {
 
   private async openDataSocket(assignment: RelayAssignment): Promise<void> {
     if (this.connectionId === undefined || this.dataSocket !== undefined) return
-    const socket = new WebSocket(assignment.relayEndpoint!)
+    const socket = this.openSocket(assignment.relayEndpoint!)
     socket.binaryType = 'arraybuffer'
     this.dataSocket = socket
     await new Promise<void>((resolve, reject) => {

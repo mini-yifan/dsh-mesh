@@ -2278,7 +2278,7 @@ var require_websocket = __commonJS({
     var http = __require("http");
     var net2 = __require("net");
     var tls3 = __require("tls");
-    var { randomBytes: randomBytes14, createHash: createHash8 } = __require("crypto");
+    var { randomBytes: randomBytes14, createHash: createHash9 } = __require("crypto");
     var { Duplex, Readable } = __require("stream");
     var { URL: URL2 } = __require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2946,7 +2946,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash8("sha1").update(key + GUID).digest("base64");
+        const digest = createHash9("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -3315,7 +3315,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter3 = __require("events");
     var http = __require("http");
     var { Duplex } = __require("stream");
-    var { createHash: createHash8 } = __require("crypto");
+    var { createHash: createHash9 } = __require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -3622,7 +3622,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash8("sha1").update(key + GUID).digest("base64");
+        const digest = createHash9("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -8933,12 +8933,12 @@ async function createStunOverTurnClient(config2, options = {}) {
 }
 function alternateTlsOptions(configured, alternateDomain, tlsOptions = {}) {
   const identity3 = alternateDomain ?? tlsOptions.servername ?? configured[0];
-  const checkServerIdentity2 = tlsOptions.checkServerIdentity ?? tls2.checkServerIdentity;
+  const checkServerIdentity22 = tlsOptions.checkServerIdentity ?? tls2.checkServerIdentity;
   return {
     ...tlsOptions,
     // SNI cannot carry an IP literal.
     servername: isIP3(identity3) ? void 0 : identity3,
-    checkServerIdentity: (_host, cert) => checkServerIdentity2(identity3, cert)
+    checkServerIdentity: (_host, cert) => checkServerIdentity22(identity3, cert)
   };
 }
 function tryAlternateOf(error62, addressFamily) {
@@ -70025,6 +70025,9 @@ var AdaptiveTransport = class extends BaseTransport {
     this.url = url2;
     this.options = options;
   }
+  openSocket(url2) {
+    return this.options.createWebSocket?.(url2) ?? new WebSocket(url2);
+  }
   async connect() {
     if (this.socket !== void 0 || this.connectedAt !== void 0)
       return;
@@ -70037,7 +70040,7 @@ var AdaptiveTransport = class extends BaseTransport {
     this.selected = void 0;
     this.connectedAt = void 0;
     this.relayCounter = 0;
-    this.socket = new WebSocket(this.url);
+    this.socket = this.openSocket(this.url);
     this.controlFrameLimits = {};
     this.socket.binaryType = "arraybuffer";
     await new Promise((resolve9, reject) => {
@@ -70469,7 +70472,7 @@ var AdaptiveTransport = class extends BaseTransport {
       const token = this.options.refreshAccessToken ? await this.options.refreshAccessToken() : this.options.accessToken;
       if (this.lifetime !== lifetime || !this.lease?.canDetach())
         return;
-      const socket = new WebSocket(this.url);
+      const socket = this.openSocket(this.url);
       this.socket = socket;
       socket.binaryType = "arraybuffer";
       this.recoveryOpeningTimer = setTimeout(() => {
@@ -70570,7 +70573,7 @@ var AdaptiveTransport = class extends BaseTransport {
   async openDataSocket(assignment) {
     if (this.connectionId === void 0 || this.dataSocket !== void 0)
       return;
-    const socket = new WebSocket(assignment.relayEndpoint);
+    const socket = this.openSocket(assignment.relayEndpoint);
     socket.binaryType = "arraybuffer";
     this.dataSocket = socket;
     await new Promise((resolve9, reject) => {
@@ -78309,6 +78312,7 @@ var ClientConnection = class {
           refreshAccessToken: async () => (await this.context.server.authenticate(identity3)).accessToken,
           targetDeviceId,
           forceRelay: this.context.config.forceRelay || attempt === "relay",
+          ...this.context.createWebSocket === void 0 ? {} : { createWebSocket: this.context.createWebSocket },
           preferredTransports: preferredTransportsForAttempt(attempt),
           negotiateTimeoutMs: attempt === "direct" ? DIRECT_WEBRTC_NEGOTIATE_TIMEOUT_MS : void 0,
           ...rtcFactory === void 0 || attempt === "relay" ? {} : { rtcFactory },
@@ -84845,6 +84849,7 @@ var entryConfigSchema = Schema.object({
   enabled: Schema.boolean(),
   role: Schema.union(["host", "client", "both"]),
   serverUrl: Schema.string(),
+  serverFingerprint: Schema.string(),
   deviceName: Schema.string(),
   terminal: Schema.object({ enabled: Schema.boolean() }),
   remoteTools: Schema.object({ enabled: Schema.boolean() }),
@@ -84889,6 +84894,7 @@ var configSchema = external_exports.object({
   enabled: external_exports.boolean().optional(),
   role: external_exports.enum(["host", "client", "both"]).optional(),
   serverUrl: external_exports.string().url().optional(),
+  serverFingerprint: external_exports.string().trim().min(32).max(128).optional(),
   deviceName: external_exports.string().trim().min(1).max(80).optional(),
   terminal: external_exports.object({ enabled: external_exports.boolean().optional() }).strict().optional(),
   remoteTools: external_exports.object({ enabled: external_exports.boolean().optional() }).strict().optional(),
@@ -84920,6 +84926,7 @@ function resolveConfig(input4 = {}, env = process.env) {
   const reconnect = typeof parsed.reconnect === "object" ? parsed.reconnect : {};
   const configuredServerUrl = parsed.serverUrl ?? env.DSH_REMOTE_SERVER;
   const serverUrl = configuredServerUrl === void 0 ? void 0 : normalizeServerUrl(configuredServerUrl);
+  const serverFingerprint = parsed.serverFingerprint ?? env.DSH_REMOTE_SERVER_FINGERPRINT;
   const initialDelayMs = reconnect.initialDelayMs ?? 4e3;
   const maxDelayMs = reconnect.maxDelayMs ?? 3e4;
   if (maxDelayMs < initialDelayMs) {
@@ -84929,6 +84936,7 @@ function resolveConfig(input4 = {}, env = process.env) {
     enabled: parsed.enabled ?? true,
     role: parsed.role ?? "host",
     ...serverUrl === void 0 ? {} : { serverUrl },
+    ...serverFingerprint === void 0 ? {} : { serverFingerprint },
     deviceName: parsed.deviceName ?? env.DSH_REMOTE_DEVICE_NAME ?? hostname3(),
     hostControl: { enabled: parsed.hostControl?.enabled ?? true },
     terminal: { enabled: parsed.terminal?.enabled ?? (env.DSH_REMOTE_TERMINAL_ENABLED === void 0 || env.DSH_REMOTE_TERMINAL_ENABLED === "true") },
@@ -85065,6 +85073,22 @@ var HostServerApi = class {
         inboundOnly: result.inboundOnly,
         ...validateTokens(result.tokens)
       });
+    });
+  }
+  /** v0 node summary: canonical name, nodeId and both identity bindings. */
+  async nodeSelf() {
+    return this.request("/api/v1/nodes/self");
+  }
+  /** Revoke both identities of this node (v0 "exit mesh"). */
+  async revokeNodeSelf() {
+    return this.request("/api/v1/nodes/self", { method: "DELETE" });
+  }
+  /** Rename this node. The Server accepts only the owning device's token. */
+  async renameSelf(name2) {
+    const identity3 = this.requireIdentity();
+    return this.request(`/api/v1/devices/${encodeURIComponent(identity3.deviceId)}/name`, {
+      method: "POST",
+      body: JSON.stringify({ name: name2 })
     });
   }
   currentAuthorization() {
@@ -85590,7 +85614,9 @@ function parseHostDevice(value) {
     ...typeof item.online === "boolean" ? { online: item.online } : {},
     ...typeof item.lastSeenAt === "number" && Number.isSafeInteger(item.lastSeenAt) ? { lastSeenAt: item.lastSeenAt } : {},
     ...typeof item.clientVersion === "string" ? { clientVersion: item.clientVersion } : {},
-    ...typeof item.harnessVersion === "string" ? { harnessVersion: item.harnessVersion } : {}
+    ...typeof item.harnessVersion === "string" ? { harnessVersion: item.harnessVersion } : {},
+    ...typeof item.nodeId === "string" ? { nodeId: item.nodeId } : {},
+    ...typeof item.nodeName === "string" ? { nodeName: item.nodeName } : {}
   };
 }
 function parseAuthorizedPeer(value) {
@@ -87173,13 +87199,14 @@ function isPrivate(ip) {
 
 // packages/plugin/src/client-runtime.ts
 var ClientModeRuntime = class {
-  constructor(config2, identities, server, typertGateway, logger2, host, rtcFactoryProvider = loadNodeRtcFactory) {
+  constructor(config2, identities, server, typertGateway, logger2, host, rtcFactoryProvider = loadNodeRtcFactory, createWebSocket) {
     this.config = config2;
     this.identities = identities;
     this.server = server;
     this.logger = logger2;
     this.host = host;
     this.rtcFactoryProvider = rtcFactoryProvider;
+    this.createWebSocket = createWebSocket;
     const owner = this;
     this.reconnect = new ClientReconnect(config2.reconnect);
     this.connection = new ClientConnection({
@@ -87210,7 +87237,8 @@ var ClientModeRuntime = class {
       },
       get identities() {
         return owner.identities;
-      }
+      },
+      ...this.createWebSocket === void 0 ? {} : { createWebSocket: this.createWebSocket }
     });
     this.control = new ClientControl({
       detailedStatus: (...args) => owner.detailedStatus(...args),
@@ -98378,7 +98406,7 @@ var ConnectionController = class {
       await channel.close("SECURE_CHANNEL_FAILED");
       throw new ConnectionRejectedError("SECURE_CHANNEL_FAILED", "The connection id is already bound to another peer.");
     }
-    const replaced = [...this.active.values()].filter((connection2) => connection2.channel.peerDeviceId === channel.peerDeviceId || connection2.channel.security.connectionId === connectionId);
+    const replaced = [...this.active.values()].filter((connection2) => connection2.channel.security.connectionId === connectionId);
     if (replaced.length > 0) {
       this.logger?.warn("replacing active peer connection", {
         peerDeviceId: shortId2(channel.peerDeviceId),
@@ -101479,7 +101507,7 @@ var CodexWorkspaceBridge = class extends WorkspaceBridge {
 
 // packages/plugin/src/service.ts
 var HostPluginRuntime = class {
-  constructor(config2, identities, logger2, localGateway, fileViewerHost, terminalSpawner, pluginRoutes, schedule) {
+  constructor(config2, identities, logger2, localGateway, fileViewerHost, terminalSpawner, pluginRoutes, schedule, injectedServerApi, webSocketFactory) {
     this.config = config2;
     this.identities = identities;
     this.logger = logger2;
@@ -101488,6 +101516,8 @@ var HostPluginRuntime = class {
     this.terminalSpawner = terminalSpawner;
     this.pluginRoutes = pluginRoutes;
     this.schedule = schedule;
+    this.injectedServerApi = injectedServerApi;
+    this.webSocketFactory = webSocketFactory;
     this.terminalEnabled = config2.terminal.enabled;
     this.loopbackPorts = [...config2.loopback.ports];
     this.codex = new CodexRemoteDomain(config2.codex, logger2);
@@ -101549,7 +101579,7 @@ var HostPluginRuntime = class {
       );
     }, this.logger);
     if (config2.serverUrl !== void 0) {
-      this.serverApi = new HostServerApi(config2.serverUrl, new ServerCredentialStore(identities.directory));
+      this.serverApi = this.injectedServerApi ?? new HostServerApi(config2.serverUrl, new ServerCredentialStore(identities.directory));
     }
   }
   connections;
@@ -101879,7 +101909,7 @@ var HostPluginRuntime = class {
       this.serverApi,
       this.connections,
       this.logger,
-      void 0,
+      this.webSocketFactory,
       this.config.forceRelay ? void 0 : () => loadNodeRtcFactory({ routeTargets: this.config.serverUrl === void 0 ? [] : [this.config.serverUrl] }),
       () => this.hostCapabilities(),
       this.harnessVersion
@@ -101987,6 +102017,94 @@ function shortId4(value) {
 }
 function isPlainRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// packages/plugin/src/pinned-tls.ts
+import { createHash as createHash8, timingSafeEqual as timingSafeEqual2, X509Certificate as X509Certificate3 } from "node:crypto";
+import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
+import { checkServerIdentity as checkServerIdentity2 } from "node:tls";
+function fingerprintBytes(fingerprint3) {
+  const normalized = fingerprint3.trim().replace(/-/g, "+").replace(/_/g, "/");
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(normalized)) throw new Error("Invalid certificate fingerprint.");
+  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+  const bytes = Buffer.from(padded, "base64");
+  if (bytes.length !== 32) throw new Error("Certificate fingerprint must be a SHA-256 digest.");
+  return bytes;
+}
+function publicKeyBytes(certificate) {
+  if (certificate.pubkey !== void 0) return certificate.pubkey;
+  return new X509Certificate3(certificate.raw).publicKey.export({ type: "spki", format: "der" });
+}
+function verifyPinned(certificate, expected) {
+  const actual = createHash8("sha256").update(publicKeyBytes(certificate)).digest();
+  return actual.length === expected.length && timingSafeEqual2(actual, expected) ? void 0 : new Error("Server certificate public key does not match the pinned fingerprint.");
+}
+function createPinnedFetch(fingerprint3) {
+  const expected = fingerprintBytes(fingerprint3);
+  const agent = new HttpsAgent({
+    keepAlive: true,
+    // v0 pins the SPKI instead of a public CA. The custom check below is the
+    // authentication decision; a private CA or the system store is not required.
+    rejectUnauthorized: false,
+    checkServerIdentity: (host, certificate) => {
+      const identity3 = checkServerIdentity2(host, certificate);
+      if (identity3 !== void 0) return identity3;
+      return verifyPinned(certificate, expected);
+    }
+  });
+  const pinned = async (input4, init = {}) => {
+    const url2 = new URL(typeof input4 === "string" ? input4 : input4 instanceof URL ? input4.href : input4.url);
+    if (url2.protocol !== "https:") return fetch(input4, init);
+    const method = init.method ?? (typeof input4 === "object" && "method" in input4 ? input4.method : "GET");
+    const headers = {};
+    new Headers(init.headers ?? (typeof input4 === "object" && "headers" in input4 ? input4.headers : void 0)).forEach((value, key) => {
+      headers[key] = value;
+    });
+    const body = init.body;
+    return await new Promise((resolve9, reject) => {
+      const request = httpsRequest(url2, { method, headers, agent, signal: init.signal ?? void 0 }, (response) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        response.on("end", () => {
+          const responseHeaders = {};
+          for (const [key, value] of Object.entries(response.headers)) {
+            if (value === void 0) continue;
+            responseHeaders[key] = Array.isArray(value) ? value.join(", ") : String(value);
+          }
+          resolve9(new Response(Buffer.concat(chunks), {
+            status: response.statusCode ?? 502,
+            statusText: response.statusMessage ?? "",
+            headers: responseHeaders
+          }));
+        });
+        response.on("error", reject);
+      });
+      request.on("error", reject);
+      if (body !== void 0 && body !== null) {
+        if (typeof body === "string" || Buffer.isBuffer(body)) request.write(body);
+        else reject(new Error("Pinned fetch only supports string or Buffer request bodies."));
+      }
+      request.end();
+    });
+  };
+  return pinned;
+}
+function createPinnedWebSocketFactory(fingerprint3) {
+  const expected = fingerprintBytes(fingerprint3);
+  const agent = new HttpsAgent({
+    keepAlive: true,
+    rejectUnauthorized: false,
+    checkServerIdentity: (host, certificate) => {
+      const identity3 = checkServerIdentity2(host, certificate);
+      if (identity3 !== void 0) return identity3;
+      return verifyPinned(certificate, expected);
+    }
+  });
+  return (url2) => new import_websocket.default(url2, { agent });
+}
+function createPinnedAdaptiveWebSocket(fingerprint3) {
+  const factory = createPinnedWebSocketFactory(fingerprint3);
+  return (url2) => factory(url2);
 }
 
 // packages/plugin/src/plugin-route-dispatcher.ts
@@ -102954,6 +103072,10 @@ async function activate(ctx, readConfig, entryId, requireRemoteEvents = false) {
       directory: config3.serverUrl === void 0 ? defaultIdentityDirectory : serverStorageDirectory(defaultIdentityDirectory, config3.serverUrl, "host"),
       role: "host"
     });
+    const pinnedFetch = config3.serverFingerprint === void 0 ? void 0 : createPinnedFetch(config3.serverFingerprint);
+    const pinnedWebSocket = config3.serverFingerprint === void 0 ? void 0 : createPinnedWebSocketFactory(config3.serverFingerprint);
+    const pinnedAdaptiveWebSocket = config3.serverFingerprint === void 0 ? void 0 : createPinnedAdaptiveWebSocket(config3.serverFingerprint);
+    const hostServerApi = config3.serverUrl === void 0 || pinnedFetch === void 0 ? void 0 : new HostServerApi(config3.serverUrl, new ServerCredentialStore(hostIdentities.directory), pinnedFetch);
     const runtime2 = new HostPluginRuntime(
       config3,
       hostIdentities,
@@ -102966,7 +103088,9 @@ async function activate(ctx, readConfig, entryId, requireRemoteEvents = false) {
         () => ctx.get("webServer")?.port,
         peer
       ),
-      schedule
+      schedule,
+      hostServerApi,
+      pinnedWebSocket
     );
     let clientRuntime2;
     if (config3.serverUrl !== void 0 && connection !== void 0) {
@@ -102977,10 +103101,12 @@ async function activate(ctx, readConfig, entryId, requireRemoteEvents = false) {
       clientRuntime2 = new ClientModeRuntime(
         config3,
         clientIdentities,
-        new ClientServerApi(config3.serverUrl, new ServerCredentialStore(clientIdentities.directory)),
+        new ClientServerApi(config3.serverUrl, new ServerCredentialStore(clientIdentities.directory), pinnedFetch),
         nativeTypertGateway,
         logger2,
-        runtime2
+        runtime2,
+        void 0,
+        pinnedAdaptiveWebSocket
       );
     }
     return { runtime: runtime2, clientRuntime: clientRuntime2 };
@@ -103189,6 +103315,7 @@ export {
   AcpPeerBridge,
   AcpRemoteGateway,
   CODEX_APP_ALLOWLIST,
+  ClientConnection,
   ClientModeError,
   ClientModeRuntime,
   ClientSecureTransport,
@@ -103212,19 +103339,27 @@ export {
   IdentityStore,
   PluginControlRuntime,
   RemoteFileViewerBridge,
+  RemoteSessionTools,
   RemoteTypertGateway2 as RemoteTypertGateway,
   RpcError,
   RpcRouter,
+  SafeLogger,
   ServerApiError,
   ServerCredentialStore,
   ServerCredentialsInvalidError,
   TypertGatewaySwitch,
   apply,
   applyTuiHost,
+  createOwnerPeerFactory,
+  createPinnedAdaptiveWebSocket,
+  createPinnedFetch,
+  createPinnedWebSocketFactory,
   createRemoteFileContentProvider,
   fingerprint2 as fingerprint,
   name,
+  ownerPeerConstructor,
   prepareDefaultIdentityDirectory,
+  readRemoteWorkspaceBaseline,
   resetDefaultIdentityRoles,
   resolveConfig,
   runCli,

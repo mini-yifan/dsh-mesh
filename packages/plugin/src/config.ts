@@ -9,6 +9,8 @@ export interface Config {
   enabled?: boolean
   role?: 'host' | 'client' | 'both'
   serverUrl?: string
+  /** SPKI SHA-256 (base64url) pinned by the pairing string. Required for HTTPS. */
+  serverFingerprint?: string
   deviceName?: string
   terminal?: { enabled?: boolean }
   remoteTools?: { enabled?: boolean }
@@ -70,6 +72,7 @@ export interface ResolvedConfig {
   enabled: boolean
   role: 'host' | 'client' | 'both'
   serverUrl?: string
+  serverFingerprint?: string
   deviceName: string
   forceRelay: boolean
   rotatePinnedPeerKey: boolean
@@ -108,6 +111,7 @@ export const entryConfigSchema = s.object({
   enabled: s.boolean(),
   role: s.union(['host', 'client', 'both'] as const),
   serverUrl: s.string(),
+  serverFingerprint: s.string(),
   deviceName: s.string(),
   terminal: s.object({ enabled: s.boolean() }),
   remoteTools: s.object({ enabled: s.boolean() }),
@@ -164,6 +168,7 @@ const configSchema = z.object({
   enabled: z.boolean().optional(),
   role: z.enum(['host', 'client', 'both']).optional(),
   serverUrl: z.string().url().optional(),
+  serverFingerprint: z.string().trim().min(32).max(128).optional(),
   deviceName: z.string().trim().min(1).max(80).optional(),
   terminal: z.object({ enabled: z.boolean().optional() }).strict().optional(),
   remoteTools: z.object({ enabled: z.boolean().optional() }).strict().optional(),
@@ -199,6 +204,7 @@ export function resolveConfig(input: ConfigInput = {}, env: NodeJS.ProcessEnv = 
   const reconnect = typeof parsed.reconnect === 'object' ? parsed.reconnect : {}
   const configuredServerUrl = parsed.serverUrl ?? env.DSH_REMOTE_SERVER
   const serverUrl = configuredServerUrl === undefined ? undefined : normalizeServerUrl(configuredServerUrl)
+  const serverFingerprint = parsed.serverFingerprint ?? env.DSH_REMOTE_SERVER_FINGERPRINT
   const initialDelayMs = reconnect.initialDelayMs ?? 4_000
   const maxDelayMs = reconnect.maxDelayMs ?? 30_000
   if (maxDelayMs < initialDelayMs) {
@@ -208,6 +214,7 @@ export function resolveConfig(input: ConfigInput = {}, env: NodeJS.ProcessEnv = 
     enabled: parsed.enabled ?? true,
     role: parsed.role ?? 'host',
     ...(serverUrl === undefined ? {} : { serverUrl }),
+    ...(serverFingerprint === undefined ? {} : { serverFingerprint }),
     deviceName: parsed.deviceName ?? env.DSH_REMOTE_DEVICE_NAME ?? hostname(),
     hostControl: { enabled: parsed.hostControl?.enabled ?? true },
     terminal: { enabled: parsed.terminal?.enabled ?? (env.DSH_REMOTE_TERMINAL_ENABLED === undefined || env.DSH_REMOTE_TERMINAL_ENABLED === 'true') },

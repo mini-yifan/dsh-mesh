@@ -75,9 +75,11 @@ export class ConnectionController {
       throw new ConnectionRejectedError('SECURE_CHANNEL_FAILED', 'The connection id is already bound to another peer.')
     }
 
+    // A Client device now owns one control connection per remote Host. Only a
+// reconnect that reuses the same logical connectionId replaces its predecessor;
+// connections from the same peerDeviceId on other links must coexist.
     const replaced = [...this.active.values()].filter(connection => (
-      connection.channel.peerDeviceId === channel.peerDeviceId
-      || connection.channel.security.connectionId === connectionId
+      connection.channel.security.connectionId === connectionId
     ))
     if (replaced.length > 0) {
       this.logger?.warn('replacing active peer connection', {

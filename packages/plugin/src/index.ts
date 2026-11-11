@@ -24,8 +24,9 @@ import { SafeLogger } from './logging.js'
 import { safeStartupError } from './safe-error.js'
 import { HostPluginRuntime } from './service.js'
 import type { ScheduleCreateService } from './harness-remote-bridge.js'
-import { ClientServerApi } from './server-api.js'
+import { ClientServerApi, HostServerApi } from './server-api.js'
 import { ServerCredentialStore } from './server-credentials.js'
+import { createPinnedAdaptiveWebSocket, createPinnedFetch, createPinnedWebSocketFactory } from './pinned-tls.js'
 import type { TypertGatewayLike } from './typert-gateway-contract.js'
 import { subprocessTerminalSpawner, type HostSubprocessLike } from './codex-workspace-bridge.js'
 import { TypertGatewaySwitch } from './typert-gateway-switch.js'
@@ -295,6 +296,12 @@ async function activate(
         : serverStorageDirectory(defaultIdentityDirectory, config.serverUrl, 'host'),
       role: 'host',
     })
+    const pinnedFetch = config.serverFingerprint === undefined ? undefined : createPinnedFetch(config.serverFingerprint)
+    const pinnedWebSocket = config.serverFingerprint === undefined ? undefined : createPinnedWebSocketFactory(config.serverFingerprint)
+    const pinnedAdaptiveWebSocket = config.serverFingerprint === undefined ? undefined : createPinnedAdaptiveWebSocket(config.serverFingerprint)
+    const hostServerApi = config.serverUrl === undefined || pinnedFetch === undefined
+      ? undefined
+      : new HostServerApi(config.serverUrl, new ServerCredentialStore(hostIdentities.directory), pinnedFetch)
     const runtime = new HostPluginRuntime(
       config,
       hostIdentities,
@@ -308,6 +315,8 @@ async function activate(
         peer,
       ),
       schedule,
+      hostServerApi,
+      pinnedWebSocket,
     )
 
     let clientRuntime: ClientModeRuntime | undefined
@@ -319,10 +328,12 @@ async function activate(
       clientRuntime = new ClientModeRuntime(
         config,
         clientIdentities,
-        new ClientServerApi(config.serverUrl, new ServerCredentialStore(clientIdentities.directory)),
+        new ClientServerApi(config.serverUrl, new ServerCredentialStore(clientIdentities.directory), pinnedFetch),
         nativeTypertGateway,
         logger,
         runtime,
+        undefined,
+        pinnedAdaptiveWebSocket,
       )
     }
 
@@ -589,6 +600,7 @@ function isLoaderLike(value: unknown): value is LoaderLike {
 
 export type { ResolvedConfig } from './config.js'
 export { resolveConfig } from './config.js'
+export { SafeLogger } from './logging.js'
 export { ConnectionController, ConnectionRejectedError } from './connection-controller.js'
 export type { PeerConnectionContext, RpcRouterFactory } from './connection-controller.js'
 export {
@@ -601,6 +613,7 @@ export {
 export { serverStorageDirectory } from './identity-store.js'
 export type { HostIdentity, IdentityErrorCode, RemoteDeviceRole, ResetIdentityOptions, TrustedPeer } from './identity-store.js'
 export { ClientServerApi, HostServerApi, ServerApiError } from './server-api.js'
+export type { AuthorizedPeerDevice, ServerHostDevice } from './server-api.js'
 export { HostServerConnection } from './server-connection.js'
 export type { WebSocketFactory } from './server-connection.js'
 export { ServerCredentialStore, ServerCredentialsInvalidError } from './server-credentials.js'
@@ -608,6 +621,13 @@ export type { ServerCredentials } from './server-credentials.js'
 export { HOST_CAPABILITIES, RpcError, RpcRouter } from './rpc-router.js'
 export { HostPluginRuntime } from './service.js'
 export { ClientModeError, ClientModeRuntime } from './client-runtime.js'
+export { ClientConnection } from './client-connection.js'
+export type { ClientConnectionContext } from './client-connection.js'
+export { createOwnerPeerFactory, ownerPeerConstructor } from './owner-peer.js'
+export type { OwnerPeerLike, OwnerPeerServiceLike } from './owner-peer.js'
+export { RemoteSessionTools } from './remote-session-tools.js'
+export { readRemoteWorkspaceBaseline } from './client-workspace-queries.js'
+export { createPinnedAdaptiveWebSocket, createPinnedFetch, createPinnedWebSocketFactory } from './pinned-tls.js'
 export { PluginControlRuntime } from './control-runtime.js'
 export { ClientSecureTransport } from './client-secure-transport.js'
 export { HARNESS_REMOTE_ALLOWLIST, HarnessRemoteBridge } from './harness-remote-bridge.js'

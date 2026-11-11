@@ -43,6 +43,11 @@
     "./client": "./dist/client.js",
     "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json",
+    "./internal": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
     "./icon": "./icon.png"
   },
   "files": [

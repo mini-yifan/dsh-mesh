@@ -138,6 +138,7 @@ export class ClientModeRuntime {
     private readonly logger: SafeLogger,
     private readonly host?: HostAuthorizationControl,
     private readonly rtcFactoryProvider: (options?: WeriftFactoryOptions) => Promise<RtcPeerConnectionFactory | undefined> = loadNodeRtcFactory,
+    private readonly createWebSocket?: (url: string) => WebSocket,
   ) {
     const owner = this
     this.reconnect = new ClientReconnect(config.reconnect)
@@ -152,6 +153,7 @@ export class ClientModeRuntime {
       get rtcFactoryProvider() { return owner.rtcFactoryProvider },
       get logger() { return owner.logger },
       get identities() { return owner.identities },
+      ...(this.createWebSocket === undefined ? {} : { createWebSocket: this.createWebSocket }),
     })
     this.control = new ClientControl({
       detailedStatus: (...args) => owner.detailedStatus(...args),
