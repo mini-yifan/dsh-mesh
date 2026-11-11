@@ -260,6 +260,55 @@ export class MeshService {
     return this.state?.tasks ?? []
   }
 
+  get devComputerUse(): boolean {
+    return this.config.devComputerUse
+  }
+
+  /**
+   * Local-only test hook: create a real Computer Use session in this Harness and
+   * prompt it, so both directions of the model-facing `device_agent` path can be
+   * exercised without the desktop app's browser cookie.
+   */
+  async createLocalComputerUseSession(workspaceId: string | undefined, text: string): Promise<{ sessionId: string }> {
+    if (!this.config.devComputerUse) throw new MeshError('dev_disabled', 'The local Computer Use test hook is disabled.', 404)
+    if (text.trim() === '') throw new MeshError('invalid_text', 'The test prompt must not be empty.')
+    const tree = await this.tree()
+    const local = tree.nodes.find(node => node.self === true || node.nodeId === this.localNode.nodeId)
+    const normalized = (value: string) => value.replaceAll('\\', '/').toLowerCase().replaceAll('_', '-')
+    const selected = workspaceId?.trim()
+      || local?.workspaces.find(workspace => normalized(workspace.title) === 'dsh-orb'
+        || normalized(workspace.path).endsWith('/.dsh/dsh-orb'))?.workspaceId
+      || local?.workspaces[0]?.workspaceId
+    if (selected === undefined || selected === '') throw new MeshError('needs_workspace', 'The local Harness has no workspace.', 409)
+    const signal = new AbortController().signal
+    const created = await this.localGateway.dispatch('session/create', {
+      args: { request: { workspaceId: selected, agentPreset: 'computer-use' } },
+    }, signal)
+    if (!created.ok) throw new MeshError(created.error.code, created.error.message, 502)
+    const createdValue = record(created.value)
+    const sessionId = createdValue.sessionId
+    if (typeof sessionId !== 'string') throw new MeshError('invalid_session', 'The local Harness did not return a session id.', 502)
+    // Some DSH releases ignore `agentPreset` on local session/create. Select the
+    // preset explicitly before the first turn; the registry endpoint takes the
+    // agent id either at the args root or under `request`.
+    if (createdValue.agentPreset !== 'computer-use') {
+      const selectedPreset = await this.localGateway.dispatch('agentPresets/select', {
+        args: { agentId: sessionId, agentPreset: 'computer-use' },
+      }, signal)
+      if (!selectedPreset.ok) {
+        const fallback = await this.localGateway.dispatch('agentPresets/select', {
+          args: { request: { agentId: sessionId, agentPreset: 'computer-use' } },
+        }, signal)
+        if (!fallback.ok) throw new MeshError(fallback.error.code, fallback.error.message, 502)
+      }
+    }
+    const prompted = await this.localGateway.dispatch('session/prompt', {
+      args: { request: { sessionId, requestId: randomUUID(), mode: 'queue', content: [{ type: 'text', text }] } },
+    }, signal)
+    if (!prompted.ok) throw new MeshError(prompted.error.code, prompted.error.message, 502)
+    return { sessionId }
+  }
+
   async createTaskSession(targetNodeId: string, workspaceId: string, taskText: string): Promise<{ task: MeshTask; workspaceId: string }> {
     const state = this.requireState()
     const peer = this.peers?.peer(targetNodeId)

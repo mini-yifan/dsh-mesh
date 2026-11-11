@@ -10,6 +10,8 @@ export interface MeshConfig {
   receiveDir?: string
   stateDir?: string
   mock?: boolean
+  /** Local-only test hook: allow creating a Computer Use session through /.dsh-mesh. */
+  devComputerUse?: boolean
   /** Escape hatch for a profile whose state.json was removed. */
   serverUrl?: string
   serverFingerprint?: string
@@ -24,6 +26,7 @@ export interface ResolvedMeshConfig {
   receiveDir?: string
   stateDir: string
   mock: boolean
+  devComputerUse: boolean
   serverUrl?: string
   serverFingerprint?: string
   logLevel: 'debug' | 'info' | 'warn' | 'error'
@@ -37,6 +40,7 @@ export const Config = s.object({
   receiveDir: s.string(),
   stateDir: s.string(),
   mock: s.boolean(),
+  devComputerUse: s.boolean(),
   serverUrl: s.string(),
   serverFingerprint: s.string(),
   logLevel: s.union(['debug', 'info', 'warn', 'error'] as const),
@@ -57,6 +61,7 @@ export function resolveMeshConfig(input: MeshConfig = {}): ResolvedMeshConfig {
       : { receiveDir: input.receiveDir.trim() }),
     stateDir: input.stateDir?.trim() || join(homedir(), '.dsh', 'dsh-mesh'),
     mock: input.mock === true,
+    devComputerUse: input.devComputerUse === true,
     ...(input.serverUrl?.trim() === undefined || input.serverUrl.trim() === ''
       ? {}
       : { serverUrl: input.serverUrl.trim() }),

@@ -95,6 +95,13 @@ export function registerMeshRoutes(
         }
         if (method === 'GET' && path === '/interactions') { json(res, 200, { items: service.interactions() }); return }
         if (method === 'GET' && path === '/tasks') { json(res, 200, { items: service.tasks() }); return }
+        if (method === 'POST' && path === '/dev/computer-use') {
+          const input = record(await body(req))
+          json(res, 200, await service.createLocalComputerUseSession(
+            typeof input.workspaceId === 'string' ? input.workspaceId : undefined,
+            String(input.text ?? ''),
+          )); return
+        }
         const session = /^\/sessions\/([^/]+)\/([^/]+)\/(page|stream|prompt|cancel)$/.exec(path)
         if (session !== null) {
           const [, nodeId, sessionId, action] = session
