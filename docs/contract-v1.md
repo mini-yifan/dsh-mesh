@@ -123,7 +123,7 @@ dshmesh://YOUR_SERVER_IP:443/pair?v=1&code=TESTPAIR&fp=Qm9n...（43 字符）
 - **电脑设置页**运行在 DSH 网页里，本来就带着会话 cookie。
 - **helper 窗口**用自己的令牌访问 `orb-host`，不直接调这些接口，由 `orb-host` 在进程内转调同一套服务（4.4）。
 - **手机 Flutter 互联页**现在没有现成的鉴权：dsh-Go 的运行令牌只用来换会话 cookie（`island_gate.dart:150`，令牌在 `runtime_bridge.dart:186`），Dart 侧没有给本机引擎发请求的 HTTP 客户端。手机仓库要先做一个：用 `GET /?token=<运行令牌>` 换 cookie，存进 Dart 的 cookie jar，之后所有 `/.dsh-mesh/v1/*` 请求都带上；引擎重启、令牌变化时重新换。这是手机入网的第 0 步（见 dsh-orb-android 的 `docs/v0-phone-orb.md`）。
-- **SSE 在 dsh-orb-cordis 还没用过**：那边现有路由都返回定长 JSON 或图片。`ctx.webServer.register` 给的是原始响应，技术上可以流式写，但要在 B0 确认 DSH 的 web 服务不会压缩、缓冲长连接响应，也不会让它超时。不行就改成 WebSocket 或长轮询，接口路径不变。
+- **增量通道**：见下面「长轮询默认、SSE 只当优化」一条；路径与事件形状不因传输方式变化。
 
 | 方法 | 路径 | 用途 | 谁用 |
 |---|---|---|---|
@@ -134,17 +134,21 @@ dshmesh://YOUR_SERVER_IP:443/pair?v=1&code=TESTPAIR&fp=Qm9n...（43 字符）
 | GET / PUT | `/prefs` | `{ allowIncoming, allowedCallers, allowGuardedTools, receiveDir }`；`allowGuardedTools` 在手机上显示为「允许其他设备操作本机屏幕」 | 两端设置页 |
 | GET | `/nodes` | `MeshNode[]`（第 7 节） | 树、设置页 |
 | GET | `/tree` | 设备 → 工作区 → 会话 的快照 | 树 |
-| GET | `/events` | SSE：节点上下线、树变化、交互出现/撤下、任务状态 | 树、卡片 |
+| GET | `/events?since=<cursor>` | 节点上下线、树变化、交互出现/撤下、任务状态；`{ items, cursor }`，长轮询最多挂 25 秒 | 树、卡片 |
 | GET | `/sessions/:nodeId/:sessionId/page` | 历史分页 | 会话视图 |
-| GET | `/sessions/:nodeId/:sessionId/stream` | SSE：实时事件 | 会话视图 |
-| POST | `/sessions/:nodeId/:sessionId/prompt` | `{ text, attachments? }` | 会话视图 |
-| POST | `/sessions/:nodeId/:sessionId/cancel` | 停止这一轮 | 会话视图 |
+| GET | `/sessions/:nodeId/:sessionId/stream?since=<cursor>` | 实时事件；`{ items, cursor }`，同样长轮询 | 会话视图 |
+| POST | `/sessions/:nodeId/:sessionId/prompt` | `{ text, attachments? }`；**仅任务会话**，否则 `session_not_remote_controllable` | 会话视图 |
+| POST | `/sessions/:nodeId/:sessionId/cancel` | 停止这一轮；仅任务会话，否则同上 | 会话视图 |
 | GET | `/interactions` | 未决审批/提问（`MeshInteraction[]`） | 卡片 |
 | POST | `/interactions/:eventId/answer` | `MeshInteractionAnswer` | 卡片 |
 | GET | `/tasks` | `DeviceTask[]`（含回传文件与进度） | 任务卡、附件区 |
 
-- **会话事件不重新定义**：`stream` 与 `page` 里的每一帧，就是 DSH `session/follow` / `session/page` 的原始事件，外面包一层 `{ nodeId, sessionId, seq, event }`。电脑的 `transcript-model.js` 和手机的 `ui/chat` 本来就解析 DSH 事件，各自直接渲染。
+- **会话事件不重新定义**：`stream` 与 `page` 里的每一帧，就是 DSH `session/follow` / `session/page` 的原始事件，外面包一层 `{ nodeId, sessionId, seq, event }`；长轮询的 `items` 就是这些帧的数组，`cursor` 取最大 `seq`。电脑的 `transcript-model.js` 和手机的 `ui/chat` 本来就解析 DSH 事件，各自直接渲染。
+- **`cursor` 语义**：按节点内单调递增的 `seq` 记账，不按时间戳；断线重连或进程重启后先重建基线（`/tree` + `/sessions/…/page`），再用上一次的 `cursor` 续拉。`cursor` 落后太多时返回 `{ items: [], cursor: <最新>, reset: true }`，消费方重建基线。
+- **增量通道默认长轮询，SSE 只当优化**：`ctx.webServer.register` 给的是原始 `res`，DSH web 层是否压缩/缓冲/空闲超时未验证，所以 v0 用定长响应的长轮询（最多挂 25 秒，有新事件立即返回）。B0 验证通过后可在同一路径加 `Accept: text/event-stream` 分支，**事件 JSON 形状不变**。
 - **错误格式统一**：`{ error: string, message: string }`，`message` 可直接展示。
+- **会话接口的拒绝码**：对**非任务会话**调 `prompt` / `cancel` 返回 `session_not_remote_controllable`（403）。v0 只允许对 `device_agent` 派出的任务会话输入（决策 P2）。
+- **审批可答者**：发起任务设备 + 目标设备本机；第三台打开会话只显示卡片、按钮置灰。这是 UI 策略，协议层不强制（决策 P3）。
 - **契约测试**：`dsh-mesh/tests/contract/` 用固定数据跑每个接口的请求与响应形状，真实模式和假数据模式都要通过。消费方若发现响应与文档不符，就去 `dsh-mesh` 提 issue，不在自己仓库里打补丁兼容。
 
 ### 4.4 进程内服务
@@ -169,7 +173,7 @@ dshmesh://YOUR_SERVER_IP:443/pair?v=1&code=TESTPAIR&fp=Qm9n...（43 字符）
 `mock: true` 时本机接口全部可用，供电脑和手机在没有服务器时开发界面。真实模式和假数据模式都要过 `tests/contract/`。
 
 - 返回 3 个假节点，每个节点 2 个工作区、若干会话；其中 1 个节点每 60 秒上下线一次。
-- `/stream` 按固定脚本推送一轮对话，中间触发一次审批。
+- `/events` 与 `/stream` 按固定脚本产生一轮对话，中间触发一次审批；长轮询按 `since` 分批返回，界面看到的是同一批帧。
 - `pair` 按配对码返回固定结果：`TESTPAIR` 成功；`BADCODE1` → `code_invalid`；`USEDCODE` → `code_used`；`OLDCODE1` → `code_expired`；`SLOWDOWN` → `rate_limited`；`NAMETAKE` → 成功并带 `name_taken` 警告；地址填 `unreachable.test` → `unreachable`；指纹填 43 个 `A` → `fingerprint_mismatch`。
 
 
@@ -290,7 +294,7 @@ MeshInteraction {           // 由目标节点 $events 流上的事件映射而�
   kind: 'approval' | 'question'
   toolName?: string
   reason?: string
-  originNodeId?: string     // 派发这条任务的节点（来自任务表），决定在哪弹卡
+  originNodeId?: string     // 派发这条任务的节点（来自任务表），决定在哪弹卡；v0 的审批只出现在任务会话里，因此一定有值
   createdAt: number
 }
 
