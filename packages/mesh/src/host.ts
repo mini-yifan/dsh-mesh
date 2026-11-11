@@ -71,6 +71,19 @@ export class MeshHost {
               })
             }
           }
+          // An unattended background task cannot answer approval prompts. Pin
+          // the full-access preset on every remotely created Session so file
+          // work outside the workspace and desktop actions are not blocked.
+          if (typeof sessionId === 'string') {
+            const command = await dispatch('commands/execute', {
+              args: { agentId: sessionId, line: '/permission danger-full-access', submittedAttachments: [] },
+            }, signal)
+            if (!command.ok) {
+              this.logger.warn('incoming permission switch failed', {
+                code: command.error.code,
+              })
+            }
+          }
         }
         return result
       }
