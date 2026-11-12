@@ -47,6 +47,8 @@ const TASK_RECONCILE_MS = 15_000
 const TASK_OFFLINE_STALE_MS = 10 * 60_000
 /** A Session that disappeared from the target's catalogue is no longer running. */
 const TASK_SESSION_MISSING_STALE_MS = 2 * 60_000
+/** Maximum time one Mesh long-poll waits for the next remote Session event. */
+const STREAM_WAIT_MS = 15_000
 
 /** Tell the remote worker where its attachments are and how to return files. */
 function taskPrompt(taskText: string, files: MeshTask['files']): string {
@@ -289,16 +291,67 @@ export class MeshService {
     const gateway = this.readGatewayFor(nodeId)
     const lifetime = new AbortController()
     const source = await gateway.open('session/follow', {
-      args: { request: { address: { kind: 'session', sessionId }, maxMessages: 20 } },
+      args: { request: { address: { kind: 'session', sessionId }, maxMessages: 50 } },
     }, lifetime.signal)
     const iterator = source[Symbol.asyncIterator]()
+    const items: unknown[] = []
+    const seen = new Set<number>()
+    let cursor = typeof since === 'number' && Number.isFinite(since) ? since : 0
+    let aborted = false
+    const timer = setTimeout(() => {
+      aborted = true
+      lifetime.abort('stream-poll')
+    }, STREAM_WAIT_MS)
+    timer.unref?.()
+    const collect = (frame: Record<string, unknown>): void => {
+      const event = record(frame.event)
+      if (event === undefined || typeof event.type !== 'string') return
+      const seq = typeof event.seq === 'number' ? event.seq : undefined
+      if (seq === undefined || seq <= cursor || seen.has(seq)) return
+      seen.add(seq)
+      items.push({
+        nodeId,
+        sessionId,
+        seq,
+        event: {
+          type: event.type,
+          ...(event.data === undefined ? {} : { data: event.data }),
+        },
+      })
+      cursor = seq
+    }
     try {
       const first = await iterator.next()
-      const items = first.done ? [] : [first.value]
-      return { items, cursor: since ?? items.length }
+      if (!first.done) {
+        const value = record(first.value)
+        if (value?.type === 'snapshot') {
+          for (const entry of Array.isArray(value.records) ? value.records : []) {
+            const row = record(entry)
+            if (row?.type === 'event') collect(row)
+          }
+          if (typeof value.cursor === 'number') cursor = Math.max(cursor, value.cursor)
+        } else if (value?.type === 'event') {
+          collect(value)
+        }
+      }
+      // A long poll: return immediately when the opening snapshot contained
+      // records newer than `since`; otherwise hold the follow open until a
+      // durable event or the bounded wait expires.
+      while (items.length === 0 && !aborted && !first.done) {
+        const next = await iterator.next()
+        if (next.done) break
+        const value = record(next.value)
+        if (value?.type === 'event') collect(value)
+      }
+      return { items, cursor }
+    } catch {
+      // The bounded wait aborts the follow stream. An empty batch is valid;
+      // the Mesh page immediately starts the next long poll.
+      return { items, cursor }
     } finally {
-      lifetime.abort('snapshot-read')
-      await iterator.return?.()
+      clearTimeout(timer)
+      lifetime.abort('stream-poll')
+      try { await iterator.return?.() } catch { /* The stream is already closed. */ }
     }
   }
 

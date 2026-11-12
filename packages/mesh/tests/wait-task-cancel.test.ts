@@ -94,3 +94,29 @@ describe('remote task cancellation', () => {
     expect(text).toContain('不要再次调用 device_agent')
   })
 })
+describe('remote session live stream', () => {
+  it('returns only durable events newer than the cursor', async () => {
+    async function* frames() {
+      yield {
+        type: 'snapshot',
+        cursor: 5,
+        records: [{ type: 'event', event: { type: 'user/message', seq: 5, data: { text: 'hi' } } }],
+      }
+      yield { type: 'event', event: { type: 'assistant/message', seq: 6, data: { text: 'ok' } } }
+      yield { type: 'assistant-stream', frame: { text: 'ignored' } }
+      yield { type: 'event', event: { type: 'turn/end', seq: 7, data: { turn: 1 } } }
+    }
+    const service = makeService(task('running'))
+    ;(service as unknown as {
+      peers: { peer(): { status: string; gateway: { open(): Promise<AsyncIterable<unknown>> } } }
+    }).peers = {
+      peer: () => ({ status: 'online', gateway: { open: async () => frames() } }),
+    }
+    const first = await service.stream('node-b', 'session-remote', 4)
+    expect(first.items.map(item => (item as { seq: number }).seq)).toEqual([5])
+    expect(first.cursor).toBe(5)
+    const second = await service.stream('node-b', 'session-remote', 5)
+    expect(second.items.map(item => (item as { seq: number }).seq)).toEqual([6])
+    expect(second.cursor).toBe(6)
+  })
+})
