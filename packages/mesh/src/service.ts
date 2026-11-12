@@ -41,6 +41,12 @@ const record = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 
 const SESSION_TIMEOUT_MS = 5 * 60_000
+/** How often persisted running tasks are checked against their remote Session. */
+const TASK_RECONCILE_MS = 15_000
+/** A peer offline this long cannot justify an indefinitely running bookmark. */
+const TASK_OFFLINE_STALE_MS = 10 * 60_000
+/** A Session that disappeared from the target's catalogue is no longer running. */
+const TASK_SESSION_MISSING_STALE_MS = 2 * 60_000
 
 /** Tell the remote worker where its attachments are and how to return files. */
 function taskPrompt(taskText: string, files: MeshTask['files']): string {
@@ -88,6 +94,9 @@ export class MeshService {
   private localNode: MeshNode
   private treeCursor = 0
   private clientRetry?: ReturnType<typeof setTimeout>
+  private taskTimer?: ReturnType<typeof setInterval>
+  private taskReconcile?: Promise<void>
+  private readonly taskIdleChecks = new Map<string, number>()
   private closedClient = false
 
   constructor(
@@ -118,11 +127,15 @@ export class MeshService {
       this.logger.warn('mesh host startup failed', { code: this.startError.slice(0, 160) })
     }
     await this.startClient(state)
+    this.startTaskReconcile()
   }
 
   async stop(): Promise<void> {
     this.closedClient = true
     this.clearClientRetry()
+    if (this.taskTimer !== undefined) clearInterval(this.taskTimer)
+    this.taskTimer = undefined
+    this.taskIdleChecks.clear()
     await this.peers?.close()
     this.peers = undefined
     await this.host?.stop().catch(() => undefined)
@@ -158,6 +171,7 @@ export class MeshService {
       this.logger.warn('mesh host startup failed', { code: this.startError.slice(0, 160) })
     }
     await this.startClient(result.state)
+    this.startTaskReconcile()
     return this.status()
   }
 
@@ -551,6 +565,92 @@ export class MeshService {
     task.updatedAt = Date.now()
     saveState(this.config.stateDir, state)
     return task
+  }
+
+  private startTaskReconcile(): void {
+    if (this.taskTimer !== undefined) return
+    this.taskTimer = setInterval(() => {
+      void this.reconcileTasks().catch(error => {
+        this.logger.debug('mesh task reconcile failed', {
+          code: error instanceof Error ? error.message.slice(0, 120) : 'unknown',
+        })
+      })
+    }, TASK_RECONCILE_MS)
+    this.taskTimer.unref?.()
+    void this.reconcileTasks().catch(() => undefined)
+  }
+
+  /**
+   * The watcher that normally closes a task lives in the process that dispatched
+   * it. A Harness restart loses that watcher, leaving a persisted `running` task
+   * (and an indefinitely spinning Orb bookmark) even though the remote Session
+   * ended hours ago. Reconcile the table against the target's Session catalogue.
+   */
+  private async reconcileTasks(): Promise<void> {
+    if (this.taskReconcile !== undefined) return this.taskReconcile
+    this.taskReconcile = this.reconcileTasksOnce().finally(() => {
+      this.taskReconcile = undefined
+    })
+    return this.taskReconcile
+  }
+
+  private async reconcileTasksOnce(): Promise<void> {
+    const state = this.state
+    if (state === undefined) return
+    const running = state.tasks.filter(task => task.status === 'running')
+    if (running.length === 0) return
+    const byNode = new Map<string, MeshTask[]>()
+    for (const task of running) {
+      const rows = byNode.get(task.targetNodeId) ?? []
+      rows.push(task)
+      byNode.set(task.targetNodeId, rows)
+    }
+    let changed = false
+    for (const [nodeId, tasks] of byNode) {
+      const peer = this.peers?.peer(nodeId)
+      const gateway = peer?.gateway
+      const listed = gateway !== undefined && peer?.status === 'online'
+        ? await gateway.dispatch('session/list', { args: { _request: {} } }, new AbortController().signal)
+          .catch(() => undefined)
+        : undefined
+      const items = listed?.ok === true && Array.isArray(record(listed.value).items)
+        ? (record(listed.value).items as unknown[]).map(record)
+        : undefined
+      for (const task of tasks) {
+        const row = items?.find(item => item.sessionId === task.sessionId)
+        if (items === undefined) {
+          if (Date.now() - task.updatedAt >= TASK_OFFLINE_STALE_MS) {
+            task.status = 'unknown'
+            task.updatedAt = Date.now()
+            this.taskIdleChecks.delete(task.taskId)
+            changed = true
+          }
+          continue
+        }
+        if (row === undefined) {
+          if (Date.now() - task.updatedAt >= TASK_SESSION_MISSING_STALE_MS) {
+            task.status = 'unknown'
+            task.updatedAt = Date.now()
+            this.taskIdleChecks.delete(task.taskId)
+            changed = true
+          }
+          continue
+        }
+        if (row.running === false) {
+          const idle = (this.taskIdleChecks.get(task.taskId) ?? 0) + 1
+          this.taskIdleChecks.set(task.taskId, idle)
+          if (idle >= 2) {
+            task.status = 'done'
+            task.updatedAt = Date.now()
+            this.taskIdleChecks.delete(task.taskId)
+            changed = true
+          }
+        } else {
+          this.taskIdleChecks.delete(task.taskId)
+        }
+      }
+    }
+    if (changed) saveState(this.config.stateDir, state)
   }
 
   private async startClient(state: MeshState): Promise<void> {

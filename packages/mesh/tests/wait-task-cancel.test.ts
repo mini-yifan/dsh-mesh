@@ -75,6 +75,15 @@ describe('remote task cancellation', () => {
     expect(settled.status).toBe('cancelled')
   })
 
+  it('settles a persisted running task after two idle reconciliations', async () => {
+    const service = makeService(task('running'))
+    const reconcile = (service as unknown as { reconcileTasks(): Promise<void> }).reconcileTasks.bind(service)
+    await reconcile()
+    expect(service.tasks()[0]?.status).toBe('running')
+    await reconcile()
+    expect(service.tasks()[0]?.status).toBe('done')
+  })
+
   it('tells the caller that a manual stop is terminal, without the retry invitation', () => {
     const running = task('running')
     const stopped = { ...running, status: 'cancelled' as const }
