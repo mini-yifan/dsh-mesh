@@ -99,6 +99,17 @@ export function registerMeshRoutes(
           json(res, 200, await service.finishLink())
           return
         }
+        if (method === 'POST' && path === '/link/poll') {
+          // Step 2 for a mobile client: one collect attempt. A phone must not
+          // hold a request open for the whole approval, because the app is
+          // suspended in the background and its HTTP client has a deadline.
+          const status = await service.pollLink()
+          json(res, 200, status === undefined ? { pending: true } : { pending: false, status })
+          return
+        }
+        if (method === 'POST' && path === '/link/cancel') {
+          json(res, 200, service.cancelLink()); return
+        }
         if (method === 'GET' && path === '/link/status') {
           json(res, 200, service.pendingLinkStatus()); return
         }

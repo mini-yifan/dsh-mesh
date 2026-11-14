@@ -43,6 +43,11 @@ export interface MeshStatus {
   peersTotal: number
   /** Startup failure detail, surfaced so "offline" is actionable. */
   error?: string
+  /**
+   * Origin the sign-in switch offers first, when the deployment configured one.
+   * Absent means the user has to type an address.
+   */
+  defaultServer?: string
 }
 
 export interface MeshPrefs {

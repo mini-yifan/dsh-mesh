@@ -5,6 +5,12 @@ import s from '@deepseek-ai/schemastery'
 export interface MeshConfig {
   platform?: string
   deviceName?: string
+  /**
+   * Origin the sign-in switch offers first. Empty means nothing is bundled and
+   * the user must type an address: the default belongs to a deployment, not to
+   * the published source tree.
+   */
+  defaultServer?: string
   incomingPreset?: string
   remoteToolGuard?: string[]
   receiveDir?: string
@@ -21,6 +27,7 @@ export interface MeshConfig {
 export interface ResolvedMeshConfig {
   platform: string
   deviceName?: string
+  defaultServer?: string
   incomingPreset: string
   remoteToolGuard: string[]
   receiveDir?: string
@@ -35,6 +42,7 @@ export interface ResolvedMeshConfig {
 export const Config = s.object({
   platform: s.string(),
   deviceName: s.string(),
+  defaultServer: s.string(),
   incomingPreset: s.string(),
   remoteToolGuard: s.array(s.string()),
   receiveDir: s.string(),
@@ -53,6 +61,9 @@ export function resolveMeshConfig(input: MeshConfig = {}): ResolvedMeshConfig {
     ...(input.deviceName?.trim() === undefined || input.deviceName.trim() === ''
       ? {}
       : { deviceName: input.deviceName.trim().slice(0, 80) }),
+    ...(input.defaultServer?.trim() === undefined || input.defaultServer.trim() === ''
+      ? {}
+      : { defaultServer: input.defaultServer.trim() }),
     incomingPreset: input.incomingPreset?.trim() || 'standard',
     remoteToolGuard: [...new Set((input.remoteToolGuard ?? (platform === 'android' ? ['mcp__phone__*'] : []))
       .map(value => value.trim()).filter(Boolean))],

@@ -20,8 +20,10 @@ import { pairMesh, unpairMesh, type PairingInput } from './pair.js'
 import {
   adoptLinkCredentials,
   normalizeServerUrl,
+  pollDeviceLink,
   startDeviceLink,
   waitForDeviceLink,
+  type LinkCredentials,
 } from './account-link.js'
 import { loadState, saveState, serverScopedDirectory, type MeshState } from './state.js'
 import { readRemoteCatalog } from './tree.js'
@@ -153,7 +155,13 @@ export class MeshService {
 
   status(): MeshStatus {
     const state = this.state
-    if (state === undefined) return { paired: false, connection: 'unpaired', peersOnline: 0, peersTotal: 0 }
+    // The settings switch offers this origin first; absent means "type one".
+    const defaultServer = this.config.defaultServer === undefined
+      ? {}
+      : { defaultServer: this.config.defaultServer }
+    if (state === undefined) {
+      return { paired: false, connection: 'unpaired', peersOnline: 0, peersTotal: 0, ...defaultServer }
+    }
     const online = this.peers?.onlineCount() ?? 0
     const total = this.peers?.size ?? 0
     return {
@@ -168,6 +176,7 @@ export class MeshService {
       peersOnline: online,
       peersTotal: total,
       ...(this.startError === undefined ? {} : { error: this.startError }),
+      ...defaultServer,
     }
   }
 
@@ -270,13 +279,12 @@ export class MeshService {
    * Hosted mode, step 2: wait for the browser approval and adopt the result.
    *
    * Resolves once the credentials arrive; rejects when the link expires or the
-   * caller aborts.
+   * caller aborts. Desktop clients use this one blocking call. A phone cannot:
+   * its HTTP client holds a request for a bounded time and the OS suspends the
+   * app in the background, so the mobile UI drives {@link pollLink} instead.
    */
   async finishLink(signal?: AbortSignal): Promise<MeshStatus> {
-    const pending = this.pendingLink
-    if (pending === undefined) {
-      throw new MeshError('no_pending_link', 'No device approval is in progress.')
-    }
+    const pending = this.requirePendingLink()
     let credentials
     try {
       credentials = await waitForDeviceLink(
@@ -288,8 +296,59 @@ export class MeshService {
       this.pendingLink = undefined
       throw error
     }
-    this.pendingLink = undefined
+    return this.adoptPendingLink(credentials)
+  }
 
+  /**
+   * Hosted mode, step 2 for clients that must not block: one collect attempt.
+   *
+   * Returns the new status once the browser has approved, or `undefined` while
+   * the link is still waiting, so the caller can poll on its own schedule and
+   * survives the app being backgrounded between polls.
+   */
+  async pollLink(): Promise<MeshStatus | undefined> {
+    const pending = this.requirePendingLink()
+    if (Date.now() > pending.expiresAt) {
+      this.pendingLink = undefined
+      throw new MeshError('LINK_EXPIRED', '连接请求已过期。')
+    }
+    let credentials
+    try {
+      // Same plain fetch `startDeviceLink` used: the account server is reached
+      // over public TLS, so there is no fingerprint to pin yet.
+      credentials = await pollDeviceLink(
+        pending.serverUrl,
+        { linkId: pending.linkId, nonce: pending.nonce },
+      )
+    } catch (error) {
+      this.pendingLink = undefined
+      throw error
+    }
+    return credentials === undefined ? undefined : this.adoptPendingLink(credentials)
+  }
+
+  /** Drop a pending link the user abandoned; the browser page then shows it expired. */
+  cancelLink(): { pending: boolean } {
+    this.pendingLink = undefined
+    return { pending: false }
+  }
+
+  private requirePendingLink(): { serverUrl: string; linkId: string; nonce: string; expiresAt: number } {
+    const pending = this.pendingLink
+    if (pending === undefined) {
+      throw new MeshError('no_pending_link', 'No device approval is in progress.')
+    }
+    return pending
+  }
+
+  /**
+   * Persist approved credentials and bring the runtime up on them.
+   *
+   * Shared by the blocking and polling flows so both end in exactly the same
+   * state; only the wait differs.
+   */
+  private async adoptPendingLink(credentials: LinkCredentials): Promise<MeshStatus> {
+    this.pendingLink = undefined
     const next = await adoptLinkCredentials(
       this.config.stateDir,
       this.config.platform,

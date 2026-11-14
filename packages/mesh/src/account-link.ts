@@ -39,6 +39,47 @@ export class LinkError extends Error {
   constructor(readonly code: string, message: string) { super(message) }
 }
 
+/**
+ * Turn an undici `TypeError: fetch failed` into something a user can act on.
+ *
+ * Node hides the real reason in `error.cause`: a DNS failure, a refused socket
+ * and a rejected certificate all arrive as the same opaque message. Without
+ * this the phone can only ever show "fetch failed", which says nothing about
+ * whether the address is wrong, the network is down, or the certificate is
+ * untrusted — the three cases that need different fixes.
+ */
+export function linkNetworkError(serverUrl: string, error: unknown): LinkError {
+  const cause = (error as { cause?: unknown } | undefined)?.cause as
+    | { code?: string; message?: string; errors?: Array<{ code?: string }> }
+    | undefined
+  const code = cause?.code ?? cause?.errors?.[0]?.code ?? ''
+  const detail = cause?.message ?? (error instanceof Error ? error.message : String(error))
+  const reason = code === 'ENOTFOUND' || code === 'EAI_AGAIN'
+    ? '域名解析失败，请检查服务器地址和网络。'
+    : code === 'ECONNREFUSED'
+      ? '服务器拒绝连接，请确认地址和端口。'
+      : code === 'ETIMEDOUT' || code === 'UND_ERR_CONNECT_TIMEOUT'
+        ? '连接服务器超时，请检查网络。'
+        : /certificate|SELF_SIGNED|UNABLE_TO_VERIFY|CERT_ALTNAME|unable to verify/i.test(detail)
+          ? '服务器证书校验失败。'
+          : `无法连接 ${serverUrl}：${detail}`
+  return new LinkError('network_error', reason)
+}
+
+/** Every request out of this module goes through here so failures stay readable. */
+async function request(
+  serverUrl: string,
+  input: string,
+  init: RequestInit,
+  fetchImpl: typeof fetch,
+): Promise<Response> {
+  try {
+    return await fetchImpl(input, init)
+  } catch (error) {
+    throw linkNetworkError(serverUrl, error)
+  }
+}
+
 interface StartInput {
   serverUrl: string
   publicKey: string
@@ -93,7 +134,7 @@ export async function startDeviceLink(
   const { randomBytes } = await import('node:crypto')
   const localNonce = randomBytes(32).toString('base64url')
 
-  const response = await fetchImpl(`${serverUrl}/api/v1/link/start`, {
+  const response = await request(serverUrl, `${serverUrl}/api/v1/link/start`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({
@@ -102,7 +143,7 @@ export async function startDeviceLink(
       platform: input.platform,
       ...(input.deviceId === undefined ? {} : { deviceId: input.deviceId }),
     }),
-  })
+  }, fetchImpl)
   const data = await response.json().catch(() => ({})) as Record<string, unknown>
   if (!response.ok) {
     const code = String((data.error as { code?: unknown } | undefined)?.code ?? 'link_failed')
@@ -124,11 +165,11 @@ export async function pollDeviceLink(
   fetchImpl: typeof fetch = fetch,
 ): Promise<LinkCredentials | undefined> {
   const base = normalizeServerUrl(serverUrl)
-  const response = await fetchImpl(`${base}/api/v1/link/collect`, {
+  const response = await request(base, `${base}/api/v1/link/collect`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({ linkId: link.linkId, nonce: link.nonce }),
-  })
+  }, fetchImpl)
   if (response.status === 202) return undefined
   const data = await response.json().catch(() => ({})) as Record<string, unknown>
   if (!response.ok) {
