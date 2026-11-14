@@ -1,5 +1,6 @@
 import { createHostPairingPanel } from './pairing.js'
 import { createServerNotice } from './server-notice.js'
+import { DEFAULT_REMOTE_SERVER_URL } from '../config.js'
 import { renderBodyPortal } from './portal.js'
 import QRCode from 'qrcode'
 import type { Translate } from '../client-locale.js'
@@ -167,7 +168,7 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
     const [needsAuthorization, setNeedsAuthorization] = React.useState<boolean | undefined>(undefined)
     const [email, setEmail] = React.useState('')
     const [password, setPassword] = React.useState('')
-    const [loginServerUrl, setLoginServerUrl] = React.useState('https://dsh.r2049.cn')
+    const [loginServerUrl, setLoginServerUrl] = React.useState(DEFAULT_REMOTE_SERVER_URL)
     const [editingServer, setEditingServer] = React.useState(false)
     const [savingServer, setSavingServer] = React.useState(false)
     const serverDirty = loginServerUrl.trim() !== (status?.serverUrl ?? '')
@@ -1376,12 +1377,12 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
                     }, t(savingServer ? 'saving' : 'save')),
                     React.createElement('button', {
                       type: 'button', disabled: busy || savingServer,
-                      onClick: () => { resetLoginFlow(); setLoginServerUrl('https://dsh.r2049.cn'); void saveLoginServer('https://dsh.r2049.cn') },
+                      onClick: () => { resetLoginFlow(); setLoginServerUrl(DEFAULT_REMOTE_SERVER_URL); void saveLoginServer(DEFAULT_REMOTE_SERVER_URL) },
                     }, t('restoreDefaultServiceAddress')),
                     React.createElement('button', {
                       type: 'button', disabled: busy || savingServer,
                       onClick: () => {
-                        setLoginServerUrl(status?.serverUrl ?? 'https://dsh.r2049.cn')
+                        setLoginServerUrl(status?.serverUrl ?? DEFAULT_REMOTE_SERVER_URL)
                         setEditingServer(false)
                       },
                     }, t('cancelServiceAddressEdit')))

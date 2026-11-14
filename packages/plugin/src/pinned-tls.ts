@@ -37,13 +37,20 @@ function verifyPinned(certificate: PeerCertificate, expected: Buffer): Error | u
  * small: the control plane only exchanges JSON, while file payloads use the
  * encrypted relay. Non-HTTPS URLs (local development) fall back to the platform
  * fetch so `mock`/localhost flows keep working without a certificate.
+ *
+ * An empty fingerprint means "verify with the platform CA store". Hosted
+ * deployments serve a publicly trusted certificate, where pinning would force a
+ * re-pair on every renewal for no security gain: the account login already
+ * established which server we are talking to. Self-hosted deployments keep
+ * pinning a self-signed SPKI.
  */
 export function createPinnedFetch(fingerprint: string): FetchImplementation {
+  if (fingerprint.trim() === '') return (input, init) => fetch(input, init)
   const expected = fingerprintBytes(fingerprint)
   const agent = new HttpsAgent({
     keepAlive: true,
-    // v0 pins the SPKI instead of a public CA. The custom check below is the
-    // authentication decision; a private CA or the system store is not required.
+    // Pinning replaces CA verification: the check below is the authentication
+    // decision, so a private CA or the system store is not consulted.
     rejectUnauthorized: false,
     checkServerIdentity: (host, certificate) => {
       const identity = checkServerIdentity(host, certificate)
@@ -93,6 +100,10 @@ export function createPinnedFetch(fingerprint: string): FetchImplementation {
  * compatible with the DOM WebSocket surface used by AdaptiveTransport.
  */
 export function createPinnedWebSocketFactory(fingerprint: string): WebSocketFactory {
+  // Empty fingerprint: rely on the platform CA store, same rule as createPinnedFetch.
+  if (fingerprint.trim() === '') {
+    return (url: string) => new WsWebSocket(url) as unknown as ReturnType<WebSocketFactory>
+  }
   const expected = fingerprintBytes(fingerprint)
   const agent = new HttpsAgent({
     keepAlive: true,

@@ -34,6 +34,26 @@ export class MeshPairError extends Error {
 const CODE_PATTERN = /^[A-Z0-9]{4,32}$/
 const FINGERPRINT_PATTERN = /^[A-Za-z0-9_-]{43}$/
 
+/**
+ * An empty `fp` means the deployment serves a publicly trusted certificate and
+ * the client verifies with the platform CA store. Self-hosted setups still pin a
+ * self-signed SPKI, in which case `fp` must be a full 43-character digest.
+ */
+function validFingerprint(value: string): boolean {
+  return value === '' || FINGERPRINT_PATTERN.test(value)
+}
+
+/**
+ * The pairing scheme is scheme-less (`dshmesh://host/pair`), so the transport is
+ * derived from the host. Loopback hosts are assumed to be a local development
+ * server on plain HTTP; everything else is HTTPS.
+ */
+function originFor(host: string): string {
+  const hostname = host.replace(/:\d+$/, '').toLowerCase()
+  const isLoopback = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1'
+  return `${isLoopback ? 'http' : 'https'}://${host}`
+}
+
 export function parsePairing(raw: string): PairingInput {
   let url: URL
   try {
@@ -48,8 +68,8 @@ export function parsePairing(raw: string): PairingInput {
   const code = (url.searchParams.get('code') ?? '').trim().toUpperCase()
   const fingerprint = (url.searchParams.get('fp') ?? '').trim()
   if (!CODE_PATTERN.test(code)) throw new MeshPairError('bad_pairing', 'The pairing code is missing or malformed.')
-  if (!FINGERPRINT_PATTERN.test(fingerprint)) throw new MeshPairError('bad_pairing', 'The certificate fingerprint is missing or malformed.')
-  return { serverUrl: `https://${url.host}`, code, fingerprint }
+  if (!validFingerprint(fingerprint)) throw new MeshPairError('bad_pairing', 'The certificate fingerprint is malformed.')
+  return { serverUrl: originFor(url.host), code, fingerprint }
 }
 
 function pairError(error: unknown): MeshPairError {

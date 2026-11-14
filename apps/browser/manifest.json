@@ -17,6 +17,13 @@
   "background": {
     "service_worker": "dist/background.js"
   },
-  "permissions": ["storage", "scripting"],
-  "host_permissions": ["https://dsh.r2049.cn/*"]
+  "permissions": [
+    "storage",
+    "scripting"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ]
 }

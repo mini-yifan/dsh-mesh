@@ -39,7 +39,7 @@ body:
       options:
         - "Android APK (GitHub Release / Pre-release)"
         - "DSH 桌面插件 (插件市场)"
-        - "官方托管 Web 端 (dsh.r2049.cn/app)"
+        - "自建服务 Web 端"
         - "自建 Docker 服务端 (Self-hosted Server)"
         - "npm / CLI (ds-harness-remote 包)"
         - "源码编译安装 (Built from source)"

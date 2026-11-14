@@ -1,0 +1,38 @@
+# Hosted (account) mode reverse proxy.
+#
+# One domain serves both the web portal and the device control plane, so a
+# single publicly trusted certificate covers everything. Caddy obtains and
+# renews it automatically: no pinning, no 90-day expiry surprise.
+#
+# Replace `mesh.example.com` with your own domain. Caddy needs ports 80 and 443
+# reachable for the ACME challenge.
+
+mesh.example.com {
+	encode zstd gzip
+
+	# Security headers. The CSP is strict because the SPA ships its own assets:
+	# no inline scripts, no third-party origins.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# Everything goes to the server: the portal, the API and the WebSocket.
+	reverse_proxy server:8080 {
+		# The device control plane upgrades to WebSocket on this path.
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output stdout
+		format console
+		# Never log query strings: they can carry link ids.
+		format console {
+			exclude http.request.uri.query
+		}
+	}
+}

@@ -3,7 +3,18 @@ import type { Volatile, VolatileSnapshot } from '@deepseek-ai/cordis'
 import s from '@deepseek-ai/schemastery'
 import { z } from 'zod'
 
-export const DEFAULT_REMOTE_SERVER_URL = 'https://dsh.r2049.cn'
+/**
+ * The server a fresh install offers in its sign-in form.
+ *
+ * This is a build-time default, not a hardcoded endpoint: a distribution sets
+ * `DSH_REMOTE_DEFAULT_SERVER` (or patches this constant) so the published source
+ * tree never ships pointing at someone else's infrastructure. Empty means the
+ * first-run form starts blank and the user must supply an address.
+ */
+export const DEFAULT_REMOTE_SERVER_URL: string = process.env.DSH_REMOTE_DEFAULT_SERVER?.trim() ?? ''
+
+/** Placeholder shown when no default is compiled in. */
+export const SERVER_URL_PLACEHOLDER = 'https://your-mesh-server.example.com'
 
 export interface Config {
   enabled?: boolean

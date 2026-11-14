@@ -25,7 +25,7 @@ Host 接入分为两层认证：
 插件默认 Server：
 
 ```text
-https://dsh.r2049.cn
+https://mesh.example.test
 ```
 
 同时允许用户输入自定义部署地址，例如：
@@ -287,7 +287,7 @@ deviceId，避免用户把当前 Harness 连接回自身。
 
 ```json
 {
-  "serverUrl": "https://dsh.r2049.cn",
+  "serverUrl": "https://mesh.example.test",
   "authorizationMethod": "account",
   "account": "user@example.com",
   "deviceId": "0198...",
@@ -337,7 +337,7 @@ Plugin 使用凭据文件旁的 `server-credentials.json.refresh-lock` 目录锁
 连接：
 
 ```text
-wss://dsh.r2049.cn/ws/v1/connect
+wss://mesh.example.test/ws/v1/connect
 ```
 
 自定义 Server 则从 HTTPS origin 派生 `wss` URL。access token 必须放在首个 `hello` frame 中，禁止放在 URL query：

@@ -41,6 +41,8 @@ export interface MeshStatus {
   connection: 'unpaired' | 'connecting' | 'connected' | 'offline'
   peersOnline: number
   peersTotal: number
+  /** Startup failure detail, surfaced so "offline" is actionable. */
+  error?: string
 }
 
 export interface MeshPrefs {

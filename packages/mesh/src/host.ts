@@ -145,7 +145,9 @@ export class MeshHost {
       enabled: true,
       role: 'both',
       serverUrl: state.serverUrl,
-      serverFingerprint: state.fingerprint,
+      // A public-CA deployment has no pin. Passing an empty string fails
+      // resolveConfig's `.min(32)` check, so omit the field entirely instead.
+      ...(state.fingerprint === '' ? {} : { serverFingerprint: state.fingerprint }),
       deviceName: this.config.deviceName ?? `${this.config.platform}-node`,
       forceRelay: true,
       terminal: { enabled: false },

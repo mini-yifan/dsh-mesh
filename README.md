@@ -13,7 +13,6 @@
 
 <p align="center">
   <a href="docs/README.md"><img src="https://img.shields.io/badge/Documentation-blue?logo=googledocs&amp;logoColor=white" alt="Documentation"></a>
-  <a href="https://dsh.r2049.cn/app"><img src="https://img.shields.io/badge/Web-4D6BFE?logo=googlechrome&amp;logoColor=white" alt="Web"></a>
   <a href="https://github.com/liguobao/ds-harness-remote/releases/latest"><img src="https://img.shields.io/badge/Android-3DDC84?logo=android&amp;logoColor=white" alt="Android"></a>
   <a href="https://github.com/liguobao/ds-harness-remote/issues/20"><img src="https://img.shields.io/badge/iOS-000000?logo=apple&amp;logoColor=white" alt="iOS"></a>
 </p>
@@ -53,13 +52,13 @@ The DeepSeek Harness desktop edition is supported. Install the latest release:
 | Client | Form | Status | Notes |
 | --- | --- | --- | --- |
 | DSH&nbsp;Desktop&nbsp;plugin | Remote sidebar | Supported | Install `ds-harness-remote@0.6.4`; this computer can also be the Host |
-| Web | Browser page | Supported | Open [https://dsh.r2049.cn](https://dsh.r2049.cn); reuses the native Harness interface |
+| Web | Browser page | Supported | Sign in to your self-hosted web portal; reuses the native Harness interface |
 | Android | Native app | Supported | Download the APK from [Releases](https://github.com/liguobao/ds-harness-remote/releases/latest); see the [Android guide](apps/android/README.md) |
 | DSH Go | A standout app by ccch1mneyyy | Supported | See [ccch1mneyyy/dsh-go: an Android client for DeepSeek Harness. Run it directly on your phone or control DSH on your computer remotely.](https://github.com/ccch1mneyyy/dsh-go) |
 | iOS | TestFlight beta | Beta | Not publicly released; see [issue #20](https://github.com/liguobao/ds-harness-remote/issues/20) |
 | Browser&nbsp;extension | Chrome | Entry point only | Exchanges an already signed-in Web authorization for a separate device credential, lists online Hosts and opens the same-origin Remote Web; it does not host a conversation UI |
 | dsh-TUI | Terminal-only CLI | Planned | Integration is not part of this release and returns in a later version; the installer never creates a Web service for it automatically |
-| Linux | Cloud server | Supported | Sign in on the [official website](https://dsh.r2049.cn/) to install with one command. |
+| Linux | Cloud server | Supported | Sign in to the web portal to get a one-command install authorization code. |
 
 Several clients can connect to the same Host at once; RPC calls and streams are isolated per connection.
 
@@ -79,7 +78,7 @@ On DSH 0.2.2+, npm installations support version checks and updates in Plugin ma
 
 ### Linux one-command installation
 
-Visit [https://dsh.r2049.cn](https://dsh.r2049.cn/), sign in, and obtain an installation authorization code to install with one command.
+Sign in to your web portal, obtain an installation authorization code, then run the installer.
 
 ### Native Android client
 
@@ -104,7 +103,7 @@ After installing the ds-harness-remote plugin in DSH Go on your phone, you can a
 3. On another device, install the same plugin in DeepSeek Harness and sign in as described in steps 1–2. Alternatively, use Remote Web, iOS, Android, or DSH Go directly without installing a plugin.
 4. Select an online Host, then choose an existing workspace or browse remote directories to open one.
 
-By default, Remote uses this project's hosted Server at [https://dsh.r2049.cn](https://dsh.r2049.cn).
+The default server is whatever the operator sets in `DSH_REMOTE_DEFAULT_SERVER`; the source tree ships no hosted endpoint.
 
 For self-hosting, use the repository's [minimal Server](apps/server/README.md). The current version includes WebRTC LAN/P2P/TURN coordination (TURN requires your own coturn deployment) and an encrypted Relay Server, but does not provide the full hosted Remote Web experience.
 
@@ -119,7 +118,7 @@ On another computer, select an online Host and open its workspace. The workspace
   <img src="docs/images/remote.png" alt="A Harness conversation running through an encrypted remote connection" width="40%">
 </p>
 
-To prevent this computer from controlling other Hosts, open the Host list at [https://dsh.r2049.cn/](https://dsh.r2049.cn/) and enable **Controlled only**. This device will no longer see other devices under your account, while Web and other clients can still connect to it remotely.
+To prevent this computer from controlling other Hosts, open the Host list in the web portal and enable **Controlled only**. This device will no longer see other devices under your account, while Web and other clients can still connect to it remotely.
 
 ### Android
 
@@ -285,7 +284,6 @@ DS Bot is a bot plugin for DeepSeek Harness (dsh) that turns dsh into a bot. You
 - Friendly link: [DSH Go](https://github.com/ccch1mneyyy/dsh-go) — DeepSeek Harness in your pocket: run it locally on your phone or control your computer remotely. Remote integration is available.
 - Friendly link: [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) — terminal-first Harness client; Remote integration is planned for a later release.
 - Friendly link: [LINUX DO](https://linux.do/)
-- Friendly link: [Cyber Liu Kanshan](https://kanshan.r2049.cn/)
 
 ## Star History
 

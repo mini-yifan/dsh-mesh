@@ -20,6 +20,11 @@ const savedDeviceSchema = z.object({
   lastSeenAt: z.number(),
   /** v0 node binding. Optional so a v1 state file can still be parsed. */
   nodeId: z.string().optional(),
+  /**
+   * Owning account (a digest, never the address). Backfilled on load for v2
+   * files, where a single tenant owned everything.
+   */
+  owner: z.string().optional(),
 })
 export const nodeSchema = z.object({
   id: z.string(),
@@ -29,6 +34,7 @@ export const nodeSchema = z.object({
   revoked: z.boolean(),
   hostDeviceId: z.string(),
   clientDeviceId: z.string().optional(),
+  owner: z.string().optional(),
 })
 export const pairingCodeSchema = z.object({
   id: z.string(),
@@ -40,6 +46,7 @@ export const pairingCodeSchema = z.object({
   usedAt: z.number().optional(),
   revokedAt: z.number().optional(),
   nodeId: z.string().optional(),
+  owner: z.string().optional(),
 })
 const legacyStateSchema = z.object({
   version: z.literal(1),
@@ -98,6 +105,8 @@ function platformPrefix(platform: string): string {
 export class Store {
   private state: State
   onInvalidate: (id: string) => void = () => {}
+  /** Every record written from now on carries this owner scope. */
+  private defaultOwner: string
   constructor(private readonly file: string, readonly account: string, password: string) {
     const previous = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) as unknown : undefined
     const parsed = previous === undefined ? undefined : stateSchema.safeParse(previous)
@@ -118,7 +127,18 @@ export class Store {
       this.state.tokens = {}
     }
     Object.assign(this.state, { account, verifier })
+    this.defaultOwner = hash(account)
+    // v2 records predate ownership; a single tenant owned everything, so claim
+    // the whole file for that account instead of orphaning it.
+    this.backfillOwners(this.defaultOwner)
     this.save()
+  }
+
+  /** Give every pre-multi-account record the single tenant's scope. */
+  private backfillOwners(owner: string): void {
+    for (const device of Object.values(this.state.devices)) device.owner ??= owner
+    for (const node of Object.values(this.state.nodes)) node.owner ??= owner
+    for (const code of Object.values(this.state.pairingCodes)) code.owner ??= owner
   }
 
   /** v1 had no node layer. Give every existing identity a node so the upgrade is lossless enough to re-pair. */
@@ -134,8 +154,9 @@ export class Store {
       pairingCodes: {},
     }
     const names = new Set<string>()
+    const legacyOwner = hash(legacy.account)
     for (const [deviceId, saved] of Object.entries(legacy.devices)) {
-      const name = this.uniqueName(saved.descriptor.name, saved.descriptor.platform, names)
+      const name = this.uniqueName(saved.descriptor.name, saved.descriptor.platform, legacyOwner, names)
       const nodeId = randomUUID()
       state.nodes[nodeId] = {
         id: nodeId,
@@ -168,28 +189,36 @@ export class Store {
     writeFileSync(tmp, JSON.stringify(this.state), { mode: 0o600 })
     renameSync(tmp, this.file)
   }
-  get(id: string): SavedDevice {
+  get(id: string, scope?: string): SavedDevice {
     const d = Object.hasOwn(this.state.devices, id) ? this.state.devices[id] : undefined
     if (!d) throw new ApiError('DEVICE_NOT_FOUND', 404)
+    if (scope !== undefined && d.owner !== scope) throw new ApiError('DEVICE_NOT_FOUND', 404)
     if (d.revoked) throw new ApiError('DEVICE_REVOKED', 403)
     return d
   }
-  list(): SavedDevice[] { return Object.values(this.state.devices).filter(d => !d.revoked) }
+  list(scope?: string): SavedDevice[] {
+    return Object.values(this.state.devices)
+      .filter(d => !d.revoked && (scope === undefined || d.owner === scope))
+  }
 
-  listNodes(): MeshNode[] { return Object.values(this.state.nodes).filter(node => !node.revoked) }
-  getNode(id: string): MeshNode {
+  listNodes(scope?: string): MeshNode[] {
+    return Object.values(this.state.nodes)
+      .filter(node => !node.revoked && (scope === undefined || node.owner === scope))
+  }
+  getNode(id: string, scope?: string): MeshNode {
     const node = Object.hasOwn(this.state.nodes, id) ? this.state.nodes[id] : undefined
     if (!node) throw new ApiError('NODE_NOT_FOUND', 404)
+    if (scope !== undefined && node.owner !== scope) throw new ApiError('NODE_NOT_FOUND', 404)
     if (node.revoked) throw new ApiError('NODE_REVOKED', 403)
     return node
   }
-  nodeForDevice(deviceId: string): MeshNode {
-    const device = this.get(deviceId)
+  nodeForDevice(deviceId: string, scope?: string): MeshNode {
+    const device = this.get(deviceId, scope)
     if (!device.nodeId) throw new ApiError('NODE_NOT_FOUND', 404)
-    return this.getNode(device.nodeId)
+    return this.getNode(device.nodeId, scope)
   }
 
-  private uniqueName(desired: string | undefined, platform: string, taken = new Set(Object.values(this.state.nodes).filter(n => !n.revoked).map(n => n.name.toLowerCase()))): string {
+  private uniqueName(desired: string | undefined, platform: string, owner: string, taken = new Set(Object.values(this.state.nodes).filter(n => !n.revoked && n.owner === owner).map(n => n.name.toLowerCase()))): string {
     const candidate = desired?.trim()
     if (candidate && candidate.length > 0 && candidate.length <= 80 && !taken.has(candidate.toLowerCase())) return candidate
     const prefix = platformPrefix(platform)
@@ -200,22 +229,25 @@ export class Store {
     throw new ApiError('RATE_LIMITED', 429)
   }
 
-  private createNode(descriptor: AccountDeviceDescriptor, desiredName?: string): MeshNode {
+  private createNode(descriptor: AccountDeviceDescriptor, owner: string, desiredName?: string): MeshNode {
     const node: MeshNode = {
       id: randomUUID(),
-      name: this.uniqueName(desiredName ?? descriptor.name, descriptor.platform),
+      name: this.uniqueName(desiredName ?? descriptor.name, descriptor.platform, owner),
       platform: descriptor.platform,
       createdAt: Date.now(),
       revoked: false,
       hostDeviceId: descriptor.role === 'host' ? descriptor.deviceId : '',
       ...(descriptor.role === 'client' ? { clientDeviceId: descriptor.deviceId } : {}),
+      owner,
     }
     this.state.nodes[node.id] = node
     return node
   }
 
-  private registerDevice(descriptor: AccountDeviceDescriptor, nodeId: string): ReturnType<Store['issue']> {
+  private registerDevice(descriptor: AccountDeviceDescriptor, nodeId: string, owner: string): ReturnType<Store['issue']> {
     const old = this.state.devices[descriptor.deviceId]
+    // A device id is globally unique; another account may not adopt it.
+    if (old && old.owner !== owner) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
     if (old?.revoked) throw new ApiError('DEVICE_REVOKED', 403)
     if (old && (old.descriptor.identityKey !== descriptor.identityKey || old.descriptor.role !== descriptor.role)) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
     if (!old && Object.keys(this.state.devices).length >= 256) throw new ApiError('RATE_LIMITED', 429)
@@ -224,17 +256,19 @@ export class Store {
       revoked: false,
       lastSeenAt: old?.lastSeenAt ?? 0,
       nodeId,
+      owner,
     }
     this.invalidate(descriptor.deviceId)
     return this.issue(descriptor.deviceId)
   }
 
-  register(descriptor: AccountDeviceDescriptor): ReturnType<Store['issue']> {
+  register(descriptor: AccountDeviceDescriptor, owner = this.defaultOwner): ReturnType<Store['issue']> {
     return this.transaction(() => {
       const existing = this.state.devices[descriptor.deviceId]
-      if (existing?.nodeId && this.state.nodes[existing.nodeId]) return this.registerDevice(descriptor, existing.nodeId)
-      const node = this.createNode(descriptor)
-      return this.registerDevice(descriptor, node.id)
+      if (existing && existing.owner !== owner) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
+      if (existing?.nodeId && this.state.nodes[existing.nodeId]) return this.registerDevice(descriptor, existing.nodeId, owner)
+      const node = this.createNode(descriptor, owner)
+      return this.registerDevice(descriptor, node.id, owner)
     })
   }
 
@@ -242,7 +276,7 @@ export class Store {
    * Host-only registration with a one-time administrative pairing code.
    * Creates the node and binds the Host identity to it.
    */
-  registerWithCode(code: string, descriptor: AccountDeviceDescriptor): ReturnType<Store['issue']> {
+  registerWithCode(code: string, descriptor: AccountDeviceDescriptor, owner?: string): ReturnType<Store['issue']> {
     return this.transaction(() => {
       if (descriptor.role !== 'host') throw new ApiError('CODE_INVALID', 400)
       const normalized = code.trim().toUpperCase()
@@ -250,14 +284,15 @@ export class Store {
       const record = Object.values(this.state.pairingCodes).find(entry =>
         timingSafeEqual(Buffer.from(entry.codeHash, 'hex'), Buffer.from(codeHash, 'hex')))
       if (!record) throw new ApiError('CODE_INVALID', 400)
+      const scope = record.owner ?? owner ?? this.defaultOwner
       if (record.revokedAt) throw new ApiError('CODE_INVALID', 400)
       if (record.usedAt) throw new ApiError('CODE_USED', 409)
       if (record.expiresAt <= Date.now()) throw new ApiError('CODE_EXPIRED', 410)
       if (Object.keys(this.state.nodes).filter(id => !this.state.nodes[id]!.revoked).length >= 256) throw new ApiError('RATE_LIMITED', 429)
-      const node = this.createNode(descriptor)
+      const node = this.createNode(descriptor, scope)
       record.usedAt = Date.now()
       record.nodeId = node.id
-      return this.registerDevice(descriptor, node.id)
+      return this.registerDevice(descriptor, node.id, scope)
     })
   }
 
@@ -266,12 +301,13 @@ export class Store {
    * upstream endpoint is symmetric (host token -> client identity, or client
    * token -> host identity); both identities are bound to the same node.
    */
-  registerOwnedRole(descriptor: AccountDeviceDescriptor, sourceDeviceId: string): ReturnType<Store['issue']> {
+  registerOwnedRole(descriptor: AccountDeviceDescriptor, sourceDeviceId: string, scope?: string): ReturnType<Store['issue']> {
     return this.transaction(() => {
-      const source = this.get(sourceDeviceId)
+      const source = this.get(sourceDeviceId, scope)
       if (source.descriptor.role === descriptor.role) throw new ApiError('INVALID_MESSAGE', 409)
       if (!source.nodeId) throw new ApiError('NODE_NOT_FOUND', 404)
-      const node = this.getNode(source.nodeId)
+      const node = this.getNode(source.nodeId, scope)
+      const owner = node.owner ?? this.defaultOwner
       if (descriptor.role === 'host') {
         if (node.hostDeviceId !== '' && node.hostDeviceId !== descriptor.deviceId) throw new ApiError('NODE_HOST_CONFLICT', 409)
         node.hostDeviceId = descriptor.deviceId
@@ -279,11 +315,11 @@ export class Store {
         if (node.clientDeviceId !== undefined && node.clientDeviceId !== descriptor.deviceId) throw new ApiError('NODE_CLIENT_CONFLICT', 409)
         node.clientDeviceId = descriptor.deviceId
       }
-      return this.registerDevice(descriptor, node.id)
+      return this.registerDevice(descriptor, node.id, owner)
     })
   }
 
-  createPairingCode(label: string, platform?: string, ttlMs = PAIRING_TTL_MS) {
+  createPairingCode(label: string, platform?: string, ttlMs = PAIRING_TTL_MS, scope = this.defaultOwner) {
     return this.transaction(() => {
       const code = pairingCode()
       const id = randomUUID()
@@ -295,30 +331,32 @@ export class Store {
       }
       if (Object.keys(this.state.pairingCodes).length >= MAX_PAIRING_CODES) throw new ApiError('RATE_LIMITED', 429)
       const expiresAt = now + Math.max(60_000, Math.min(ttlMs, 24 * 3600_000))
-      this.state.pairingCodes[id] = { id, codeHash: hash(code), label: label.slice(0, 120), platform, createdAt: now, expiresAt }
+      this.state.pairingCodes[id] = { id, codeHash: hash(code), label: label.slice(0, 120), platform, createdAt: now, expiresAt, owner: scope }
       this.save()
       return { id, code, label: label.slice(0, 120), platform, createdAt: now, expiresAt }
     })
   }
 
-  listPairingCodes(): Array<Omit<PairingCode, 'codeHash'>> {
+  listPairingCodes(scope?: string): Array<Omit<PairingCode, 'codeHash'>> {
     return Object.values(this.state.pairingCodes)
+      .filter(record => scope === undefined || record.owner === scope)
       .sort((left, right) => right.createdAt - left.createdAt)
       .slice(0, 100)
       .map(({ codeHash: _hash, ...rest }) => rest)
   }
 
-  revokePairingCode(id: string): void {
+  revokePairingCode(id: string, scope?: string): void {
     const record = this.state.pairingCodes[id]
     if (!record) throw new ApiError('CODE_INVALID', 404)
+    if (scope !== undefined && record.owner !== scope) throw new ApiError('CODE_INVALID', 404)
     record.revokedAt = Date.now()
     this.save()
   }
 
   /** Only the owning device may rename its node; the node name is canonical for both identities. */
-  renameNodeForDevice(deviceId: string, name: string): MeshNode {
+  renameNodeForDevice(deviceId: string, name: string, scope?: string): MeshNode {
     return this.transaction(() => {
-      const node = this.nodeForDevice(deviceId)
+      const node = this.nodeForDevice(deviceId, scope)
       node.name = name.trim().slice(0, 80)
       for (const id of [node.hostDeviceId, node.clientDeviceId]) {
         if (!id) continue
@@ -330,9 +368,9 @@ export class Store {
     })
   }
 
-  revokeNode(nodeId: string): void {
+  revokeNode(nodeId: string, scope?: string): void {
     this.transaction(() => {
-      const node = this.getNode(nodeId)
+      const node = this.getNode(nodeId, scope)
       node.revoked = true
       for (const deviceId of [node.hostDeviceId, node.clientDeviceId]) {
         if (!deviceId) continue

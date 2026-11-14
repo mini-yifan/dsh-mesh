@@ -13,7 +13,6 @@
 
 <p align="center">
   <a href="docs/README.md"><img src="https://img.shields.io/badge/%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%83%88-blue?logo=googledocs&amp;logoColor=white" alt="ドキュメント"></a>
-  <a href="https://dsh.r2049.cn/app"><img src="https://img.shields.io/badge/Web-4D6BFE?logo=googlechrome&amp;logoColor=white" alt="Web"></a>
   <a href="https://github.com/liguobao/ds-harness-remote/releases/latest"><img src="https://img.shields.io/badge/Android-3DDC84?logo=android&amp;logoColor=white" alt="Android"></a>
   <a href="https://github.com/liguobao/ds-harness-remote/issues/20"><img src="https://img.shields.io/badge/iOS-000000?logo=apple&amp;logoColor=white" alt="iOS"></a>
 </p>
@@ -53,13 +52,13 @@ DeepSeek Harness デスクトップ版に対応しています。最新リリー
 | クライアント | 形式 | 状態 | 備考 |
 | --- | --- | --- | --- |
 | DSH Desktop プラグイン | Remote サイドバー | 対応 | `ds-harness-remote@0.6.4` をインストールします。このパソコンを Host としても利用できます |
-| Web | ブラウザーページ | 対応 | [https://dsh.r2049.cn](https://dsh.r2049.cn) を開きます。ネイティブの Harness UI を再利用します |
+| Web | ブラウザーページ | 対応 | 自前でホストする Web ポータルにログインします。ネイティブの Harness UI を再利用します |
 | Android | ネイティブアプリ | 対応 | [Releases](https://github.com/liguobao/ds-harness-remote/releases/latest) から APK をダウンロードできます。[Android ガイド](apps/android/README.md)を参照してください |
 | DSH Go | ccch1mneyyy 氏の力作 | 対応済み | 詳細：[ccch1mneyyy/dsh-go: DeepSeek Harness の Android クライアント。スマートフォンで直接実行したり、パソコン上の DSH をリモート操作したりできます。](https://github.com/ccch1mneyyy/dsh-go) |
 | iOS | TestFlight ベータ | ベータ | 一般公開はまだ行っていません。[Issue #20](https://github.com/liguobao/ds-harness-remote/issues/20) を参照してください |
 | ブラウザー拡張機能 | Chrome | アクセス入口のみ | ログイン済み Web の認可を独立したデバイス認証情報に交換し、オンラインの Host を一覧表示して同一オリジンの Remote Web を開きます。拡張機能自体に会話 UI はありません |
 | dsh-TUI | ターミナル専用 CLI | 予定 | このリリースには統合を含まず、後続バージョンで個別に提供します。インストーラーが自動的に Web サービスを作成することはありません |
-| Linux | クラウドサーバー | 対応 | [公式サイト](https://dsh.r2049.cn/)にログインすると、ワンコマンドでインストールできます。 |
+| Linux | クラウドサーバー | 対応 | Web ポータルにログインしてワンコマンドインストール用の認可コードを取得します。 |
 
 複数のクライアントから同じ Host に同時接続できます。RPC 呼び出しとストリームは接続ごとに分離されます。
 
@@ -77,7 +76,7 @@ DSH 0.2.2 以降では、npm からインストールしたプラグインのバ
 
 ### Linux ワンコマンドインストール
 
-[公式サイト](https://dsh.r2049.cn/)にログインし、ワンコマンドインストール用の認可コードを取得してインストールしてください。
+Web ポータルにログインし、ワンコマンドインストール用の認可コードを取得してインストールしてください。
 
 ### ネイティブ Android クライアント
 
@@ -102,7 +101,7 @@ DSH 0.2.2 以降では、npm からインストールしたプラグインのバ
 3. 別のデバイスの DeepSeek Harness に同じプラグインをインストールし、手順 1〜2 と同じ方法でログインします。Remote Web、iOS、Android、DSH Go のクライアントなら、プラグインのインストールなしですぐに利用できます。
 4. オンラインの Host を選び、既存のワークスペースを選択するか、リモートのディレクトリを参照して開きます。
 
-デフォルトでは、本プロジェクトが運営する Server [https://dsh.r2049.cn](https://dsh.r2049.cn) を使用します。
+デフォルトのサーバーは運用者が `DSH_REMOTE_DEFAULT_SERVER` で設定します。ソースツリーにはホスト済みのエンドポイントを含みません。
 
 セルフホスティングには、このリポジトリの[最小構成 Server](apps/server/README.md) を利用できます。現在のバージョンには WebRTC の LAN/P2P/TURN 接続調整（TURN は別途 coturn のデプロイが必要）と暗号化 Relay Server が含まれますが、ホスト型 Remote Web の全機能は提供しません。
 
@@ -117,7 +116,7 @@ DSH 0.2.2 以降では、npm からインストールしたプラグインのバ
   <img src="docs/images/remote.png" alt="暗号化されたリモート接続で利用する Harness の会話画面" width="40%">
 </p>
 
-このパソコンから他の Host を操作できないようにするには、[https://dsh.r2049.cn/](https://dsh.r2049.cn/) のホスト一覧で「被操作専用（仅被控）」を有効にしてください。このデバイスからは同じアカウントの他のデバイスが見えなくなりますが、Web や他のクライアントからこのデバイスへのリモート接続は引き続き利用できます。
+このパソコンから他の Host を操作できないようにするには、Web ポータルのホスト一覧で「被操作専用（仅被控）」を有効にしてください。このデバイスからは同じアカウントの他のデバイスが見えなくなりますが、Web や他のクライアントからこのデバイスへのリモート接続は引き続き利用できます。
 
 ### Android
 
@@ -283,7 +282,6 @@ DS Bot は DeepSeek Harness（dsh）を bot として利用できるようにす
 - 関連プロジェクト: [DSH Go](https://github.com/ccch1mneyyy/dsh-go) — DeepSeek Harness をポケットに。スマートフォン上で直接実行でき、パソコンのリモート操作も可能です。Remote 連携に対応しています。
 - 関連プロジェクト: [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) — ターミナル優先の Harness クライアントです。Remote 連携は後続バージョンで提供予定です。
 - 相互リンク: [LINUX DO](https://linux.do/)
-- 相互リンク: [Cyber Liu Kanshan](https://kanshan.r2049.cn/)
 
 ## Star History
 

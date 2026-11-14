@@ -13,6 +13,8 @@ vi.mock('node:fs/promises', async importOriginal => {
 })
 
 const directories: string[] = []
+/** Server this suite pins, injected through the runtime env. */
+const SERVER = 'https://dsh.r2049.cn'
 
 afterEach(async () => {
   await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true })))
@@ -27,7 +29,7 @@ describe('Remote CLI', () => {
     const output = writer()
     const errors = writer()
     const createHostApi = vi.fn()
-    const dependencies = { env: { DSH_HOME: dshHome }, stdout: output, stderr: errors, createHostApi }
+    const dependencies = { env: { DSH_HOME: dshHome, DSH_REMOTE_DEFAULT_SERVER: SERVER }, stdout: output, stderr: errors, createHostApi }
     expect(await runCli(['status'], dependencies)).toBe(0)
     expect(errors.text).toBe('')
     expect(createHostApi).not.toHaveBeenCalled()
@@ -64,7 +66,7 @@ describe('Remote CLI', () => {
     }) as unknown as typeof fetch
 
     await expect(runCli(['login', 'github'], {
-      env: { DSH_HOME: dshHome },
+      env: { DSH_HOME: dshHome, DSH_REMOTE_DEFAULT_SERVER: SERVER },
       stdout: output,
       stderr: errors,
       renderQr: vi.fn(async () => '<terminal-qr>'),
@@ -106,7 +108,7 @@ describe('Remote CLI', () => {
     const poll = vi.fn(async () => ({ status: 'expired' as const }))
 
     await expect(runCli(['login'], {
-      env: { DSH_HOME: dshHome },
+      env: { DSH_HOME: dshHome, DSH_REMOTE_DEFAULT_SERVER: SERVER },
       stdout: output,
       stderr: errors,
       renderQr: async () => '<zhihu-qr>',
@@ -129,7 +131,7 @@ describe('Remote CLI', () => {
   it('revokes the Host and rotates its local identity on logout', async () => {
     const dshHome = join(tmpdir(), `dsh-remote-cli-logout-${crypto.randomUUID()}`)
     directories.push(dshHome)
-    const env = { DSH_HOME: dshHome }
+    const env = { DSH_HOME: dshHome, DSH_REMOTE_DEFAULT_SERVER: SERVER }
     const root = new IdentityStore({ env }).directory
     const directory = serverStorageDirectory(root, 'https://dsh.r2049.cn', 'host')
     const identities = new IdentityStore({ directory, env })
@@ -169,7 +171,7 @@ describe('Remote CLI', () => {
   it('keeps Host authorization ready on verified legacy storage when migration fails without exposing tokens', async () => {
     const dshHome = join(tmpdir(), `dsh-remote-cli-status-${crypto.randomUUID()}`)
     directories.push(dshHome)
-    const env = { DSH_HOME: dshHome }
+    const env = { DSH_HOME: dshHome, DSH_REMOTE_DEFAULT_SERVER: SERVER }
     const root = join(dshHome, 'remote')
     const directory = serverStorageDirectory(root, 'https://dsh.r2049.cn', 'host')
     const identity = await new IdentityStore({ directory, env }).loadOrCreate('CLI status Host')
@@ -208,7 +210,7 @@ describe('Remote CLI', () => {
   it('resets local device identity via reset-identity command including legacy corrupt storage and rejects extra args', async () => {
     const dshHome = join(tmpdir(), `dsh-remote-cli-reset-${crypto.randomUUID()}`)
     directories.push(dshHome)
-    const env = { DSH_HOME: dshHome }
+    const env = { DSH_HOME: dshHome, DSH_REMOTE_DEFAULT_SERVER: SERVER }
     const legacyRoot = join(dshHome, 'remote')
     const hostLegacyDir = serverStorageDirectory(legacyRoot, 'https://dsh.r2049.cn', 'host')
     const clientLegacyDir = serverStorageDirectory(legacyRoot, 'https://dsh.r2049.cn', 'client')
@@ -240,7 +242,7 @@ describe('Remote CLI', () => {
   it('succeeds on logout even when local device identity is corrupt', async () => {
     const dshHome = join(tmpdir(), `dsh-remote-cli-corrupt-logout-${crypto.randomUUID()}`)
     directories.push(dshHome)
-    const env = { DSH_HOME: dshHome }
+    const env = { DSH_HOME: dshHome, DSH_REMOTE_DEFAULT_SERVER: SERVER }
     const root = new IdentityStore({ env }).directory
     const directory = serverStorageDirectory(root, 'https://dsh.r2049.cn', 'host')
     const identities = new IdentityStore({ directory, env, role: 'host' })

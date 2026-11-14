@@ -27,7 +27,7 @@ Remote 侧栏的版本徽标仍是更新提示，点击链接打开发布页；�
 下载并检查脚本后运行。下面的命令让 Token 在 root Shell 中隐藏输入，不写入命令行参数或 shell 历史：
 
 ```sh
-curl -fsSL https://dsh.r2049.cn/app/install.sh -o install.sh
+curl -fsSL https://YOUR_SERVER/app/install.sh -o install.sh
 # 检查下载的脚本内容后执行：
 sudo -H bash -c '
   read -r -s -p "一次性 Host 注册 Token: " token; printf "\n"
@@ -83,7 +83,7 @@ Remote 凭据存于 `$DSH_HOME/ds-harness-remote`（默认 `~/.dsh/ds-harness-re
 macOS 使用普通用户：
 
 ```sh
-curl -fsSL https://dsh.r2049.cn/app/install.sh | bash
+curl -fsSL https://YOUR_SERVER/app/install.sh | bash
 ```
 
 优先使用 `~/Applications` 或 `/Applications` 的 Desktop 官方 launcher，否则 PATH 中的 `dsh`。两者都有时优先 Desktop；都没有才停止，不安装 Desktop、DSH 或 Node.js，不创建服务。
@@ -134,6 +134,6 @@ Desktop 使用官方插件管理移除。不会自动删除 runtime、profile、
 
 ## 下载源与验证范围
 
-域名不可访问时，将 `https://dsh.r2049.cn/app` 换为 `https://raw.githubusercontent.com/liguobao/ds-harness-remote/main/scripts`。
+域名不可访问时，将 `https://YOUR_SERVER/app` 换为 `https://raw.githubusercontent.com/liguobao/ds-harness-remote/main/scripts`。
 
 模拟下载、systemctl 和目标目录的烟测不等于干净 Linux 服务器的完整下载安装、真实 Token 兑换或重启自启验收。上线前应在目标服务器检查服务状态，并从客户端确认 Host 在线。本仓库修改不会自动部署线上脚本。

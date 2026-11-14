@@ -82,6 +82,26 @@ export function registerMeshRoutes(
           json(res, 200, await service.pair(pairing)); return
         }
         if (method === 'POST' && path === '/unpair') { await service.unpair(); json(res, 200, service.status()); return }
+        if (method === 'POST' && path === '/link') {
+          // Step 1: create the pending link and return the approval URL at once.
+          // It must not wait for approval: the caller needs this URL to open the
+          // browser, so blocking here would deadlock the UI.
+          const input = record(await body(req))
+          json(res, 200, await service.startLink(
+            String(input.serverUrl ?? '').trim(),
+            typeof input.name === 'string' ? input.name.trim() : undefined,
+          ))
+          return
+        }
+        if (method === 'POST' && path === '/link/finish') {
+          // Step 2: wait for the browser approval and adopt the credentials.
+          // The UI calls this after opening the browser and shows a spinner.
+          json(res, 200, await service.finishLink())
+          return
+        }
+        if (method === 'GET' && path === '/link/status') {
+          json(res, 200, service.pendingLinkStatus()); return
+        }
         if (method === 'POST' && path === '/name') {
           const input = record(await body(req))
           json(res, 200, await service.rename(String(input.name ?? ''))); return

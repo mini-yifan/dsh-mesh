@@ -21,6 +21,7 @@ import {
   normalizeMaxFramesPerSec,
   normalizeIp,
   normalizeTrustedProxyIps,
+  isTrustedProxy,
   parseHelloTimeout,
   parseHeartbeatInterval,
   parseHeartbeatDisconnect,
@@ -716,16 +717,34 @@ describe('reverse-proxy client IP rate limiting', () => {
     expect(normalizeIp('::ffff:7f00:1')).toBe('127.0.0.1')
     expect(normalizeIp('0:0:0:0:0:ffff:127.0.0.1')).toBe('127.0.0.1')
     expect(normalizeIp('2001:0DB8:0000:0000:0000:0000:0000:0001')).toBe('2001:db8::1')
-    expect([...normalizeTrustedProxyIps(['127.0.0.1', '::ffff:127.0.0.1', '2001:db8::2'])]).toEqual(['127.0.0.1', '2001:db8::2'])
+    expect(normalizeTrustedProxyIps(['127.0.0.1', '::ffff:127.0.0.1', '2001:db8::2']).map(entry => entry.address))
+      .toEqual(['127.0.0.1', '2001:db8::2'])
     for (const invalid of ['', '10.0.0.0/8', '10.0.0.1:8080', '[::1]:8080', 'client.example.com', '1.2.3.4, 5.6.7.8', 'fe80::1%eth0']) {
       expect(normalizeIp(invalid)).toBeNull()
     }
   })
 
-  it('rejects invalid trusted proxy IP lists at startup', () => {
-    for (const invalid of ['10.0.0.0/8', 'proxy.example.com', '127.0.0.1:8080', '999.1.1.1', '::1/128', '']) {
+  it('rejects invalid trusted proxy entries at startup', () => {
+    for (const invalid of ['proxy.example.com', '127.0.0.1:8080', '999.1.1.1', '10.0.0.0/33', '2001:db8::/129', 'not/a/cidr']) {
       expect(() => createRemoteServer({ account, password, dataFile: join(dir, 'invalid.json'), publicUrl: 'http://localhost:8080', trustedProxyIps: [invalid] })).toThrow(/DSH_SERVER_TRUSTED_PROXY_IPS/)
     }
+  })
+
+  it('accepts CIDR ranges for container deployments', () => {
+    // Docker assigns the proxy an address inside its bridge network, so a range
+    // is the only entry that can be written before the container exists.
+    const ranges = normalizeTrustedProxyIps(['172.16.0.0/12'])
+    expect(isTrustedProxy('172.18.0.5', ranges)).toBe(true)
+    expect(isTrustedProxy('172.31.255.254', ranges)).toBe(true)
+    expect(isTrustedProxy('172.15.0.1', ranges)).toBe(false)
+    expect(isTrustedProxy('10.0.0.1', ranges)).toBe(false)
+    // A bare literal still matches exactly, not as a prefix.
+    const literal = normalizeTrustedProxyIps(['127.0.0.1'])
+    expect(isTrustedProxy('127.0.0.1', literal)).toBe(true)
+    expect(isTrustedProxy('127.0.0.2', literal)).toBe(false)
+    // /32 and /128 behave like literals.
+    expect(isTrustedProxy('10.1.2.3', normalizeTrustedProxyIps(['10.1.2.3/32']))).toBe(true)
+    expect(isTrustedProxy('10.1.2.4', normalizeTrustedProxyIps(['10.1.2.3/32']))).toBe(false)
   })
 
   it('keeps client B working after client A exhausts the 20/min login limit', async () => {

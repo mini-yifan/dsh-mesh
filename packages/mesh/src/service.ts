@@ -17,6 +17,12 @@ import {
 import type { ResolvedMeshConfig } from './config.js'
 import { MeshPeers } from './peers.js'
 import { pairMesh, unpairMesh, type PairingInput } from './pair.js'
+import {
+  adoptLinkCredentials,
+  normalizeServerUrl,
+  startDeviceLink,
+  waitForDeviceLink,
+} from './account-link.js'
 import { loadState, saveState, serverScopedDirectory, type MeshState } from './state.js'
 import { readRemoteCatalog } from './tree.js'
 import {
@@ -100,6 +106,8 @@ export class MeshService {
   private taskReconcile?: Promise<void>
   private readonly taskIdleChecks = new Map<string, number>()
   private closedClient = false
+  /** A link created by startLink and not yet completed by finishLink. */
+  private pendingLink?: { serverUrl: string; linkId: string; nonce: string; expiresAt: number }
 
   constructor(
     private readonly config: ResolvedMeshConfig,
@@ -152,9 +160,14 @@ export class MeshService {
       paired: true,
       server: { url: state.serverUrl, fingerprint: state.fingerprint },
       node: { ...this.localNode, online: true, self: true },
-      connection: this.startError !== undefined ? 'offline' : online > 0 ? 'connected' : 'connecting',
+      // With one device there are no *remote* peers by design (refresh skips
+      // self), so `online > 0` is not the right connected signal. Only a real
+      // startup failure should read as offline; otherwise a paired device is
+      // connected to the server even when it has nothing to talk to yet.
+      connection: this.startError !== undefined ? 'offline' : 'connected',
       peersOnline: online,
       peersTotal: total,
+      ...(this.startError === undefined ? {} : { error: this.startError }),
     }
   }
 
@@ -185,6 +198,123 @@ export class MeshService {
     await unpairMesh(this.config)
     this.state = undefined
     this.startError = undefined
+  }
+
+  /**
+   * Hosted-mode "open a browser" flow.
+   *
+   * Creates a pending link, hands the browser URL to the caller (the settings
+   * page opens it), then waits for the approval and adopts the credentials.
+   * `onApprovalUrl` fires as soon as the URL exists so the UI can launch the
+   * browser without waiting for the whole round trip.
+   */
+  /**
+   * Hosted mode, step 1: create the pending link and return the approval URL
+   * immediately.
+   *
+   * This must not block. The browser that has to approve the link is opened by
+   * the caller with the URL from this response, so waiting for approval here
+   * would deadlock: the UI would never receive the URL it needs to open.
+   */
+  async startLink(serverUrl: string, deviceName?: string): Promise<{
+    approvalUrl: string
+    linkId: string
+    expiresAt: number
+  }> {
+    if (this.state !== undefined) {
+      throw new MeshError(
+        'already_paired',
+        `This device is already connected to ${this.state.serverUrl}. Exit mesh first.`,
+      )
+    }
+    const normalized = normalizeServerUrl(serverUrl)
+
+    // The identity is created before the request: the server binds the device
+    // to its public key, and reusing the on-disk identity keeps the device id
+    // stable if the user retries.
+    const scoped = serverScopedDirectory(this.config.stateDir, normalized)
+    const hostIdentityStore = new IdentityStore({ directory: join(scoped, 'host'), role: 'host' })
+    const resolvedName = (deviceName?.trim() || this.config.deviceName || `${this.config.platform}-node`).slice(0, 80)
+    const identity = await hostIdentityStore.loadOrCreate(resolvedName)
+
+    const started = await startDeviceLink({
+      serverUrl: normalized,
+      publicKey: identity.publicKey,
+      deviceName: resolvedName,
+      platform: this.config.platform,
+      // The server must register this exact id, or the local identity and the
+      // server record diverge and later authentication silently fails.
+      deviceId: identity.deviceId,
+    })
+    // Remember the pending hand-off so finishLink can complete it.
+    this.pendingLink = {
+      serverUrl: normalized,
+      linkId: started.linkId,
+      nonce: started.nonce,
+      expiresAt: started.expiresAt,
+    }
+    return {
+      approvalUrl: started.approveUrl,
+      linkId: started.linkId,
+      expiresAt: started.expiresAt,
+    }
+  }
+
+  /** What the UI polls while the browser is open. */
+  pendingLinkStatus(): { pending: boolean; expiresAt?: number } {
+    if (this.pendingLink === undefined) return { pending: false }
+    return { pending: true, expiresAt: this.pendingLink.expiresAt }
+  }
+
+  /**
+   * Hosted mode, step 2: wait for the browser approval and adopt the result.
+   *
+   * Resolves once the credentials arrive; rejects when the link expires or the
+   * caller aborts.
+   */
+  async finishLink(signal?: AbortSignal): Promise<MeshStatus> {
+    const pending = this.pendingLink
+    if (pending === undefined) {
+      throw new MeshError('no_pending_link', 'No device approval is in progress.')
+    }
+    let credentials
+    try {
+      credentials = await waitForDeviceLink(
+        pending.serverUrl,
+        { linkId: pending.linkId, nonce: pending.nonce, expiresAt: pending.expiresAt },
+        { ...(signal === undefined ? {} : { signal }) },
+      )
+    } catch (error) {
+      this.pendingLink = undefined
+      throw error
+    }
+    this.pendingLink = undefined
+
+    const next = await adoptLinkCredentials(
+      this.config.stateDir,
+      this.config.platform,
+      credentials,
+      this.config.deviceName,
+    )
+    this.state = next
+    this.localNode = { ...this.localNode, ...(next.node ?? {}), self: true }
+    this.startError = undefined
+    try {
+      // The Host runtime may have been started at plugin load time, before any
+      // credentials existed. MeshHost.start() returns immediately when it already
+      // has a runtime, so the control socket would never be opened for this new
+      // pairing. Tear it down first to guarantee a fresh connection.
+      await this.host?.stop().catch(() => undefined)
+      await this.host?.start(next)
+    } catch (error) {
+      this.startError = error instanceof Error ? error.message : 'host startup failed'
+      // Surface the real reason: a silent offline state is impossible to debug.
+      console.error(`[mesh] host start failed: ${this.startError}`)
+      this.logger.warn('mesh host startup failed', { code: this.startError.slice(0, 160) })
+    }
+    await this.startClient(next)
+    this.startTaskReconcile()
+    return this.status()
   }
 
   async rename(name: string): Promise<MeshNode> {
@@ -733,6 +863,7 @@ export class MeshService {
       this.clearClientRetry()
     } catch (error) {
       this.startError = error instanceof Error ? error.message : 'client startup failed'
+      console.error(`[mesh] client start failed: ${this.startError}`)
       this.logger.warn('mesh client startup failed', { code: this.startError.slice(0, 160) })
       this.scheduleClientRetry(state)
     }
@@ -758,7 +889,9 @@ export class MeshService {
       enabled: true,
       role: 'client',
       serverUrl: state.serverUrl,
-      serverFingerprint: state.fingerprint,
+      // A public-CA deployment has no pin. Passing an empty string fails
+      // resolveConfig's `.min(32)` check, so omit the field entirely instead.
+      ...(state.fingerprint === '' ? {} : { serverFingerprint: state.fingerprint }),
       deviceName: this.config.deviceName ?? `${this.config.platform}-node`,
       forceRelay: true,
       terminal: { enabled: false },
