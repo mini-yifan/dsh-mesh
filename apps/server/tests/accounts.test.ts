@@ -591,11 +591,19 @@ describe('account mode: admin reports', () => {
     // These devices never got that far, so there is one record per node.
     expect(stats.data.devices.deviceRecords).toBe(2)
 
-    const ownerRow = stats.data.list.find((user: { email: string }) => user.email === 'owner@example.com')
+    // The overview carries aggregates only; account rows come from their own
+    // paged endpoint, so a server with many accounts never ships them here.
+    expect(stats.data.list).toBeUndefined()
+
+    const accounts = await call('/admin/accounts', { cookie: boss.cookie })
+    expect(accounts.status, JSON.stringify(accounts.data)).toBe(200)
+    expect(accounts.data.total).toBe(2)
+    expect(accounts.data.limit).toBe(50)
+    const ownerRow = accounts.data.items.find((user: { email: string }) => user.email === 'owner@example.com')
     expect(ownerRow.devices).toBe(2)
     expect(ownerRow.devicesOnline).toBe(0)
     // Each account is listed once, with its own device count only.
-    const bossRow = stats.data.list.find((user: { email: string }) => user.email === 'boss@example.com')
+    const bossRow = accounts.data.items.find((user: { email: string }) => user.email === 'boss@example.com')
     expect(bossRow.devices).toBe(0)
     expect(bossRow.isAdmin).toBe(true)
   })
@@ -613,5 +621,60 @@ describe('account mode: admin reports', () => {
     expect(stats.data.activity.every((day: { codeRequests: number }) => typeof day.codeRequests === 'number')).toBe(true)
     // Today holds the one sign-in that created the administrator account.
     expect(stats.data.activity.at(-1).newAccounts).toBe(1)
+  })
+})
+
+describe('account mode: admin account paging', () => {
+  it('pages the account list and reports the real total', async () => {
+    await start({ adminEmails: ['boss@example.com'], limits: { emailSendsPerDay: 50, sendCooldownSeconds: 0 } })
+    const boss = await signIn('boss@example.com')
+    await signIn('a1@example.com')
+    await signIn('a2@example.com')
+
+    const first = await call('/admin/accounts?limit=2&offset=0', { cookie: boss.cookie })
+    expect(first.status, JSON.stringify(first.data)).toBe(200)
+    // The total must cover every match, not just the page being returned.
+    expect(first.data.total).toBe(3)
+    expect(first.data.items).toHaveLength(2)
+
+    const second = await call('/admin/accounts?limit=2&offset=2', { cookie: boss.cookie })
+    expect(second.data.total).toBe(3)
+    expect(second.data.items).toHaveLength(1)
+
+    // Pages must not overlap.
+    const seen = new Set([...first.data.items, ...second.data.items].map((user: { email: string }) => user.email))
+    expect(seen.size).toBe(3)
+  })
+
+  it('filters by email and escapes LIKE wildcards', async () => {
+    await start({ adminEmails: ['boss@example.com'], limits: { emailSendsPerDay: 50, sendCooldownSeconds: 0 } })
+    const boss = await signIn('boss@example.com')
+    await signIn('alice@example.com')
+    await signIn('bob@example.com')
+
+    const matched = await call('/admin/accounts?q=alice', { cookie: boss.cookie })
+    expect(matched.data.total).toBe(1)
+    expect(matched.data.items[0].email).toBe('alice@example.com')
+
+    // `%` is a wildcard in LIKE; a search for it must not match everything.
+    const wildcard = await call('/admin/accounts?q=%25', { cookie: boss.cookie })
+    expect(wildcard.data.total).toBe(0)
+
+    const none = await call('/admin/accounts?q=zzz', { cookie: boss.cookie })
+    expect(none.data.total).toBe(0)
+    expect(none.data.items).toHaveLength(0)
+  })
+
+  it('clamps the page size and refuses non-administrators', async () => {
+    await start({ adminEmails: ['boss@example.com'], limits: { emailSendsPerDay: 50, sendCooldownSeconds: 0 } })
+    const boss = await signIn('boss@example.com')
+    const owner = await signIn('owner@example.com')
+
+    const huge = await call('/admin/accounts?limit=99999', { cookie: boss.cookie })
+    expect(huge.status).toBe(200)
+    // An unbounded limit would defeat the point of paging.
+    expect(huge.data.limit).toBe(200)
+
+    expect((await call('/admin/accounts', { cookie: owner.cookie })).status).toBe(403)
   })
 })

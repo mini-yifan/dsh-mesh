@@ -239,12 +239,11 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
 
     if (method === 'GET' && path === '/api/v1/admin/stats') {
       requireAdmin(req)
-      const days = 7
-      const accountsList = accounts.adminAccounts()
-      const activity = accounts.adminActivity(days)
+      const activity = accounts.adminActivity(7)
 
-      // Devices live in the JSON store, accounts in SQLite. Join in memory:
-      // each node carries its owner scope, which is what ties them together.
+      // Devices live in the JSON store, accounts in SQLite. The counters below
+      // are aggregates on both sides: nothing here scales with the number of
+      // accounts, which is why the account table has its own paged endpoint.
       const nodes = store.listNodes()
       const devices = store.list()
       /** Either role counts as the node being up. */
@@ -256,40 +255,9 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
       const byPlatform: Record<string, number> = {}
       for (const node of nodes) byPlatform[node.platform] = (byPlatform[node.platform] ?? 0) + 1
 
-      const deviceCountByOwner = new Map<string, { devices: number; online: number }>()
-      for (const node of nodes) {
-        const owner = node.owner ?? ''
-        const entry = deviceCountByOwner.get(owner) ?? { devices: 0, online: 0 }
-        entry.devices += 1
-        if (nodeOnline(node)) entry.online += 1
-        deviceCountByOwner.set(owner, entry)
-      }
-
-      const now = Date.now()
-      const day = 86_400_000
-      const users = accountsList.map(account => {
-        const counts = deviceCountByOwner.get(scope(account.accountId)) ?? { devices: 0, online: 0 }
-        return {
-          email: account.email,
-          emailMasked: maskEmail(account.email),
-          createdAt: account.createdAt,
-          lastLoginAt: account.lastLoginAt,
-          sessions: account.sessions,
-          devices: counts.devices,
-          devicesOnline: counts.online,
-          isAdmin: isAdminEmail(account.email),
-        }
-      })
-
       deps.json(res, 200, {
-        generatedAt: now,
-        users: {
-          total: accountsList.length,
-          newToday: users.filter(user => user.createdAt >= now - day).length,
-          newLast7Days: users.filter(user => user.createdAt >= now - 7 * day).length,
-          newLast30Days: users.filter(user => user.createdAt >= now - 30 * day).length,
-          activeLast7Days: users.filter(user => user.lastLoginAt >= now - 7 * day).length,
-        },
+        generatedAt: Date.now(),
+        users: accounts.adminAccountSummary(),
         devices: {
           total: nodes.length,
           online: onlineNodes,
@@ -302,7 +270,55 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
           byPlatform,
         },
         activity,
-        list: users.sort((left, right) => right.lastLoginAt - left.lastLoginAt),
+      })
+      return true
+    }
+
+    if (method === 'GET' && path === '/api/v1/admin/accounts') {
+      requireAdmin(req)
+      const url = new URL(req.url ?? '/', publicUrl)
+      const limit = Math.max(1, Math.min(200, Number(url.searchParams.get('limit') ?? 50) || 50))
+      const offset = Math.max(0, Number(url.searchParams.get('offset') ?? 0) || 0)
+      const sort = url.searchParams.get('sort') === 'created' ? 'created' as const : 'lastLogin' as const
+      const direction = url.searchParams.get('direction') === 'asc' ? 'asc' as const : 'desc' as const
+      const query = (url.searchParams.get('q') ?? '').slice(0, 320)
+
+      const page = accounts.adminAccountsPage({ query, limit, offset, sort, direction })
+
+      // Device counts are per owner in the JSON store; look each page row up by
+      // its owner scope instead of joining every account.
+      const nodes = store.listNodes()
+      const countsByOwner = new Map<string, { devices: number; online: number }>()
+      for (const node of nodes) {
+        const owner = node.owner ?? ''
+        const entry = countsByOwner.get(owner) ?? { devices: 0, online: 0 }
+        entry.devices += 1
+        const up = [node.hostDeviceId, node.clientDeviceId]
+          .some(id => id !== undefined && id !== '' && deps.isOnline(id))
+        if (up) entry.online += 1
+        countsByOwner.set(owner, entry)
+      }
+
+      deps.json(res, 200, {
+        total: page.total,
+        limit,
+        offset,
+        query,
+        sort,
+        direction,
+        items: page.items.map(account => {
+          const counts = countsByOwner.get(scope(account.accountId)) ?? { devices: 0, online: 0 }
+          return {
+            email: account.email,
+            emailMasked: maskEmail(account.email),
+            createdAt: account.createdAt,
+            lastLoginAt: account.lastLoginAt,
+            sessions: account.sessions,
+            devices: counts.devices,
+            devicesOnline: counts.online,
+            isAdmin: isAdminEmail(account.email),
+          }
+        }),
       })
       return true
     }

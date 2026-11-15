@@ -605,6 +605,64 @@ a {
 
 /* ------------------------------------------------------------------ admin */
 
+/* Sidebar plus content. The sidebar is sticky so a long table scrolls under a
+   navigation that stays put, and turns into a horizontal row on a phone. */
+.orb-admin {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 72px;
+}
+
+.orb-admin-nav {
+  position: sticky;
+  top: 78px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: none;
+  width: 168px;
+  padding-right: 20px;
+}
+
+.orb-admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--orb-radius);
+  background: transparent;
+  color: var(--orb-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.orb-admin-nav-item:hover { background: color-mix(in srgb, var(--orb-ink) 6%, transparent); }
+
+.orb-admin-nav-item.is-active {
+  background: var(--orb-surface);
+  font-weight: 600;
+  box-shadow: var(--orb-shadow);
+}
+
+.orb-admin-nav-badge {
+  margin-left: auto;
+  color: var(--orb-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.orb-admin-main {
+  flex: 1;
+  min-width: 0;
+}
+
 /* A grid of headline numbers: one glance, no chart needed. */
 .orb-stat-grid {
   display: grid;
@@ -741,6 +799,37 @@ a {
   font-weight: 600;
 }
 
+/* A header button that sorts: no chrome until it is the active column. */
+.orb-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.orb-sort:hover { color: var(--orb-ink); }
+.orb-sort.is-active { color: var(--orb-ink); font-weight: 650; }
+
+.orb-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--orb-separator);
+}
+
+.orb-pager-status {
+  color: var(--orb-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ------------------------------------------------------------------ mobile */
 
 @media (max-width: 560px) {
@@ -755,4 +844,15 @@ a {
   .orb-stat { padding: 13px 14px; }
   .orb-stat-value { font-size: 22px; }
   .orb-table th, .orb-table td { padding: 10px 14px; }
+  /* Phones get the navigation as a row above the content; a sticky rail would
+     eat the width the table needs. */
+  .orb-admin { display: block; padding: 20px 16px 56px; }
+  .orb-admin-nav {
+    position: static;
+    flex-direction: row;
+    width: auto;
+    padding: 0 0 16px;
+    gap: 6px;
+  }
+  .orb-admin-nav-item { width: auto; }
 }

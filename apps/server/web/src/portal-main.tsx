@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { PortalError, loadMe, type PortalAccount } from './portal-api'
 import { PortalLogin } from './PortalLogin'
 import { PortalDevices } from './PortalDevices'
-import { PortalAdmin } from './PortalAdmin'
+import { PortalAdmin, type AdminView } from './PortalAdmin'
 import { PortalLink } from './PortalLink'
 import { ThemeToggle } from './ThemeToggle'
 import './orb.css'
@@ -16,7 +16,7 @@ import './orb.css'
 type Route =
   | { name: 'login' }
   | { name: 'devices' }
-  | { name: 'admin' }
+  | { name: 'admin'; view: AdminView }
   | { name: 'link'; linkId: string }
 
 function currentRoute(): Route {
@@ -25,9 +25,19 @@ function currentRoute(): Route {
     const linkId = new URLSearchParams(window.location.search).get('t') ?? ''
     return { name: 'link', linkId }
   }
-  if (path === '/app/admin') return { name: 'admin' }
+  if (path === '/app/admin' || path === '/app/admin/overview') return { name: 'admin', view: 'overview' }
+  if (path === '/app/admin/accounts') return { name: 'admin', view: 'accounts' }
   if (path === '/app/devices' || path === '/app/remote') return { name: 'devices' }
   return { name: 'login' }
+}
+
+function pathFor(route: Route): string {
+  switch (route.name) {
+    case 'link': return `/link?t=${encodeURIComponent(route.linkId)}`
+    case 'devices': return '/app/devices'
+    case 'admin': return route.view === 'accounts' ? '/app/admin/accounts' : '/app/admin'
+    default: return '/'
+  }
 }
 
 export function PortalApp() {
@@ -37,10 +47,7 @@ export function PortalApp() {
   const [checking, setChecking] = useState(true)
 
   const navigate = useCallback((next: Route) => {
-    const path = next.name === 'link' ? `/link?t=${encodeURIComponent(next.linkId)}`
-      : next.name === 'devices' ? '/app/devices'
-        : next.name === 'admin' ? '/app/admin'
-          : '/'
+    const path = pathFor(next)
     if (window.location.pathname + window.location.search !== path) window.history.pushState({}, '', path)
     setRoute(next)
   }, [])
@@ -93,14 +100,30 @@ export function PortalApp() {
     return <PortalLink linkId={route.linkId} />
   }
 
-  // The admin route is gated again server-side; this is only so an account that
-  // is not an administrator never lands on a shell it cannot fill.
+  // The admin routes are gated again server-side; this is only so an account
+  // that is not an administrator never lands on a shell it cannot fill.
   if (route.name === 'admin' && account && isAdmin) {
     return (
       <>
         <ThemeToggleFloating />
         <PortalAdmin
+          view={route.view}
           emailMasked={account.emailMasked}
+          onNavigate={view => navigate({ name: 'admin', view })}
+          onSignedOut={() => { setAccount(undefined); setIsAdmin(false); navigate({ name: 'login' }) }}
+        />
+      </>
+    )
+  }
+
+  // A non-administrator asking for an admin path gets the ordinary portal, not
+  // a blank page: the URL is guessable and a dead end would be confusing.
+  if (route.name === 'admin' && account) {
+    return (
+      <>
+        <ThemeToggleFloating />
+        <PortalDevices
+          isAdmin={false}
           onSignedOut={() => { setAccount(undefined); setIsAdmin(false); navigate({ name: 'login' }) }}
         />
       </>
@@ -113,7 +136,7 @@ export function PortalApp() {
         <ThemeToggleFloating />
         <PortalDevices
           isAdmin={isAdmin}
-          onOpenAdmin={() => navigate({ name: 'admin' })}
+          onOpenAdmin={() => navigate({ name: 'admin', view: 'overview' })}
           onSignedOut={() => { setAccount(undefined); setIsAdmin(false); navigate({ name: 'login' }) }}
         />
       </>

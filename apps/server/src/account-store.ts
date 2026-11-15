@@ -343,38 +343,66 @@ export class AccountStore {
   // ----------------------------------------------------------- admin reports
 
   /**
-   * Account-side numbers for the admin page.
+   * One page of accounts for the admin table.
    *
-   * Only aggregates live here. Device counts come from the JSON device store,
-   * which the route joins in: the two stores are deliberately separate (the
-   * account database can be backed up without the device state and vice versa),
-   * so one query cannot see both.
+   * Paged in SQL rather than in the browser: a server with tens of thousands of
+   * accounts would otherwise serialise every row into one JSON document on each
+   * poll. `query` filters on the email, which is the only text an operator
+   * searches by when helping somebody.
    *
    * `email` is returned in clear because an administrator has to be able to
    * identify an account to help its owner; the page masks it before rendering.
    */
-  adminAccounts(): Array<{
-    accountId: string
-    email: string
-    createdAt: number
-    lastLoginAt: number
-    sessions: number
-  }> {
+  adminAccountsPage(options: {
+    /** Case-insensitive substring of the email. */
+    query?: string
+    limit: number
+    offset: number
+    sort: 'created' | 'lastLogin'
+    direction: 'asc' | 'desc'
+  }): {
+    items: Array<{
+      accountId: string
+      email: string
+      createdAt: number
+      lastLoginAt: number
+      sessions: number
+    }>
+    total: number
+  } {
     const now = Date.now()
+    const needle = (options.query ?? '').trim().toLowerCase()
+    // LIKE with an escaped pattern: `%` and `_` in a search box must be literal.
+    const pattern = `%${needle.replace(/[\\%_]/g, match => `\\${match}`)}%`
+    const where = needle === '' ? '' : "WHERE lower(a.email) LIKE ? ESCAPE '\\'"
+    const column = options.sort === 'lastLogin' ? 'a.last_login_at' : 'a.created_at'
+    const direction = options.direction === 'asc' ? 'ASC' : 'DESC'
+    const args = needle === '' ? [] : [pattern]
+
+    const totalRow = this.db.prepare(
+      `SELECT COUNT(*) AS n FROM accounts a ${where}`,
+    ).get(...args) as { n: number }
+
     const rows = this.db.prepare(
       `SELECT a.account_id, a.email, a.created_at, a.last_login_at,
               (SELECT COUNT(*) FROM web_sessions s
                 WHERE s.account_id = a.account_id AND s.expires_at > ?) AS sessions
          FROM accounts a
-        ORDER BY a.created_at DESC`,
-    ).all(now) as Array<Record<string, unknown>>
-    return rows.map(row => ({
-      accountId: String(row.account_id),
-      email: String(row.email),
-      createdAt: Number(row.created_at),
-      lastLoginAt: Number(row.last_login_at),
-      sessions: Number(row.sessions),
-    }))
+         ${where}
+        ORDER BY ${column} ${direction}, a.account_id ASC
+        LIMIT ? OFFSET ?`,
+    ).all(now, ...args, options.limit, options.offset) as Array<Record<string, unknown>>
+
+    return {
+      total: Number(totalRow.n),
+      items: rows.map(row => ({
+        accountId: String(row.account_id),
+        email: String(row.email),
+        createdAt: Number(row.created_at),
+        lastLoginAt: Number(row.last_login_at),
+        sessions: Number(row.sessions),
+      })),
+    }
   }
 
   /**
@@ -424,6 +452,35 @@ export class AccountStore {
   accountCount(): number {
     const row = this.db.prepare('SELECT COUNT(*) AS n FROM accounts').get() as { n: number }
     return Number(row.n)
+  }
+
+  /**
+   * Headline account numbers for the overview page.
+   *
+   * Counted in SQL rather than by loading rows and filtering them: the overview
+   * must stay O(1) in the number of accounts, or it becomes the very thing the
+   * paged table exists to avoid.
+   */
+  adminAccountSummary(): {
+    total: number
+    newToday: number
+    newLast7Days: number
+    newLast30Days: number
+    activeLast7Days: number
+  } {
+    const now = Date.now()
+    const day = 86_400_000
+    const count = (sql: string, since: number): number => {
+      const row = this.db.prepare(sql).get(since) as { n: number }
+      return Number(row.n)
+    }
+    return {
+      total: this.accountCount(),
+      newToday: count('SELECT COUNT(*) AS n FROM accounts WHERE created_at >= ?', now - day),
+      newLast7Days: count('SELECT COUNT(*) AS n FROM accounts WHERE created_at >= ?', now - 7 * day),
+      newLast30Days: count('SELECT COUNT(*) AS n FROM accounts WHERE created_at >= ?', now - 30 * day),
+      activeLast7Days: count('SELECT COUNT(*) AS n FROM accounts WHERE last_login_at >= ?', now - 7 * day),
+    }
   }
 
   // ----------------------------------------------------------- web sessions

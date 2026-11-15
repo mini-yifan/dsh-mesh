@@ -190,10 +190,35 @@ export interface AdminStats {
     byPlatform: Record<string, number>
   }
   activity: AdminActivityDay[]
-  list: AdminUser[]
+}
+
+export type AdminAccountSort = 'lastLogin' | 'created'
+
+export interface AdminAccountsPage {
+  total: number
+  limit: number
+  offset: number
+  query: string
+  sort: AdminAccountSort
+  direction: 'asc' | 'desc'
+  items: AdminUser[]
 }
 
 export const loadAdminStats = () => portal<AdminStats>('/admin/stats')
+
+export const loadAdminAccounts = (options: {
+  offset: number
+  limit: number
+  query?: string
+  sort?: AdminAccountSort
+  direction?: 'asc' | 'desc'
+}) => {
+  const params = new URLSearchParams({ offset: String(options.offset), limit: String(options.limit) })
+  if (options.query) params.set('q', options.query)
+  if (options.sort) params.set('sort', options.sort)
+  if (options.direction) params.set('direction', options.direction)
+  return portal<AdminAccountsPage>(`/admin/accounts?${params.toString()}`)
+}
 
 /** Platform ids map to the labels the desktop orb uses. */
 export function platformLabel(platform: string): string {
