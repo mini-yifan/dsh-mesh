@@ -317,6 +317,45 @@ describe('account mode: device hand-off', () => {
     expect(me.data.name).toBe('书房 Mac')
   })
 
+  it('keeps describing a link after the plugin collected it', async () => {
+    await start()
+    const owner = await signIn('owner@example.com')
+    const started = await call('/link/start', {
+      body: { publicKey: publicKey(11), deviceName: '书房 Windows', platform: 'win32' },
+    })
+    await call('/link/approve', { body: { linkId: started.data.linkId }, cookie: owner.cookie })
+    const collected = await call('/link/collect', {
+      body: { linkId: started.data.linkId, nonce: started.data.nonce },
+    })
+    expect(collected.status).toBe(200)
+
+    // The tab the user approved in may reload after the hand-off. Answering
+    // "invalid request" there would report a failure that did not happen.
+    const after = await call(`/link/describe?linkId=${started.data.linkId}`, { cookie: owner.cookie })
+    expect(after.status).toBe(200)
+    expect(after.data.approved).toBe(true)
+    expect(after.data.consumed).toBe(true)
+    expect(after.data.deviceId).toBe(collected.data.deviceId)
+    // Same session that approved: the page can keep showing its device list.
+    expect(after.data.approvedByViewer).toBe(true)
+  })
+
+  it('marks a link as approved by another account after switching', async () => {
+    await start()
+    const owner = await signIn('owner@example.com')
+    const started = await call('/link/start', {
+      body: { publicKey: publicKey(12), deviceName: '书房 Mac', platform: 'darwin' },
+    })
+    await call('/link/approve', { body: { linkId: started.data.linkId }, cookie: owner.cookie })
+
+    // A different person signs in on the same browser and reopens the page.
+    const other = await signIn('other@example.com')
+    const described = await call(`/link/describe?linkId=${started.data.linkId}`, { cookie: other.cookie })
+    expect(described.status).toBe(200)
+    expect(described.data.approved).toBe(true)
+    expect(described.data.approvedByViewer).toBe(false)
+  })
+
   it('refuses to collect without the nonce, and only once with it', async () => {
     await start()
     const owner = await signIn('owner@example.com')

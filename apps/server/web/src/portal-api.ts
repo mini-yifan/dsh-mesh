@@ -45,7 +45,14 @@ export interface LinkDescription {
   platform: string
   createdAt: number
   expiresAt: number
+  /** The browser has approved this link. */
   approved: boolean
+  /** The device has collected its credentials; the hand-off is complete. */
+  consumed: boolean
+  /** The node the approval created, once approved. */
+  deviceId?: string
+  /** True when the session viewing the page is the one that approved. */
+  approvedByViewer: boolean
 }
 
 export class PortalError extends Error {

@@ -413,18 +413,42 @@ export class AccountStore {
     return { linkId, nonce, expiresAt }
   }
 
-  /** Public metadata a browser needs to render the approval screen. */
-  describeLink(linkId: string): { deviceName: string; platform: string; createdAt: number; expiresAt: number; approved: boolean } | undefined {
+  /**
+   * Public metadata a browser needs to render the approval screen.
+   *
+   * A consumed link is still described. The plugin collects its credentials
+   * seconds after approval, and the tab the user is looking at may reload
+   * afterwards; answering "invalid request" there would report a failure for an
+   * authorization that actually succeeded.
+   */
+  describeLink(linkId: string): {
+    deviceName: string
+    platform: string
+    createdAt: number
+    expiresAt: number
+    approved: boolean
+    consumed: boolean
+    deviceId?: string
+    /** The account the approval was bound to; absent while still pending. */
+    approvedAccountId?: string
+  } | undefined {
     const row = this.db.prepare(
-      'SELECT device_name, platform, created_at, expires_at, approved_at FROM device_links WHERE link_id = ? AND consumed_at IS NULL',
+      'SELECT device_name, platform, created_at, expires_at, approved_at, consumed_at, device_id, approved_account_id FROM device_links WHERE link_id = ?',
     ).get(linkId) as Record<string, unknown> | undefined
     if (!row) return undefined
+    const deviceId = typeof row.device_id === 'string' && row.device_id !== '' ? row.device_id : undefined
+    const approvedAccountId = typeof row.approved_account_id === 'string' && row.approved_account_id !== ''
+      ? row.approved_account_id
+      : undefined
     return {
       deviceName: String(row.device_name),
       platform: String(row.platform),
       createdAt: Number(row.created_at),
       expiresAt: Number(row.expires_at),
       approved: row.approved_at !== null,
+      consumed: row.consumed_at !== null,
+      ...(deviceId === undefined ? {} : { deviceId }),
+      ...(approvedAccountId === undefined ? {} : { approvedAccountId }),
     }
   }
 

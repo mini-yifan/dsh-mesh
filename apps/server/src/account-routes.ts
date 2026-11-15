@@ -273,7 +273,16 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
       if (!/^[0-9a-f-]{36}$/i.test(linkId)) throw new ApiError('LINK_NOT_FOUND', 404)
       const described = accounts.describeLink(linkId)
       if (!described) throw new ApiError('LINK_NOT_FOUND', 404)
-      deps.json(res, 200, described)
+      // The page offers "switch account" before approving, so it has to know
+      // whether an approval under the current session already happened. Read
+      // the session without requiring it: the page is reachable signed out.
+      const sessionToken = deps.cookieToken(req)
+      const viewer = accounts.accountForSession(sessionToken)
+      const { approvedAccountId, ...rest } = described
+      deps.json(res, 200, {
+        ...rest,
+        approvedByViewer: viewer !== undefined && approvedAccountId === viewer.accountId,
+      })
       return true
     }
 

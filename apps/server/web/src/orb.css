@@ -215,6 +215,12 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+/* Rows directly under a head need a separator; the first row normally has none. */
+.orb-card-head + .orb-list > .orb-row:first-child {
+  border-top: 1px solid var(--orb-separator);
+  margin-top: 12px;
+}
+
 .orb-card-body {
   padding: 18px 22px 22px;
 }
