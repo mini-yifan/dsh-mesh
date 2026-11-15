@@ -355,6 +355,11 @@ export function createRemoteServer(config: Config) {
     logLevel: config.logLevel,
     logger: logger.child('gateway'),
     turnEnabled: ice.turnUrls.length > 0,
+    // Same trusted-proxy-aware resolution as the HTTP limiter: under Caddy the
+    // raw socket peer is always the proxy container.
+    clientAddress: req => {
+      try { return clientAddress(req, trustedProxyIps) } catch { return undefined }
+    },
   })
   function descriptor(d: ReturnType<Store['get']>) {
     return { ...d.descriptor, membershipId: `account:${hash(store.account).slice(0, 16)}`, online: gateway.isOnline(d.descriptor.deviceId), lastSeenAt: d.lastSeenAt }

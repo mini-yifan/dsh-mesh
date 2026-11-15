@@ -18,6 +18,7 @@
  *     another account's devices or pairing codes.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
 import { ApiError, type Store } from './store.js'
 import { AccountError, AccountStore, type Limits } from './account-store.js'
@@ -52,7 +53,11 @@ export interface AccountRouteDeps {
 const MAX_BODY = 16 * 1024
 void MAX_BODY
 
-const sendSchema = z.object({ email: z.string().min(3).max(320) }).strict()
+const sendSchema = z.object({
+  email: z.string().min(3).max(320),
+  /** Required only when the deployment configured DSH_MESH_INVITE_CODE. */
+  inviteCode: z.string().trim().max(128).optional(),
+}).strict()
 const verifySchema = z.object({
   email: z.string().min(3).max(320),
   challengeId: z.string().min(16).max(128),
@@ -77,6 +82,12 @@ const createPairingSchema = z.object({
 }).strict()
 
 type Ctx = { deps: AccountRouteDeps; accountId: string; email: string; ownerScope: string }
+
+/** Constant-time compare for a deployment-wide secret; length differences leak nothing useful. */
+function safeEqual(left: string, right: string): boolean {
+  const a = Buffer.from(left, 'utf8'), b = Buffer.from(right, 'utf8')
+  return a.length === b.length && timingSafeEqual(a, b)
+}
 
 export function createAccountRoutes(deps: AccountRouteDeps) {
   const { accounts, store, mailer, limits, publicUrl, mail } = deps
@@ -174,7 +185,19 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
         res.setHeader('Retry-After', String(decision.retryAfter))
         throw new ApiError(`RATE_LIMITED_${decision.reason.toUpperCase()}`, 429)
       }
-      const challenge = accounts.createChallenge(email)
+      /*
+       * When the operator configured a shared invite code, a first-time mailbox
+       * must present it. Whether the code was valid is recorded on the challenge
+       * rather than re-read at verify, so a client cannot drop it in between and
+       * the flag cannot be forged.
+       *
+       * The check is deliberately silent about "wrong code" vs "no code": the
+       * response must not let an unauthenticated caller probe the deployment.
+       */
+      const invited = deps.inviteCode === undefined
+        ? true
+        : input.inviteCode !== undefined && safeEqual(input.inviteCode, deps.inviteCode)
+      const challenge = accounts.createChallenge(email, invited)
       try {
         await mailer.sendCode({ recipient: email, code: challenge.code, ttlSeconds: limits.codeTtlSeconds })
       } catch {
@@ -202,6 +225,14 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
         if (result.reason === 'locked') throw new ApiError('CODE_LOCKED', 429)
         if (result.reason === 'expired') throw new ApiError('CODE_EXPIRED', 410)
         throw new ApiError('CODE_INVALID', 400)
+      }
+      // Registration is gated, sign-in is not: check BEFORE creating the row so
+      // a rejected attempt leaves no account behind. An existing mailbox always
+      // gets in — otherwise an operator enabling the code would lock out every
+      // user who registered before it was configured.
+      const isNewAccount = accounts.findAccountByEmail(email) === undefined
+      if (isNewAccount && !accounts.challengeInvited(input.challengeId)) {
+        throw new ApiError('INVITE_REQUIRED', 403)
       }
       const { account, created } = accounts.upsertAccount(email)
       const session = accounts.createWebSession(account.accountId)
@@ -309,7 +340,9 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
         items: page.items.map(account => {
           const counts = countsByOwner.get(scope(account.accountId)) ?? { devices: 0, online: 0 }
           return {
-            email: account.email,
+            // Masked only. An operator who needs to identify an account still
+            // can (`o***r@example.com` is unambiguous in a support conversation),
+            // and a shoulder-surfed admin screen no longer leaks every address.
             emailMasked: maskEmail(account.email),
             createdAt: account.createdAt,
             lastLoginAt: account.lastLoginAt,

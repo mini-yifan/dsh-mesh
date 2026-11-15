@@ -146,7 +146,8 @@ export class AccountStore {
         created_at   INTEGER NOT NULL,
         expires_at   INTEGER NOT NULL,
         attempts     INTEGER NOT NULL DEFAULT 0,
-        consumed_at  INTEGER
+        consumed_at  INTEGER,
+        invited      INTEGER NOT NULL DEFAULT 1
       );
       CREATE INDEX IF NOT EXISTS idx_challenges_email ON challenges(email, created_at);
 
@@ -203,6 +204,15 @@ export class AccountStore {
     )
     if (!columns.has('requested_device_id')) {
       this.db.exec('ALTER TABLE device_links ADD COLUMN requested_device_id TEXT')
+    }
+    const challengeColumns = new Set(
+      (this.db.prepare('PRAGMA table_info(challenges)').all() as Array<{ name: string }>)
+        .map(row => row.name),
+    )
+    // Existing rows default to invited=1 so a deployment upgrading in place does
+    // not retroactively invalidate codes already in flight.
+    if (!challengeColumns.has('invited')) {
+      this.db.exec('ALTER TABLE challenges ADD COLUMN invited INTEGER NOT NULL DEFAULT 1')
     }
   }
 
@@ -293,7 +303,7 @@ export class AccountStore {
   // --------------------------------------------------------------- challenges
 
   /** Store a fresh code and invalidate any live code for the same mailbox. */
-  createChallenge(email: string): { challengeId: string; code: string; expiresAt: number } {
+  createChallenge(email: string, invited = true): { challengeId: string; code: string; expiresAt: number } {
     const now = Date.now()
     this.db.prepare('DELETE FROM challenges WHERE expires_at <= ?').run(now)
     this.db.prepare('UPDATE challenges SET consumed_at = ? WHERE email = ? AND consumed_at IS NULL').run(now, email)
@@ -302,9 +312,21 @@ export class AccountStore {
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
     const expiresAt = now + this.limits.codeTtlSeconds * 1000
     this.db.prepare(
-      'INSERT INTO challenges(challenge_id, email, code_digest, created_at, expires_at) VALUES (?, ?, ?, ?, ?)',
-    ).run(challengeId, email, codeDigest(this.pepper, challengeId, code), now, expiresAt)
+      'INSERT INTO challenges(challenge_id, email, code_digest, created_at, expires_at, invited) VALUES (?, ?, ?, ?, ?, ?)',
+    ).run(challengeId, email, codeDigest(this.pepper, challengeId, code), now, expiresAt, invited ? 1 : 0)
     return { challengeId, code, expiresAt }
+  }
+
+  /**
+   * Whether the challenge was created with a valid invite code.
+   *
+   * Read at verify time so registration — which is decided there, not at send
+   * time — can be gated without trusting a client-supplied flag.
+   */
+  challengeInvited(challengeId: string): boolean {
+    const row = this.db.prepare('SELECT invited FROM challenges WHERE challenge_id = ?')
+      .get(challengeId) as { invited: number } | undefined
+    return row !== undefined && Number(row.invited) === 1
   }
 
   /**

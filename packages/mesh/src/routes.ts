@@ -58,7 +58,17 @@ export function registerMeshRoutes(
     path: MESH_ROUTE_PREFIX,
     handler: async (req, res) => {
       try {
-        const rejection = connection?.requestRejection?.({ headers: req.headers })
+        /*
+         * Fail closed. These routes expose pairing, prefs, session prompts and a
+         * Computer Use test hook; each one is a privileged local action. The
+         * host's own connection service normally guards them, so a missing
+         * service or a missing method means the guard cannot run — and treating
+         * that as "allowed" would turn a version skew into a local
+         * privilege-escalation hole.
+         */
+        const rejection = typeof connection?.requestRejection === 'function'
+          ? connection.requestRejection({ headers: req.headers })
+          : 401
         if (rejection !== undefined) {
           json(res, rejection, { error: 'unauthorized', message: 'This request is not authenticated.' })
           return

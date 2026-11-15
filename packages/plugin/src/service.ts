@@ -99,6 +99,17 @@ export class HostPluginRuntime {
     private readonly injectedServerApi?: HostServerApi,
     /** Pinned WebSocket factory for the Host control connection. */
     private readonly webSocketFactory?: WebSocketFactory,
+    /**
+     * Local admission policy for inbound peers. Supplied by the embedding
+     * product (the Mesh plugin) so the machine owner's `allowIncoming` /
+     * `allowedCallers` preferences are actually enforced.
+     */
+    private readonly admitPeer?: (peer: {
+      deviceId: string
+      name: string
+      platform: string
+      membershipId: string
+    }) => boolean,
   ) {
     this.terminalEnabled = config.terminal.enabled
     this.loopbackPorts = [...config.loopback.ports]
@@ -514,6 +525,7 @@ export class HostPluginRuntime {
         : () => loadNodeRtcFactory({ routeTargets: this.config.serverUrl === undefined ? [] : [this.config.serverUrl] }),
       () => this.hostCapabilities(),
       this.harnessVersion,
+      this.admitPeer,
     )
   }
 

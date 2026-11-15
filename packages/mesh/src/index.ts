@@ -26,6 +26,9 @@ export function apply(ctx: Context, entry: MeshConfig | undefined = undefined): 
   ctx.inject(['typertGateway'], async (runtimeContext: Context) => {
     const host = new MeshHost(runtimeContext, config, logger)
     const service = new MeshService(config, host.localGateway, logger, host)
+    // The Host runtime asks this on every inbound connection: the machine
+    // owner's allowIncoming / allowedCallers preferences are the answer.
+    host.setPrefsProvider(() => service.prefs())
     try {
       ;(runtimeContext as unknown as { provide(name: string, value: unknown): void }).provide('mesh', service)
     } catch (error) {

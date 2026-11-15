@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, join, resolve, sep } from 'node:path'
 import {
   ClientServerApi,
   HostServerApi,
@@ -402,6 +402,18 @@ export class MeshService {
   updatePrefs(patch: Partial<MeshPrefs>): MeshPrefs {
     const state = this.state
     if (state === undefined) throw new MeshError('unpaired', 'This device is not paired.')
+    /*
+     * `receiveDir` decides where files returned by a remote device are written.
+     * It arrives over the local HTTP surface, so an absolute arbitrary path would
+     * let that surface drop files into, say, a shell startup directory. Confine it
+     * to the user's home directory — the only place a download target belongs.
+     */
+    if (patch.receiveDir !== undefined) {
+      const candidate = patch.receiveDir.trim()
+      if (candidate !== '' && !isPathInsideHome(candidate)) {
+        throw new MeshError('invalid_receive_dir', '接收目录必须位于当前用户的主目录内。')
+      }
+    }
     state.prefs = {
       ...state.prefs,
       ...(patch.allowIncoming === undefined ? {} : { allowIncoming: patch.allowIncoming }),
@@ -1002,4 +1014,19 @@ export class MeshService {
     if (task === undefined) throw new MeshError('session_not_remote_controllable', 'Only a task created by device_agent can be controlled.', 403)
     return task
   }
+}
+
+/**
+ * Whether `candidate` resolves inside the current user's home directory.
+ *
+ * Used to keep the download target a normal folder: an attacker-influenced
+ * `receiveDir` must not be able to point at a startup script location.
+ */
+export function isPathInsideHome(candidate: string, home = homedir()): boolean {
+  if (candidate === '' || !candidate.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(candidate)) return false
+  let resolved: string
+  try { resolved = resolve(candidate) } catch { return false }
+  const base = resolve(home)
+  if (resolved === base) return true
+  return resolved.startsWith(base.endsWith(sep) ? base : base + sep)
 }

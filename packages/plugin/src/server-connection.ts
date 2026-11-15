@@ -120,6 +120,21 @@ export class HostServerConnection {
     private readonly rtcFactoryProvider?: () => Promise<RtcPeerConnectionFactory | undefined>,
     private readonly hostCapabilities: () => readonly string[] = () => [],
     private readonly harnessVersion?: string,
+    /**
+     * Local admission policy, evaluated after the account directory check.
+     *
+     * The account already proved the caller is a device on this membership, but
+     * the device *owner* also decides whether this machine accepts inbound work
+     * at all — `allowIncoming` and `allowedCallers` are that decision. Without
+     * this hook both preferences were persisted and never read, so turning
+     * "allow incoming" off had no effect whatsoever.
+     */
+    private readonly admitPeer?: (peer: {
+      deviceId: string
+      name: string
+      platform: string
+      membershipId: string
+    }) => boolean,
   ) {}
 
   start(): void {
@@ -681,6 +696,32 @@ export class HostServerConnection {
         clientDeviceId: shortId(payload.clientDeviceId),
       })
       return
+    }
+    /*
+     * Owner policy, applied after the account check so the account directory
+     * remains the authority on *who may exist* and this only answers *may this
+     * machine accept work from them*. A deployment without an injected policy
+     * keeps the historical behaviour.
+     */
+    if (this.admitPeer !== undefined) {
+      let admitted = false
+      try {
+        admitted = this.admitPeer({
+          deviceId: descriptor.deviceId,
+          name: descriptor.name,
+          platform: descriptor.platform,
+          membershipId: descriptor.membershipId,
+        })
+      } catch {
+        admitted = false
+      }
+      if (!admitted) {
+        this.sendControl('connect.rejected', { connectionId: payload.connectionId })
+        this.logger.warn('connection rejected by local admission policy', {
+          clientDeviceId: shortId(payload.clientDeviceId),
+        })
+        return
+      }
     }
     const existing = this.identities.trustedPeer(descriptor.deviceId)
     const stalePin = existing !== undefined && existing.publicKey !== descriptor.identityKey

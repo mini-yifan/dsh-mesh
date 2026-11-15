@@ -72,7 +72,9 @@ const MESSAGES: Record<string, string> = {
   CODE_INVALID: '验证码不正确，请重新输入。',
   CODE_EXPIRED: '验证码已过期，请重新获取。',
   CODE_LOCKED: '错误次数过多，请重新获取验证码。',
+  INVITE_REQUIRED: '这个站点需要邀请码才能注册新账号。',
   MAIL_UNAVAILABLE: '邮件暂时发不出去，请稍后再试。',
+  DEVICE_QUOTA_EXCEEDED: '这个账号的设备数量已达上限，请先在网站上移除不用的设备。',
   ACCOUNT_AUTH_REQUIRED: '登录已过期，请重新登录。',
   ADMIN_REQUIRED: '这个账号没有管理员权限。',
   LINK_NOT_FOUND: '这个连接请求不存在或已失效。',
@@ -112,8 +114,11 @@ export interface SentCode {
   resendAfter: number
 }
 
-export const sendCode = (email: string) =>
-  portal<SentCode>('/auth/email/send', { email })
+export const sendCode = (email: string, inviteCode?: string) =>
+  portal<SentCode>('/auth/email/send', {
+    email,
+    ...(inviteCode && inviteCode.trim() !== '' ? { inviteCode: inviteCode.trim() } : {}),
+  })
 
 export const verifyCode = (email: string, challengeId: string, code: string) =>
   portal<{ newAccount: boolean; account: PortalAccount }>('/auth/email/verify', { email, challengeId, code })
@@ -154,9 +159,8 @@ export const describeLink = (linkId: string) =>
 export const approveLink = (linkId: string) =>
   portal<{ status: string }>('/link/approve', { linkId })
 
-/** One row of the admin user table. `email` is in clear; the page masks it. */
+/** One row of the admin user table. Only the masked address is sent. */
 export interface AdminUser {
-  email: string
   emailMasked: string
   createdAt: number
   lastLoginAt: number

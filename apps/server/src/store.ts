@@ -75,6 +75,23 @@ type State = z.infer<typeof stateSchema>
 const PAIRING_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const PAIRING_TTL_MS = 30 * 60_000
 const MAX_PAIRING_CODES = 512
+/**
+ * Per-account device and node quotas.
+ *
+ * These used to be global counters (256 for the whole server), which made one
+ * tenant able to consume the pool and lock every other tenant out. A per-owner
+ * budget keeps the same anti-abuse intent without a cross-tenant side effect.
+ * `MAX_ACCOUNTS` bounds the number of owners the JSON store will hold at all.
+ */
+export const MAX_DEVICES_PER_OWNER = 64
+/**
+ * Nodes are the paired machines, devices are the role records (a node normally
+ * carries one host + one client). The node budget therefore has to be at least
+ * as large as the device budget or the device limit can never be reached.
+ */
+export const MAX_NODES_PER_OWNER = 64
+export const MAX_TOTAL_DEVICES = 65_536
+export const MAX_TOTAL_NODES = 65_536
 
 // Domain-separated HMACs keyed by the presented bearer, NOT its stored digest.
 // The nonce alone cannot recover credentials from a copy of state.json.
@@ -244,13 +261,38 @@ export class Store {
     return node
   }
 
+  /**
+   * Reject a registration that would exceed the owner's own budget.
+   *
+   * Revoked records are excluded so a user who removes devices regains the
+   * slots, and the totals guard the JSON file against unbounded growth without
+   * ever pitting one tenant against another. Called BEFORE a node is created,
+   * which is why each limit is compared against "already at the limit".
+   */
+  private assertDeviceQuota(owner: string, needsNode = false): void {
+    let ownDevices = 0
+    let ownNodes = 0
+    for (const device of Object.values(this.state.devices)) {
+      if (device.owner === owner && !device.revoked) ownDevices += 1
+    }
+    for (const node of Object.values(this.state.nodes)) {
+      if (node.owner === owner && !node.revoked) ownNodes += 1
+    }
+    if (ownDevices >= MAX_DEVICES_PER_OWNER) throw new ApiError('DEVICE_QUOTA_EXCEEDED', 429)
+    if (needsNode && ownNodes >= MAX_NODES_PER_OWNER) throw new ApiError('DEVICE_QUOTA_EXCEEDED', 429)
+    if (Object.keys(this.state.devices).length >= MAX_TOTAL_DEVICES) throw new ApiError('RATE_LIMITED', 429)
+    if (Object.keys(this.state.nodes).length >= MAX_TOTAL_NODES) throw new ApiError('RATE_LIMITED', 429)
+  }
+
   private registerDevice(descriptor: AccountDeviceDescriptor, nodeId: string, owner: string): ReturnType<Store['issue']> {
     const old = this.state.devices[descriptor.deviceId]
     // A device id is globally unique; another account may not adopt it.
     if (old && old.owner !== owner) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
     if (old?.revoked) throw new ApiError('DEVICE_REVOKED', 403)
     if (old && (old.descriptor.identityKey !== descriptor.identityKey || old.descriptor.role !== descriptor.role)) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
-    if (!old && Object.keys(this.state.devices).length >= 256) throw new ApiError('RATE_LIMITED', 429)
+    // Per-owner quota, not a server-wide one. A global counter let any single
+    // account exhaust the shared pool and lock every other tenant out.
+    if (!old) this.assertDeviceQuota(owner)
     this.state.devices[descriptor.deviceId] = {
       descriptor,
       revoked: false,
@@ -267,6 +309,9 @@ export class Store {
       const existing = this.state.devices[descriptor.deviceId]
       if (existing && existing.owner !== owner) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
       if (existing?.nodeId && this.state.nodes[existing.nodeId]) return this.registerDevice(descriptor, existing.nodeId, owner)
+      // A brand-new identity also creates a node: check both budgets up front so
+      // a rejected registration cannot leave a half-created node behind.
+      if (existing === undefined) this.assertDeviceQuota(owner, true)
       const node = this.createNode(descriptor, owner)
       return this.registerDevice(descriptor, node.id, owner)
     })
@@ -288,7 +333,8 @@ export class Store {
       if (record.revokedAt) throw new ApiError('CODE_INVALID', 400)
       if (record.usedAt) throw new ApiError('CODE_USED', 409)
       if (record.expiresAt <= Date.now()) throw new ApiError('CODE_EXPIRED', 410)
-      if (Object.keys(this.state.nodes).filter(id => !this.state.nodes[id]!.revoked).length >= 256) throw new ApiError('RATE_LIMITED', 429)
+      // Per-owner quota; the global counters below are only a file-size guard.
+      this.assertDeviceQuota(scope, true)
       const node = this.createNode(descriptor, scope)
       record.usedAt = Date.now()
       record.nodeId = node.id

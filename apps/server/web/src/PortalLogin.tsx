@@ -16,6 +16,7 @@ interface Props {
 export function PortalLogin({ onSignedIn, initialNotice }: Props) {
   const [config, setConfig] = useState<PortalConfig>()
   const [email, setEmail] = useState('')
+  const [invite, setInvite] = useState('')
   const [code, setCode] = useState('')
   const [challengeId, setChallengeId] = useState<string>()
   const [masked, setMasked] = useState('')
@@ -50,7 +51,7 @@ export function PortalLogin({ onSignedIn, initialNotice }: Props) {
     if (!address) { setNotice({ kind: 'error', text: '请输入邮箱地址。' }); return }
     setBusy(true); setNotice(undefined)
     try {
-      const sent = await sendCode(address)
+      const sent = await sendCode(address, invite)
       setChallengeId(sent.challengeId)
       setMasked(sent.emailMasked)
       setCooldown(sent.resendAfter)
@@ -65,7 +66,7 @@ export function PortalLogin({ onSignedIn, initialNotice }: Props) {
     } finally {
       setBusy(false)
     }
-  }, [email])
+  }, [email, invite])
 
   const submit = useCallback(async () => {
     if (!challengeId) return
@@ -107,6 +108,26 @@ export function PortalLogin({ onSignedIn, initialNotice }: Props) {
         {!challengeId ? (
           <div className="orb-card">
             <div className="orb-card-body">
+              {config?.requiresInvite && (
+                <div className="orb-field">
+                  <label className="orb-label" htmlFor="portal-invite">邀请码</label>
+                  <input
+                    id="portal-invite"
+                    className="orb-input"
+                    type="text"
+                    autoComplete="off"
+                    maxLength={128}
+                    placeholder="向站点管理员索取"
+                    value={invite}
+                    disabled={busy}
+                    onChange={event => setInvite(event.target.value)}
+                    onKeyDown={event => { if (event.key === 'Enter') void request() }}
+                  />
+                  <p className="orb-hint" style={{ marginTop: 6 }}>
+                    这个站点只接受持邀请码的新账号；已有账号直接登录即可。
+                  </p>
+                </div>
+              )}
               <div className="orb-field">
                 <label className="orb-label" htmlFor="portal-email">邮箱地址</label>
                 <input

@@ -599,13 +599,17 @@ describe('account mode: admin reports', () => {
     expect(accounts.status, JSON.stringify(accounts.data)).toBe(200)
     expect(accounts.data.total).toBe(2)
     expect(accounts.data.limit).toBe(50)
-    const ownerRow = accounts.data.items.find((user: { email: string }) => user.email === 'owner@example.com')
+    // Only masked addresses are returned; the page identifies rows by that.
+    const ownerRow = accounts.data.items.find((user: { emailMasked: string }) => user.emailMasked === 'o***r@example.com')
     expect(ownerRow.devices).toBe(2)
     expect(ownerRow.devicesOnline).toBe(0)
     // Each account is listed once, with its own device count only.
-    const bossRow = accounts.data.items.find((user: { email: string }) => user.email === 'boss@example.com')
+    const bossRow = accounts.data.items.find((user: { emailMasked: string }) => user.emailMasked === 'b***s@example.com')
     expect(bossRow.devices).toBe(0)
     expect(bossRow.isAdmin).toBe(true)
+    // No clear-text address may leave this endpoint.
+    expect(JSON.stringify(accounts.data)).not.toContain('owner@example.com')
+    expect(JSON.stringify(accounts.data)).not.toContain('boss@example.com')
   })
 
   it('reports a seven-day activity series with every day present', async () => {
@@ -628,8 +632,8 @@ describe('account mode: admin account paging', () => {
   it('pages the account list and reports the real total', async () => {
     await start({ adminEmails: ['boss@example.com'], limits: { emailSendsPerDay: 50, sendCooldownSeconds: 0 } })
     const boss = await signIn('boss@example.com')
-    await signIn('a1@example.com')
-    await signIn('a2@example.com')
+    await signIn('alpha@example.com')
+    await signIn('bravo@example.com')
 
     const first = await call('/admin/accounts?limit=2&offset=0', { cookie: boss.cookie })
     expect(first.status, JSON.stringify(first.data)).toBe(200)
@@ -642,7 +646,7 @@ describe('account mode: admin account paging', () => {
     expect(second.data.items).toHaveLength(1)
 
     // Pages must not overlap.
-    const seen = new Set([...first.data.items, ...second.data.items].map((user: { email: string }) => user.email))
+    const seen = new Set([...first.data.items, ...second.data.items].map((user: { emailMasked: string }) => user.emailMasked))
     expect(seen.size).toBe(3)
   })
 
@@ -654,7 +658,7 @@ describe('account mode: admin account paging', () => {
 
     const matched = await call('/admin/accounts?q=alice', { cookie: boss.cookie })
     expect(matched.data.total).toBe(1)
-    expect(matched.data.items[0].email).toBe('alice@example.com')
+    expect(matched.data.items[0].emailMasked).toBe('a***e@example.com')
 
     // `%` is a wildcard in LIKE; a search for it must not match everything.
     const wildcard = await call('/admin/accounts?q=%25', { cookie: boss.cookie })

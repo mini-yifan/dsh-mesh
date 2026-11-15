@@ -31,6 +31,18 @@ export class MeshHost {
   private runtime?: HostPluginRuntime
   private disposed = false
 
+  /**
+   * Live view of the owner's admission preferences. Set by MeshService, which
+   * owns the state file; the Host runtime asks on every inbound connection so a
+   * change in the UI takes effect without restarting the tunnel.
+   */
+  private prefsProvider: () => { allowIncoming: boolean; allowedCallers: string[] } =
+    () => ({ allowIncoming: true, allowedCallers: [] })
+
+  setPrefsProvider(provider: () => { allowIncoming: boolean; allowedCallers: string[] }): void {
+    this.prefsProvider = provider
+  }
+
   constructor(
     private readonly ctx: Context,
     private readonly config: ResolvedMeshConfig,
@@ -120,6 +132,7 @@ export class MeshHost {
       undefined,
       serverApi,
       createPinnedWebSocketFactory(state.fingerprint),
+      peer => this.admit(peer),
     )
     try {
       await runtime.start()
@@ -138,6 +151,12 @@ export class MeshHost {
   async dispose(): Promise<void> {
     this.disposed = true
     await this.stop()
+  }
+
+  private admit(peer: { deviceId: string; name: string }): boolean {
+    let prefs: { allowIncoming: boolean; allowedCallers: string[] }
+    try { prefs = this.prefsProvider() } catch { return false }
+    return admitPeer(prefs, peer)
   }
 
   private runtimeConfig(state: MeshState): ResolvedConfig {
@@ -174,4 +193,25 @@ export function withIncomingPreset(endpoint: string, payload: unknown, incomingP
   const request = args?.request !== null && typeof args?.request === 'object' ? args.request as Record<string, unknown> : undefined
   if (root === undefined || args === undefined || request === undefined) return payload
   return { ...root, args: { ...args, request: { ...request, agentPreset: incomingPreset } } }
+}
+
+/**
+ * The owner's answer to "may this machine accept work from that device?".
+ *
+ * `allowIncoming` is the master switch. `allowedCallers` is an allow-list of
+ * device ids: an empty list means "anyone on this account", a non-empty list
+ * restricts inbound work to exactly those devices. Names are accepted too so
+ * the list stays usable when ids change after a re-pair.
+ *
+ * Exported so the rule is unit-testable without standing up a Host runtime.
+ */
+export function admitPeer(
+  prefs: { allowIncoming: boolean; allowedCallers: readonly string[] },
+  peer: { deviceId: string; name: string },
+): boolean {
+  if (prefs.allowIncoming !== true) return false
+  const allowed = prefs.allowedCallers.filter(entry => typeof entry === 'string' && entry.trim() !== '')
+  if (allowed.length === 0) return true
+  const wanted = new Set(allowed.map(entry => entry.trim()))
+  return wanted.has(peer.deviceId) || wanted.has(peer.name)
 }

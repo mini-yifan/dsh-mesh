@@ -119,6 +119,22 @@ export function readAccountEnv(): AccountEnv | undefined {
   if (pepper.length < 32) {
     throw new Error('账号模式要求 DSH_MESH_ACCOUNT_PEPPER 至少 32 个字符（用于验证码与会话摘要）。')
   }
+  const mail = readMail()
+  /*
+   * The console transport prints every login code to the process log. That is
+   * fine for a local trial and catastrophic on a public origin, where anyone who
+   * can read a log line can sign in as anybody. Refuse to start rather than
+   * relying on an operator remembering this — and allow an explicit override for
+   * the deliberate "public URL, SMTP not wired up yet" window.
+   */
+  const publicUrl = process.env.DSH_SERVER_PUBLIC_URL?.trim() ?? ''
+  if (mail.transport === 'console' && /^https:/i.test(publicUrl)
+    && process.env.DSH_MESH_ALLOW_CONSOLE_MAIL !== '1') {
+    throw new Error(
+      '账号模式的生产部署不能用 console 邮件传输：验证码会写进服务器日志，任何能看日志的人都能登录任意账号。'
+      + '请设置 DSH_MESH_MAIL_TRANSPORT=smtp（并配置 SMTP_*），或显式设置 DSH_MESH_ALLOW_CONSOLE_MAIL=1 以确认这是有意的临时状态。',
+    )
+  }
   return {
     dataFile: process.env.DSH_MESH_ACCOUNT_DB?.trim() || 'data/accounts.sqlite3',
     pepper,
@@ -132,7 +148,7 @@ export function readAccountEnv(): AccountEnv | undefined {
       maxVerifyFailures: int('DSH_MESH_MAX_VERIFY_FAILURES', 5, 1),
       linkTtlSeconds: int('DSH_MESH_LINK_TTL_SECONDS', 600, 60),
     },
-    mail: readMail(),
+    mail,
     ...(process.env.DSH_MESH_INVITE_CODE?.trim()
       ? { inviteCode: process.env.DSH_MESH_INVITE_CODE.trim() }
       : {}),

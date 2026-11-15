@@ -318,7 +318,7 @@ function AdminAccounts({ onFailure }: { onFailure(failure: unknown): void }) {
                 </tr>
               </thead>
               <tbody>
-                {(page?.items ?? []).map(user => <AdminRow key={user.email} user={user} />)}
+                {(page?.items ?? []).map(user => <AdminRow key={user.emailMasked + user.createdAt} user={user} />)}
               </tbody>
             </table>
           </div>

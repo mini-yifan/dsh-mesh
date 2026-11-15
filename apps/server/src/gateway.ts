@@ -25,6 +25,15 @@ export interface GatewayOptions extends GatewayTimingOptions {
   logger?: Logger
   /** Advertise `transport.turn` (and accept TURN credential requests). */
   turnEnabled?: boolean
+  /**
+   * Resolve the client address used for the half-open budget.
+   *
+   * Behind a reverse proxy every socket peer is the proxy, so counting per
+   * `remoteAddress` would put all users in one bucket. `server.ts` supplies the
+   * same trusted-proxy-aware resolver the HTTP rate limiter uses. Returning
+   * `undefined` falls back to the socket peer.
+   */
+  clientAddress?: (req: import('node:http').IncomingMessage) => string | undefined
 }
 
 /**
@@ -70,7 +79,26 @@ const MAX_DROPPED_LINKS = 16_384
 
 /** Protocol v1 default: at most 256 ICE candidates per logical connection. */
 export const MAX_ICE_CANDIDATES_PER_CONNECTION = 256
+/**
+ * Caps on *authenticated* control connections. Unauthenticated sockets have
+ * their own, much smaller budget (`PENDING_*`) so an attacker who never sends
+ * `hello` cannot occupy the slots real devices need.
+ */
+export const MAX_AUTHENTICATED_CONNECTIONS = 256
+/**
+ * One address may hold this many half-open handshakes at once. Sized for a
+ * shared NAT (an office or a household with several devices) while still
+ * forcing an attacker to control many distinct addresses before the global
+ * pending ceiling becomes reachable.
+ */
+export const MAX_PENDING_PER_ADDRESS = 16
+/** Global ceiling for half-open handshakes, independent of the auth cap. */
+export const MAX_PENDING_CONNECTIONS = 256
+/** Half-open sockets older than their hello deadline are swept even if the timer was lost. */
+const PENDING_SWEEP_MS = 5_000
 /** Mirrors docs/protocol.md: Clients use max(server, local) and default to 12 s. */
+/** Global cap on concurrent logical links; each one holds two authenticated devices. */
+const MAX_LINKS = 4096
 const WEBRTC_FALLBACK_TIMEOUT_MS = 12_000
 const SUPPORTED_TRANSPORTS = ['transport.lan', 'transport.p2p', 'transport.turn', 'transport.relay'] as const
 const TRANSPORT_NAMES = ['lan', 'p2p', 'turn', 'relay'] as const
@@ -137,10 +165,29 @@ export class Gateway {
   private links = new Map<string, Link>()
   private droppedLinks = new Map<string, DroppedLink>()
   private wss = new WebSocketServer({ noServer: true, maxPayload: MAX_RELAY_FRAME_BYTES, perMessageDeflate: false })
+  /**
+   * Sockets that have not finished `hello` yet, keyed per source address.
+   *
+   * These are counted separately from `wss.clients`: the authenticate cap must
+   * not be consumable by an unauthenticated peer. A single attacker opening 256
+   * idle sockets used to make every real device's upgrade fail with 403, so
+   * unauthenticated connections get their own small budget per address and a
+   * much smaller global ceiling.
+   */
+  /**
+   * Half-open sockets in arrival order, so an over-budget upgrade can evict the
+   * oldest idle handshake instead of rejecting the newcomer. That direction
+   * matters: a reconnect after a network blip must always get in, even while an
+   * attacker holds idle sockets open from the same NAT address.
+   */
+  private pendingOrder = new Map<WebSocket, { address: string; since: number }>()
+  /** Sockets counted against the authenticated cap. */
+  private authenticatedSockets = 0
   private heartbeat: ReturnType<typeof setInterval>
   private sweep: ReturnType<typeof setInterval>
   private closed = false
   readonly turnEnabled: boolean
+  private readonly clientAddress?: (req: import('node:http').IncomingMessage) => string | undefined
   readonly helloTimeoutMs: number
   readonly heartbeatIntervalMs: number
   readonly heartbeatDisconnectMs: number
@@ -160,6 +207,7 @@ export class Gateway {
     this.maxFramesPerSec = normalizeMaxFramesPerSec(options.maxFramesPerSec)
     this.logger = options.logger ?? new Logger('gateway', options.logLevel ?? 'info')
     this.turnEnabled = options.turnEnabled === true
+    this.clientAddress = options.clientAddress
 
     store.onInvalidate = id => this.disconnectDevice(id, 'AUTH_INVALID')
     server.on('upgrade', (req, socket, head) => {
@@ -168,7 +216,22 @@ export class Gateway {
       // (exactly as before) but only its parsed pathname is ever logged.
       const pathRejected = req.url !== '/ws/v1/connect'
       const originRejected = Boolean(req.headers.origin) && req.headers.origin !== origin
-      if (pathRejected || originRejected || this.wss.clients.size >= 256) {
+      // Behind Caddy every peer is the proxy; use the trusted-proxy-aware
+      // resolver so the budget is per real client, not one shared bucket.
+      let address = 'unknown'
+      try { address = this.clientAddress?.(req) ?? socketAddress(socket) ?? 'unknown' } catch { address = 'unknown' }
+      // Over-budget half-open sockets are evicted, not refused: the newest
+      // attempt always wins so a real reconnect is never locked out.
+      if (this.pendingCountFor(address) >= MAX_PENDING_PER_ADDRESS) {
+        this.evictOldestPending(address)
+      }
+      if (this.pendingOrder.size >= MAX_PENDING_CONNECTIONS) {
+        this.evictOldestPending(address)
+      }
+      // The authenticated cap is only consumed by sockets that actually
+      // authenticated; idle half-open sockets have their own budget above.
+      const authenticatedRejected = this.authenticatedSockets >= MAX_AUTHENTICATED_CONNECTIONS
+      if (pathRejected || originRejected || authenticatedRejected) {
         this.logger.warn('ws_upgrade_rejected', {
           // Parsed pathname only: the raw URL may carry credentials in its query.
           path: path === '' ? 'unknown' : path,
@@ -177,14 +240,18 @@ export class Gateway {
             : originRejected
               ? 'origin_mismatch'
               : 'connection_limit_reached',
-          clientCount: this.wss.clients.size,
+          clientCount: this.authenticatedSockets,
+          pendingCount: this.pendingOrder.size,
           hasOrigin: Boolean(req.headers.origin),
-          remoteAddress: socketAddress(socket),
+          remoteAddress: address === 'unknown' ? undefined : address,
         })
         socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
         return
       }
-      this.wss.handleUpgrade(req, socket, head, ws => this.accept(ws))
+      this.wss.handleUpgrade(req, socket, head, ws => {
+        this.pendingOrder.set(ws, { address, since: Date.now() })
+        this.accept(ws, address, () => this.releasePending(ws))
+      })
     })
     this.heartbeat = setInterval(() => {
       if (this.closed) return
@@ -226,6 +293,44 @@ export class Gateway {
     keys.add(peer.key)
     this.byDevice.set(peer.id, keys)
     if (peer.role === 'host') this.hostOf.set(peer.id, peer.key)
+  }
+
+  /**
+   * Drop one half-open socket from the unauthenticated budget.
+   */
+  private releasePending(ws: WebSocket): void {
+    this.pendingOrder.delete(ws)
+  }
+
+  /** How many half-open handshakes one address currently holds. */
+  private pendingCountFor(address: string): number {
+    let count = 0
+    for (const entry of this.pendingOrder.values()) if (entry.address === address) count += 1
+    return count
+  }
+
+  /**
+   * Evict the oldest half-open socket holding a slot. Called before admitting a
+   * newcomer that would exceed the budget, so a legitimate reconnect is never
+   * locked out by idle sockets — including ones from its own NAT address.
+   */
+  private evictOldestPending(address: string): boolean {
+    const sameAddress = this.pendingCountFor(address) > 0
+    let victim: WebSocket | undefined
+    let oldest = Number.POSITIVE_INFINITY
+    for (const [ws, entry] of this.pendingOrder) {
+      // Prefer evicting from the offending address, then globally oldest.
+      const candidateSince = sameAddress && entry.address !== address
+        ? entry.since + 1e12
+        : entry.since
+      if (candidateSince < oldest) { oldest = candidateSince; victim = ws }
+    }
+    if (victim === undefined) return false
+    this.pendingOrder.delete(victim)
+    try { victim.close(4009, 'PENDING_EVICTED') } catch { try { victim.terminate() } catch { /* already gone */ } }
+    const timer = setTimeout(() => { try { victim!.terminate() } catch { /* gone */ } }, this.forceTerminateGraceMs)
+    timer.unref()
+    return true
   }
 
   private removePeer(peer: Peer): void {
@@ -374,11 +479,39 @@ export class Gateway {
     return this.supportedCapabilities().filter(capability => offered.includes(capability))
   }
 
-  private accept(ws: WebSocket): void {
+  /**
+   * @param onSettled Called exactly once when this socket either authenticates
+   *   or goes away. Releases the half-open budget so one address can never
+   *   starve another.
+   */
+  private accept(ws: WebSocket, address: string, onSettled: () => void): void {
     let state: ConnectionState = 'awaiting_hello'
     let peer: Peer | undefined
     let deadline: ReturnType<typeof setTimeout> | undefined
     let graceTimer: ReturnType<typeof setTimeout> | undefined
+    /** Guard so the pending budget is released exactly once per socket. */
+    let settled = false
+    const settle = (): void => {
+      if (settled) return
+      settled = true
+      onSettled()
+    }
+    /** Move this socket from the half-open budget into the authenticated one. */
+    const authenticate = (): void => {
+      settle()
+      this.authenticatedSockets += 1
+    }
+    /** Give back an authenticated slot (only after `authenticate` ran). */
+    let counted = false
+    const releaseAuthenticated = (): void => {
+      if (!counted) return
+      counted = false
+      if (this.authenticatedSockets > 0) this.authenticatedSockets -= 1
+    }
+    const markAuthenticated = (): void => {
+      authenticate()
+      counted = true
+    }
 
     // Timer cleanup is idempotent: every path (auth, timeout, close) can call
     // it any number of times without leaving a scheduled callback behind.
@@ -401,7 +534,7 @@ export class Gateway {
       graceTimer.unref()
     }
 
-    this.logger.debug('ws_connection_accepted', { clientCount: this.wss.clients.size })
+    this.logger.debug('ws_connection_accepted', { clientCount: this.authenticatedSockets })
 
     deadline = setTimeout(() => {
       deadline = undefined
@@ -409,6 +542,8 @@ export class Gateway {
       // Close the door before closing the socket: any hello still in flight is
       // then discarded by the frame guard instead of authenticating late.
       state = 'closing'
+      // The handshake deadline ends the half-open phase even if `close` is slow.
+      settle()
       this.logger.warn('ws_hello_timeout', { timeoutMs: this.helloTimeoutMs, readyState: ws.readyState })
       if (ws.readyState === WebSocket.OPEN) {
         try {
@@ -444,6 +579,9 @@ export class Gateway {
       state = 'closed'
       clearDeadline()
       clearGrace()
+      // A socket that never authenticated must give its half-open slot back.
+      settle()
+      releaseAuthenticated()
       this.logger.info('ws_connection_closed', {
         ...(peer ? { peerId: peer.id, role: peer.role } : {}),
         code,
@@ -491,6 +629,8 @@ export class Gateway {
           // checked, the timeout wins and none of the side effects below run.
           if (state !== 'awaiting_hello') return
           state = 'authenticated'
+          // From here the socket occupies an authenticated slot, not a half-open one.
+          markAuthenticated()
           clearDeadline()
           // Host identity keeps the upstream single-control-connection rule.
           // Client identity may own one connection per remote Host, so only a
@@ -596,7 +736,26 @@ export class Gateway {
       }
       const host = hostKey === undefined ? undefined : this.peers.get(hostKey)
       if (!host || host.role !== 'host') { this.send(peer, createControlFrame('error', { code: 'HOST_OFFLINE', message: 'Host is offline.', retryable: true })); return }
-      this.store.get(host.id)
+      const hostDevice = this.store.get(host.id)
+      const clientDevice = this.store.get(peer.id)
+      /**
+       * Tenant boundary, enforced at the relay itself.
+       *
+       * The Host independently re-checks `deviceFor(clientDeviceId)` against its
+       * own credentials, so this is defence in depth: an old or tampered Host
+       * build that skips that look-up must still not be reachable from another
+       * account. The error deliberately matches "no such device" so a caller
+       * cannot probe whether a device id exists elsewhere on the server.
+       */
+      if (hostDevice.owner !== clientDevice.owner) {
+        this.logger.warn('ws_connect_cross_tenant_rejected', {
+          peerId: peer.id,
+          role: peer.role,
+          hostDeviceId: safeText(host.id),
+          connectionKey: peer.key,
+        })
+        throw new ApiError('CONNECTION_NOT_FOUND')
+      }
       if (!request.preferredTransports.includes('relay') || !peer.capabilities.includes('transport.relay') || !host.capabilities.includes('transport.relay')) throw new ApiError('CAPABILITY_NOT_SUPPORTED')
       // The link coordinates only transports both peers actually advertised;
       // the Host receives the same intersection so it never sees a transport
@@ -607,7 +766,7 @@ export class Gateway {
       // Only this Client connection's previous Link is replaced. Different
       // remote Hosts connected through the same Client identity keep theirs.
       for (const old of this.links.values()) if (old.client === peer.key || (old.host === host.key && !modernHost(host.version))) this.drop(old, 'CONNECTION_REPLACED')
-      if (this.links.size >= 256) throw new ApiError('RATE_LIMITED')
+      if (this.links.size >= MAX_LINKS) throw new ApiError('RATE_LIMITED')
       const link: Link = {
         id: randomUUID(),
         host: host.key,
