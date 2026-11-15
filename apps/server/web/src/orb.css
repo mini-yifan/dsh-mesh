@@ -145,6 +145,12 @@ a {
   flex: 1;
 }
 
+/* Top-bar entries rendered as anchors keep the button look, not link underline. */
+.orb-topbar-link,
+.orb-link-actions a {
+  text-decoration: none;
+}
+
 .orb-main {
   flex: 1;
   width: 100%;
@@ -563,6 +569,17 @@ a {
   font-size: 14px;
   font-weight: 600;
   box-shadow: var(--orb-shadow);
+}
+
+/* Where the hand-off page sends the user next: the portal itself. */
+.orb-link-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 26px;
+}
+
+.orb-link-actions a {
+  text-decoration: none;
 }
 
 /* ---------------------------------------------------------------- spinner */

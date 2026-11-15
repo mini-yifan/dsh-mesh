@@ -122,6 +122,9 @@ export function PortalLink({ linkId, onApproved }: Props) {
       <header className="orb-topbar">
         <span className="orb-brand"><span className="orb-ball" data-state={stage === 'done' ? 'online' : 'idle'} />DSH Orb·互联</span>
         <span className="orb-topbar-spacer" />
+        {/* Reachable at every stage: someone comparing accounts or checking an
+            existing device should not have to finish this page first. */}
+        <a className="orb-button is-ghost is-small orb-topbar-link" href="/app/devices">网站主页</a>
         {account && stage !== 'done' && (
           <>
             <span style={{ color: 'var(--orb-muted)', fontSize: 13 }}>{account.emailMasked}</span>
@@ -223,7 +226,8 @@ export function PortalLink({ linkId, onApproved }: Props) {
  * whether the rest of their account is reachable, so the same rows the portal
  * shows are rendered here, newcomer first and highlighted.
  */
-function LinkDone({ deviceId, deviceName }: { deviceId?: string; deviceName: string }) {  const [devices, setDevices] = useState<PortalDevice[]>()
+function LinkDone({ deviceId, deviceName }: { deviceId?: string; deviceName: string }) {
+  const [devices, setDevices] = useState<PortalDevice[]>()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -317,6 +321,16 @@ function LinkDone({ deviceId, deviceName }: { deviceId?: string; deviceName: str
 
       <p className="orb-hint">
         同一账号的设备互相可见、可以互相派任务。服务器只转发加密流量，看不到会话内容。
+      </p>
+
+      {/* The hand-off ends here, but the account does not: this is where the
+          user is heading anyway, so give them the door instead of making them
+          retype the site address. */}
+      <div className="orb-link-actions">
+        <a className="orb-button is-primary" href="/app/devices">进入网站主页</a>
+      </div>
+      <p className="orb-hint" style={{ textAlign: 'center' }}>
+        在主页可以查看账号信息、管理已授权的设备，以及生成新的配对串。
       </p>
     </>
   )
