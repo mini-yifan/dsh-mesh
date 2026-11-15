@@ -23,10 +23,13 @@ import {
 } from './portal-api'
 
 interface Props {
+  /** Whether the signed-in account may open the server-wide report. */
+  isAdmin?: boolean
+  onOpenAdmin?(): void
   onSignedOut(): void
 }
 
-export function PortalDevices({ onSignedOut }: Props) {
+export function PortalDevices({ isAdmin = false, onOpenAdmin, onSignedOut }: Props) {
   const [me, setMe] = useState<PortalMe>()
   const [devices, setDevices] = useState<PortalDevice[]>([])
   const [codes, setCodes] = useState<PairingCode[]>([])
@@ -134,6 +137,9 @@ export function PortalDevices({ onSignedOut }: Props) {
       <header className="orb-topbar">
         <span className="orb-brand"><span className="orb-ball" data-state={onlineCount > 0 ? 'online' : 'idle'} />DSH Orb·互联</span>
         <span className="orb-topbar-spacer" />
+        {isAdmin && onOpenAdmin && (
+          <button className="orb-button is-ghost is-small" type="button" onClick={onOpenAdmin}>管理员</button>
+        )}
         {me && <span style={{ color: 'var(--orb-muted)', fontSize: 13 }}>{me.account.emailMasked}</span>}
         <button className="orb-button is-ghost is-small" type="button" onClick={() => void logout()}>退出登录</button>
       </header>

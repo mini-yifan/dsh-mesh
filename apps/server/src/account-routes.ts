@@ -83,12 +83,31 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
 
   function scope(accountId: string): string { return deps.hash(accountId) }
 
+  /**
+   * Whether an account may read server-wide reports.
+   *
+   * Opt-in only: an empty allow-list means nobody is an administrator. The
+   * opposite default would make every account an administrator on a deployment
+   * that forgot to configure the list, which is exactly the deployment most
+   * likely to be public.
+   */
+  function isAdminEmail(email: string): boolean {
+    return deps.adminEmails.includes(email.trim().toLowerCase())
+  }
+
   /** Resolve the signed-in account or throw. Never trusts a caller-supplied id. */
   function requireSession(req: IncomingMessage): Ctx {
     const token = deps.cookieToken(req)
     const account = accounts.accountForSession(token)
     if (!account) throw new ApiError('ACCOUNT_AUTH_REQUIRED', 401)
     return { deps, accountId: account.accountId, email: account.email, ownerScope: scope(account.accountId) }
+  }
+
+  /** Session plus the admin allow-list; the only gate on `/api/v1/admin/*`. */
+  function requireAdmin(req: IncomingMessage): Ctx {
+    const ctx = requireSession(req)
+    if (!isAdminEmail(ctx.email)) throw new ApiError('ADMIN_REQUIRED', 403)
+    return ctx
   }
 
   function nodeSummary(ctx: Ctx, node: ReturnType<Store['listNodes']>[number]) {
@@ -203,7 +222,7 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
       const account = accounts.findAccountByEmail(ctx.email)!
       deps.json(res, 200, {
         account: { email: account.email, emailMasked: maskEmail(account.email), createdAt: account.createdAt },
-        isAdmin: deps.adminEmails.length === 0 || deps.adminEmails.includes(account.email),
+        isAdmin: isAdminEmail(account.email),
         serverUrl: publicUrl.origin,
       })
       return true
@@ -213,6 +232,78 @@ export function createAccountRoutes(deps: AccountRouteDeps) {
       const ctx = requireSession(req)
       const nodes = store.listNodes(ctx.ownerScope)
       deps.json(res, 200, { items: nodes.map(node => nodeSummary(ctx, node)), serverUrl: publicUrl.origin })
+      return true
+    }
+
+    // ------------------------------------------------------ admin reports
+
+    if (method === 'GET' && path === '/api/v1/admin/stats') {
+      requireAdmin(req)
+      const days = 7
+      const accountsList = accounts.adminAccounts()
+      const activity = accounts.adminActivity(days)
+
+      // Devices live in the JSON store, accounts in SQLite. Join in memory:
+      // each node carries its owner scope, which is what ties them together.
+      const nodes = store.listNodes()
+      const devices = store.list()
+      /** Either role counts as the node being up. */
+      const nodeOnline = (node: { hostDeviceId: string; clientDeviceId?: string }): boolean =>
+        [node.hostDeviceId, node.clientDeviceId]
+          .some(id => id !== undefined && id !== '' && deps.isOnline(id))
+      const onlineNodes = nodes.filter(nodeOnline).length
+
+      const byPlatform: Record<string, number> = {}
+      for (const node of nodes) byPlatform[node.platform] = (byPlatform[node.platform] ?? 0) + 1
+
+      const deviceCountByOwner = new Map<string, { devices: number; online: number }>()
+      for (const node of nodes) {
+        const owner = node.owner ?? ''
+        const entry = deviceCountByOwner.get(owner) ?? { devices: 0, online: 0 }
+        entry.devices += 1
+        if (nodeOnline(node)) entry.online += 1
+        deviceCountByOwner.set(owner, entry)
+      }
+
+      const now = Date.now()
+      const day = 86_400_000
+      const users = accountsList.map(account => {
+        const counts = deviceCountByOwner.get(scope(account.accountId)) ?? { devices: 0, online: 0 }
+        return {
+          email: account.email,
+          emailMasked: maskEmail(account.email),
+          createdAt: account.createdAt,
+          lastLoginAt: account.lastLoginAt,
+          sessions: account.sessions,
+          devices: counts.devices,
+          devicesOnline: counts.online,
+          isAdmin: isAdminEmail(account.email),
+        }
+      })
+
+      deps.json(res, 200, {
+        generatedAt: now,
+        users: {
+          total: accountsList.length,
+          newToday: users.filter(user => user.createdAt >= now - day).length,
+          newLast7Days: users.filter(user => user.createdAt >= now - 7 * day).length,
+          newLast30Days: users.filter(user => user.createdAt >= now - 30 * day).length,
+          activeLast7Days: users.filter(user => user.lastLoginAt >= now - 7 * day).length,
+        },
+        devices: {
+          total: nodes.length,
+          online: onlineNodes,
+          offline: nodes.length - onlineNodes,
+          // Raw device-role records. Approving a link creates the host role; the
+          // client role appears when the plugin registers it after collecting
+          // credentials. A node with only a host record therefore never got far
+          // enough to act as a client — worth being able to spot.
+          deviceRecords: devices.length,
+          byPlatform,
+        },
+        activity,
+        list: users.sort((left, right) => right.lastLoginAt - left.lastLoginAt),
+      })
       return true
     }
 

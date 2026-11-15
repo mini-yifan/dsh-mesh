@@ -74,6 +74,7 @@ const MESSAGES: Record<string, string> = {
   CODE_LOCKED: '错误次数过多，请重新获取验证码。',
   MAIL_UNAVAILABLE: '邮件暂时发不出去，请稍后再试。',
   ACCOUNT_AUTH_REQUIRED: '登录已过期，请重新登录。',
+  ADMIN_REQUIRED: '这个账号没有管理员权限。',
   LINK_NOT_FOUND: '这个连接请求不存在或已失效。',
   LINK_EXPIRED: '这个连接请求已过期，请在设备上重新发起。',
   LINK_CONSUMED: '这个连接请求已经被使用过了。',
@@ -153,6 +154,47 @@ export const describeLink = (linkId: string) =>
 export const approveLink = (linkId: string) =>
   portal<{ status: string }>('/link/approve', { linkId })
 
+/** One row of the admin user table. `email` is in clear; the page masks it. */
+export interface AdminUser {
+  email: string
+  emailMasked: string
+  createdAt: number
+  lastLoginAt: number
+  sessions: number
+  devices: number
+  devicesOnline: number
+  isAdmin: boolean
+}
+
+export interface AdminActivityDay {
+  /** Local calendar day, `YYYY-MM-DD`. */
+  date: string
+  newAccounts: number
+  codeRequests: number
+}
+
+export interface AdminStats {
+  generatedAt: number
+  users: {
+    total: number
+    newToday: number
+    newLast7Days: number
+    newLast30Days: number
+    activeLast7Days: number
+  }
+  devices: {
+    total: number
+    online: number
+    offline: number
+    deviceRecords: number
+    byPlatform: Record<string, number>
+  }
+  activity: AdminActivityDay[]
+  list: AdminUser[]
+}
+
+export const loadAdminStats = () => portal<AdminStats>('/admin/stats')
+
 /** Platform ids map to the labels the desktop orb uses. */
 export function platformLabel(platform: string): string {
   switch (platform) {
@@ -171,4 +213,18 @@ export function relativeTime(timestamp?: number): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)} 分钟前在线`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)} 小时前在线`
   return `${Math.floor(seconds / 86400)} 天前在线`
+}
+
+/**
+ * The same elapsed-time scale, phrased for a moment that is not "online" —
+ * a registration or a sign-in. `relativeTime` cannot be reused with a string
+ * replace: "刚刚在线" and "3 天前在线" do not share one suffix rule.
+ */
+export function elapsedSince(timestamp?: number): string {
+  if (!timestamp) return '—'
+  const seconds = Math.round((Date.now() - timestamp) / 1000)
+  if (seconds < 60) return '刚刚'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} 分钟前`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} 小时前`
+  return `${Math.floor(seconds / 86400)} 天前`
 }

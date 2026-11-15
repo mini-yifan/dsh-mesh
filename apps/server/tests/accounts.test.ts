@@ -45,6 +45,7 @@ async function start(options: {
   mailer?: Mailer
   limits?: Partial<typeof DEFAULT_LIMITS>
   inviteCode?: string
+  adminEmails?: string[]
 } = {}) {
   mailer = new RecordingMailer()
   app = createRemoteServer({
@@ -59,7 +60,7 @@ async function start(options: {
         limits: { ...DEFAULT_LIMITS, ...options.limits },
         mail: { transport: 'console', appName: 'Test Mesh', from: 'login@example.test' },
         ...(options.inviteCode === undefined ? {} : { inviteCode: options.inviteCode }),
-        adminEmails: [],
+        adminEmails: options.adminEmails ?? [],
       },
       mailer: options.mailer ?? mailer,
     },
@@ -545,5 +546,72 @@ describe('account mode: session lifecycle', () => {
     await signIn('owner@example.com')
     const forged = await call('/portal/me', { cookie: 'dsh_session=not-a-real-session-token' })
     expect(forged.status).toBe(401)
+  })
+})
+
+describe('account mode: admin reports', () => {
+  it('refuses the report to a signed-in non-administrator', async () => {
+    await start({ adminEmails: ['boss@example.com'] })
+    const owner = await signIn('owner@example.com')
+    const me = await call('/portal/me', { cookie: owner.cookie })
+    expect(me.data.isAdmin).toBe(false)
+    const denied = await call('/admin/stats', { cookie: owner.cookie })
+    expect(denied.status).toBe(403)
+    expect(denied.data.error.code).toBe('ADMIN_REQUIRED')
+  })
+
+  it('treats an empty allow-list as "nobody is an administrator"', async () => {
+    // The safe default: a deployment that forgot to configure admins must not
+    // promote every account, which is what the old `length === 0 || includes`
+    // check did.
+    await start({ adminEmails: [] })
+    const owner = await signIn('owner@example.com')
+    expect((await call('/portal/me', { cookie: owner.cookie })).data.isAdmin).toBe(false)
+    expect((await call('/admin/stats', { cookie: owner.cookie })).status).toBe(403)
+  })
+
+  it('counts accounts, devices and their platform split for an administrator', async () => {
+    await start({ adminEmails: ['boss@example.com'] })
+    const boss = await signIn('boss@example.com')
+    expect((await call('/portal/me', { cookie: boss.cookie })).data.isAdmin).toBe(true)
+
+    const owner = await signIn('owner@example.com')
+    await approveDevice(owner.cookie, 21, '书房 Mac', 'darwin')
+    await approveDevice(owner.cookie, 22, '书房 Windows', 'win32')
+
+    const stats = await call('/admin/stats', { cookie: boss.cookie })
+    expect(stats.status, JSON.stringify(stats.data)).toBe(200)
+    expect(stats.data.users.total).toBe(2)
+    // Neither device ever opened a gateway socket, so nothing is online.
+    expect(stats.data.devices.total).toBe(2)
+    expect(stats.data.devices.online).toBe(0)
+    expect(stats.data.devices.byPlatform).toMatchObject({ darwin: 1, win32: 1 })
+    // Approving a link registers the host role only; the client role appears
+    // later, when the plugin calls register-owned-role with its credentials.
+    // These devices never got that far, so there is one record per node.
+    expect(stats.data.devices.deviceRecords).toBe(2)
+
+    const ownerRow = stats.data.list.find((user: { email: string }) => user.email === 'owner@example.com')
+    expect(ownerRow.devices).toBe(2)
+    expect(ownerRow.devicesOnline).toBe(0)
+    // Each account is listed once, with its own device count only.
+    const bossRow = stats.data.list.find((user: { email: string }) => user.email === 'boss@example.com')
+    expect(bossRow.devices).toBe(0)
+    expect(bossRow.isAdmin).toBe(true)
+  })
+
+  it('reports a seven-day activity series with every day present', async () => {
+    await start({ adminEmails: ['boss@example.com'] })
+    const boss = await signIn('boss@example.com')
+
+    const stats = await call('/admin/stats', { cookie: boss.cookie })
+    expect(stats.status).toBe(200)
+    expect(stats.data.activity).toHaveLength(7)
+    for (const day of stats.data.activity) expect(day.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    // A quiet day must be reported as zero rather than dropped, or the chart
+    // would silently compress the timeline.
+    expect(stats.data.activity.every((day: { codeRequests: number }) => typeof day.codeRequests === 'number')).toBe(true)
+    // Today holds the one sign-in that created the administrator account.
+    expect(stats.data.activity.at(-1).newAccounts).toBe(1)
   })
 })

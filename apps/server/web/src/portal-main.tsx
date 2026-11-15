@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { PortalError, loadMe, type PortalAccount } from './portal-api'
 import { PortalLogin } from './PortalLogin'
 import { PortalDevices } from './PortalDevices'
+import { PortalAdmin } from './PortalAdmin'
 import { PortalLink } from './PortalLink'
 import { ThemeToggle } from './ThemeToggle'
 import './orb.css'
@@ -15,6 +16,7 @@ import './orb.css'
 type Route =
   | { name: 'login' }
   | { name: 'devices' }
+  | { name: 'admin' }
   | { name: 'link'; linkId: string }
 
 function currentRoute(): Route {
@@ -23,6 +25,7 @@ function currentRoute(): Route {
     const linkId = new URLSearchParams(window.location.search).get('t') ?? ''
     return { name: 'link', linkId }
   }
+  if (path === '/app/admin') return { name: 'admin' }
   if (path === '/app/devices' || path === '/app/remote') return { name: 'devices' }
   return { name: 'login' }
 }
@@ -30,12 +33,14 @@ function currentRoute(): Route {
 export function PortalApp() {
   const [route, setRoute] = useState<Route>(currentRoute)
   const [account, setAccount] = useState<PortalAccount>()
+  const [isAdmin, setIsAdmin] = useState(false)
   const [checking, setChecking] = useState(true)
 
   const navigate = useCallback((next: Route) => {
     const path = next.name === 'link' ? `/link?t=${encodeURIComponent(next.linkId)}`
       : next.name === 'devices' ? '/app/devices'
-        : '/'
+        : next.name === 'admin' ? '/app/admin'
+          : '/'
     if (window.location.pathname + window.location.search !== path) window.history.pushState({}, '', path)
     setRoute(next)
   }, [])
@@ -51,6 +56,7 @@ export function PortalApp() {
     void loadMe()
       .then(me => {
         setAccount(me.account)
+        setIsAdmin(me.isAdmin)
         setRoute(current => (current.name === 'login' ? { name: 'devices' } : current))
       })
       .catch(() => setAccount(undefined))
@@ -87,11 +93,29 @@ export function PortalApp() {
     return <PortalLink linkId={route.linkId} />
   }
 
+  // The admin route is gated again server-side; this is only so an account that
+  // is not an administrator never lands on a shell it cannot fill.
+  if (route.name === 'admin' && account && isAdmin) {
+    return (
+      <>
+        <ThemeToggleFloating />
+        <PortalAdmin
+          emailMasked={account.emailMasked}
+          onSignedOut={() => { setAccount(undefined); setIsAdmin(false); navigate({ name: 'login' }) }}
+        />
+      </>
+    )
+  }
+
   if (route.name === 'devices' && account) {
     return (
       <>
         <ThemeToggleFloating />
-        <PortalDevices onSignedOut={() => { setAccount(undefined); navigate({ name: 'login' }) }} />
+        <PortalDevices
+          isAdmin={isAdmin}
+          onOpenAdmin={() => navigate({ name: 'admin' })}
+          onSignedOut={() => { setAccount(undefined); setIsAdmin(false); navigate({ name: 'login' }) }}
+        />
       </>
     )
   }

@@ -340,6 +340,92 @@ export class AccountStore {
     return { ok: true }
   }
 
+  // ----------------------------------------------------------- admin reports
+
+  /**
+   * Account-side numbers for the admin page.
+   *
+   * Only aggregates live here. Device counts come from the JSON device store,
+   * which the route joins in: the two stores are deliberately separate (the
+   * account database can be backed up without the device state and vice versa),
+   * so one query cannot see both.
+   *
+   * `email` is returned in clear because an administrator has to be able to
+   * identify an account to help its owner; the page masks it before rendering.
+   */
+  adminAccounts(): Array<{
+    accountId: string
+    email: string
+    createdAt: number
+    lastLoginAt: number
+    sessions: number
+  }> {
+    const now = Date.now()
+    const rows = this.db.prepare(
+      `SELECT a.account_id, a.email, a.created_at, a.last_login_at,
+              (SELECT COUNT(*) FROM web_sessions s
+                WHERE s.account_id = a.account_id AND s.expires_at > ?) AS sessions
+         FROM accounts a
+        ORDER BY a.created_at DESC`,
+    ).all(now) as Array<Record<string, unknown>>
+    return rows.map(row => ({
+      accountId: String(row.account_id),
+      email: String(row.email),
+      createdAt: Number(row.created_at),
+      lastLoginAt: Number(row.last_login_at),
+      sessions: Number(row.sessions),
+    }))
+  }
+
+  /**
+   * Daily activity for the last `days` days, oldest first.
+   *
+   * `newAccounts` counts registrations; `codeRequests` counts verification-code
+   * sends and therefore how many people tried to sign in, including those who
+   * never completed the step. Both are bucketed by local calendar day so the
+   * numbers line up with what an operator sees on a clock.
+   */
+  adminActivity(days = 7): Array<{ date: string; newAccounts: number; codeRequests: number }> {
+    const span = Math.max(1, Math.min(90, days))
+    const buckets = new Map<string, { newAccounts: number; codeRequests: number }>()
+    const dayKey = (epochMs: number): string => {
+      const date = new Date(epochMs)
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${date.getFullYear()}-${month}-${day}`
+    }
+    // Seed every day so a quiet day shows as zero instead of a missing bar.
+    const today = new Date()
+    for (let offset = span - 1; offset >= 0; offset -= 1) {
+      const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset)
+      buckets.set(dayKey(date.getTime()), { newAccounts: 0, codeRequests: 0 })
+    }
+
+    const since = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (span - 1)).getTime()
+    for (const row of this.db.prepare(
+      'SELECT created_at FROM accounts WHERE created_at >= ?',
+    ).all(since) as Array<{ created_at: number }>) {
+      const bucket = buckets.get(dayKey(Number(row.created_at)))
+      if (bucket) bucket.newAccounts += 1
+    }
+    // One send event per request per dimension; count the email dimension only,
+    // or every request would be counted twice.
+    for (const row of this.db.prepare(
+      "SELECT created_at FROM send_events WHERE key_type = 'email' AND created_at >= ?",
+    ).all(since) as Array<{ created_at: number }>) {
+      const bucket = buckets.get(dayKey(Number(row.created_at)))
+      if (bucket) bucket.codeRequests += 1
+    }
+
+    return [...buckets.entries()].map(([date, counts]) => ({ date, ...counts }))
+  }
+
+  /** Registered-account total, independent of the device store. */
+  accountCount(): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM accounts').get() as { n: number }
+    return Number(row.n)
+  }
+
   // ----------------------------------------------------------- web sessions
 
   createWebSession(accountId: string): { token: string; expiresAt: number } {
