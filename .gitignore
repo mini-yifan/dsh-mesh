@@ -28,3 +28,10 @@ apps/server/data/
 deploy/certs/
 deploy/server.env
 packages/mesh-plugin/bundle/
+
+# The phone/desktop consumers install this tarball by URL + sha256 and never
+# run a build, so the artifact has to live in the repository: without it the
+# only copy of a fixed plugin is a local cache that a clean checkout cannot
+# reproduce. `pack-phone.py` is deterministic (fixed mtime/uid/gid, sorted
+# members, gzip mtime 0), so re-running it must produce a byte-identical file.
+!packages/mesh-plugin/dist-phone/dsh-mesh-plugin-*.tgz
