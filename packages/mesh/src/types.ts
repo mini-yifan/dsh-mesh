@@ -44,6 +44,21 @@ export interface MeshStatus {
   /** Startup failure detail, surfaced so "offline" is actionable. */
   error?: string
   /**
+   * This machine's own Host control connection, when the build has one.
+   *
+   * A paired device is always "connected" to the server through its Client
+   * socket, so `connection` cannot express "other machines cannot reach me".
+   * `hostOnline: false` is that state: peers see this node as offline.
+   */
+  hostOnline?: boolean
+  /** A Host reconnect is in flight; the node is expected to come back on its own. */
+  hostReconnecting?: boolean
+  /**
+   * Last Host control failure. Distinguishes "the server rejected us" from
+   * "the network dropped us", which need opposite user actions.
+   */
+  hostError?: string
+  /**
    * Origin the sign-in switch offers first, when the deployment configured one.
    * Absent means the user has to type an address.
    */

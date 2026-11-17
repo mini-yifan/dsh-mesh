@@ -160,26 +160,71 @@ export class MeshHost {
   }
 
   private runtimeConfig(state: MeshState): ResolvedConfig {
-    return resolveConfig({
-      enabled: true,
-      role: 'both',
-      serverUrl: state.serverUrl,
-      // A public-CA deployment has no pin. Passing an empty string fails
-      // resolveConfig's `.min(32)` check, so omit the field entirely instead.
-      ...(state.fingerprint === '' ? {} : { serverFingerprint: state.fingerprint }),
-      deviceName: this.config.deviceName ?? `${this.config.platform}-node`,
-      forceRelay: true,
-      terminal: { enabled: false },
-      remoteTools: { enabled: false },
-      hostControl: { enabled: true },
-      loopback: { ports: [] },
-      codex: { enabled: false },
-      cursor: { enabled: false },
-      acp: { enabled: false, backends: [] },
-      reconnect: false,
-      logLevel: this.config.logLevel,
-    })
+    return resolveHostRuntimeConfig(state, this.config)
   }
+
+  /**
+   * Live Host control-connection health.
+   *
+   * `MeshService` cannot infer this from its own start-up result: the runtime
+   * starts fine and then loses its socket later. Without this, a machine whose
+   * Host side is offline still reports itself as connected.
+   */
+  hostStatus(): { online: boolean; reconnecting: boolean; error?: string } {
+    if (this.runtime === undefined) return { online: false, reconnecting: false }
+    const status = this.runtime.hostStatus()
+    return {
+      online: status.online,
+      reconnecting: status.reconnecting,
+      ...(status.error === undefined ? {} : { error: status.error }),
+    }
+  }
+
+  /** Force a fresh control connection; no-op when the runtime is not up. */
+  reconnectHost(): boolean {
+    if (this.runtime === undefined) return false
+    try {
+      this.runtime.reconnectHost()
+      return true
+    } catch {
+      return false
+    }
+  }
+}
+
+/**
+ * Host runtime configuration for one paired device.
+ *
+ * Exported so the reconnect policy is unit-testable: `reconnect: false` used to
+ * live here, and re-introducing it silently makes this machine permanently
+ * unreachable after the first control-socket drop.
+ */
+export function resolveHostRuntimeConfig(state: MeshState, config: ResolvedMeshConfig): ResolvedConfig {
+  return resolveConfig({
+    enabled: true,
+    role: 'both',
+    serverUrl: state.serverUrl,
+    // A public-CA deployment has no pin. Passing an empty string fails
+    // resolveConfig's `.min(32)` check, so omit the field entirely instead.
+    ...(state.fingerprint === '' ? {} : { serverFingerprint: state.fingerprint }),
+    deviceName: config.deviceName ?? `${config.platform}-node`,
+    forceRelay: true,
+    terminal: { enabled: false },
+    remoteTools: { enabled: false },
+    hostControl: { enabled: true },
+    loopback: { ports: [] },
+    codex: { enabled: false },
+    cursor: { enabled: false },
+    acp: { enabled: false, backends: [] },
+    // WHY: the Host control socket is what makes this machine reachable at all.
+    // With reconnect disabled, a single heartbeat timeout, sleep/wake or Wi-Fi
+    // blip silently retired the Host for the rest of the process lifetime: every
+    // peer saw this node as offline while its own UI still said "connected".
+    // Any object (not `false`) enables the loop; 4s→30s with jitter keeps a long
+    // outage from turning into a reconnect stampede.
+    reconnect: { initialDelayMs: 4_000, maxDelayMs: 30_000, jitter: 0.2 },
+    logLevel: config.logLevel,
+  })
 }
 
 /**

@@ -18,10 +18,25 @@ export interface PeerEntry {
   connection?: ClientConnection
   remote?: Awaited<ReturnType<ClientConnection['connect']>>
   error?: string
+  /** Protocol code behind `error`, when the throw carried one. */
+  errorCode?: string
+  /**
+   * Latest presence answer from the Server. `node.online` is the *local* view
+   * (whether our tunnel is up), so the retry cadence needs the Server's answer
+   * kept separately.
+   */
+  serverOnline?: boolean
   retryTimer?: ReturnType<typeof setTimeout>
 }
 
 const RECONNECT_DELAY_MS = 15_000
+/**
+ * Retry cadence while the Server says the target is online but our socket is
+ * not up. The 15s default exists to avoid hammering a Host that is genuinely
+ * down; it is the wrong delay when the peer is reachable and we simply lost the
+ * race to (re)establish the tunnel.
+ */
+const OFFLINE_RETRY_MS = 4_000
 const PRESENCE_POLL_MS = 10_000
 
 /**
@@ -104,13 +119,14 @@ export class MeshPeers {
       const existing = this.entries.get(nodeId)
       const node = nodeFromDevice(device, nodeId)
       if (existing === undefined) {
-        const entry: PeerEntry = { node, status: 'offline' }
+        const entry: PeerEntry = { node, status: 'offline', serverOnline: device.online }
         this.entries.set(nodeId, entry)
         // Do not open a control socket for a Host the Server already reports
         // offline: the client would only fail one RTT later and add retry load.
         if (device.online !== false) void this.connect(entry)
       } else {
         existing.node = { ...existing.node, ...node, online: existing.status === 'online' }
+        existing.serverOnline = device.online
         if (device.online === true && existing.status === 'offline') void this.connect(existing)
       }
     }
@@ -165,19 +181,38 @@ export class MeshPeers {
     } catch (error) {
       entry.status = 'offline'
       entry.error = error instanceof Error ? error.message : 'connection failed'
-      this.logger.warn('mesh peer connection failed', { nodeId: entry.node.nodeId, code: entry.error.slice(0, 120) })
+      // Classify instead of logging a bare message: "the Server says the Host is
+      // online but my tunnel failed" is a very different problem from "the Host
+      // is down", and only the first one is retried on the short cadence.
+      entry.errorCode = errorCodeOf(error)
+      this.logger.warn('mesh peer connection failed', {
+        nodeId: entry.node.nodeId,
+        code: entry.errorCode ?? entry.error.slice(0, 120),
+        serverReportsOnline: entry.serverOnline,
+      })
       this.scheduleReconnect(entry)
     }
   }
 
   private scheduleReconnect(entry: PeerEntry): void {
     if (this.closed || entry.retryTimer !== undefined) return
+    // A peer the Server still reports as online gets the short cadence: the
+    // failure is our tunnel, not the peer. A genuinely offline peer keeps the
+    // slow cadence so a powered-down machine is not polled every few seconds.
+    const delayMs = entry.serverOnline === true ? OFFLINE_RETRY_MS : RECONNECT_DELAY_MS
     entry.retryTimer = setTimeout(() => {
       entry.retryTimer = undefined
       void this.connect(entry)
-    }, RECONNECT_DELAY_MS)
+    }, delayMs)
     entry.retryTimer.unref?.()
   }
+}
+
+/** Pull a protocol error code off an unknown throw without trusting its shape. */
+function errorCodeOf(error: unknown): string | undefined {
+  if (error === null || typeof error !== 'object') return undefined
+  const code = (error as { code?: unknown }).code
+  return typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,40}$/.test(code) ? code : undefined
 }
 
 function nodeFromDevice(device: ServerHostDevice, nodeId: string): MeshNode {

@@ -26,7 +26,17 @@ export const MAX_FRAMES_PER_SEC_RANGE = { min: 64, max: 65_536, fallback: 512 } 
 export const HEARTBEAT_DISCONNECT_MS_MIN_FACTOR = 2
 export const HEARTBEAT_DISCONNECT_MS_MAX = 600_000
 export const HEARTBEAT_DISCONNECT_MS_FLOOR = 20_000
-export const HEARTBEAT_DISCONNECT_MS_FACTOR = 2
+/**
+ * How many heartbeat intervals a peer may miss before it counts as gone.
+ *
+ * The documented product bound (`docs/protocol.md` §22) is 3 intervals with a
+ * 25s default. At 2x, a laptop that suspends for a moment, a Wi-Fi roam or one
+ * TCP retransmit burst is enough to evict a healthy peer: the production
+ * deployment logged 79 host/client evictions in 72h with every observed
+ * `elapsedMs` between 20.0s and 21.9s — exactly at the old threshold — while
+ * almost all of them reconnected successfully seconds later.
+ */
+export const HEARTBEAT_DISCONNECT_MS_FACTOR = 4
 
 type Range = { readonly min: number; readonly max: number; readonly fallback: number }
 

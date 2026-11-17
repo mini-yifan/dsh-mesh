@@ -954,11 +954,12 @@ describe('structured logger and sensitive data redaction', () => {
     expect(parseHeartbeatInterval('1000')).toBe(10000)
     expect(parseHeartbeatInterval('150000')).toBe(10000)
 
-    // Heartbeat disconnect
-    expect(parseHeartbeatDisconnect(undefined, 10000)).toBe(20000)
+    // Heartbeat disconnect: fallback gives four intervals of tolerance, and a
+    // configured value below 4x is rejected (40000 is the floor at 10s).
+    expect(parseHeartbeatDisconnect(undefined, 10000)).toBe(40000)
     expect(parseHeartbeatDisconnect('80000', 10000)).toBe(80000)
-    expect(parseHeartbeatDisconnect('40000', 25000)).toBe(50000)
-    expect(parseHeartbeatDisconnect('50000', 30000)).toBe(60000)
+    expect(parseHeartbeatDisconnect('40000', 25000)).toBe(100000)
+    expect(parseHeartbeatDisconnect('50000', 30000)).toBe(120000)
 
     // Log level
     expect(parseLogLevel(undefined)).toBe('info')
@@ -1030,7 +1031,7 @@ describe('gateway handshake state machine', () => {
 describe('gateway timing configuration normalization', () => {
   it('maps NaN, Infinity and out-of-range programmatic values to safe defaults', () => {
     expect(normalizeGatewayOptions({})).toEqual({
-      helloTimeoutMs: 5000, heartbeatIntervalMs: 10000, heartbeatDisconnectMs: 20000, forceTerminateGraceMs: 1000,
+      helloTimeoutMs: 5000, heartbeatIntervalMs: 10000, heartbeatDisconnectMs: 40000, forceTerminateGraceMs: 1000,
     })
     expect(normalizeGatewayOptions({
       helloTimeoutMs: Number.NaN,
@@ -1038,7 +1039,7 @@ describe('gateway timing configuration normalization', () => {
       heartbeatDisconnectMs: -1,
       forceTerminateGraceMs: 0,
     })).toEqual({
-      helloTimeoutMs: 5000, heartbeatIntervalMs: 10000, heartbeatDisconnectMs: 20000, forceTerminateGraceMs: 1000,
+      helloTimeoutMs: 5000, heartbeatIntervalMs: 10000, heartbeatDisconnectMs: 40000, forceTerminateGraceMs: 1000,
     })
     expect(normalizeGatewayOptions({ helloTimeoutMs: 59 }).helloTimeoutMs).toBe(5000)
     expect(normalizeGatewayOptions({ helloTimeoutMs: 60001 }).helloTimeoutMs).toBe(5000)
@@ -1048,12 +1049,12 @@ describe('gateway timing configuration normalization', () => {
     expect(normalizeGatewayOptions({ forceTerminateGraceMs: 10001 }).forceTerminateGraceMs).toBe(1000)
   })
 
-  it('keeps the disconnect threshold at twice the interval and inside its ceiling', () => {
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000 }).heartbeatDisconnectMs).toBe(60000)
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 59000 }).heartbeatDisconnectMs).toBe(60000)
+  it('falls back to four intervals and rejects thresholds below two', () => {
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000 }).heartbeatDisconnectMs).toBe(120000)
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 59000 }).heartbeatDisconnectMs).toBe(120000)
     expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 60001 }).heartbeatDisconnectMs).toBe(60001)
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 600_001 }).heartbeatDisconnectMs).toBe(60000)
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 120_000 }).heartbeatDisconnectMs).toBe(240_000)
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 600_001 }).heartbeatDisconnectMs).toBe(120000)
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 120_000 }).heartbeatDisconnectMs).toBe(480_000)
   })
 
   it('normalizes unsafe values handed to createRemoteServer', () => {
@@ -1065,7 +1066,7 @@ describe('gateway timing configuration normalization', () => {
     try {
       expect(unsafe.gateway.helloTimeoutMs).toBe(5000)
       expect(unsafe.gateway.heartbeatIntervalMs).toBe(10000)
-      expect(unsafe.gateway.heartbeatDisconnectMs).toBe(20000)
+      expect(unsafe.gateway.heartbeatDisconnectMs).toBe(40000)
       expect(unsafe.gateway.forceTerminateGraceMs).toBe(1000)
     } finally {
       unsafe.gateway.close()
@@ -1078,7 +1079,7 @@ describe('gateway timing configuration normalization', () => {
     try {
       expect(parseHelloTimeout('not-a-number-CANARY7')).toBe(5000)
       expect(parseHeartbeatInterval('CANARY7')).toBe(10000)
-      expect(parseHeartbeatDisconnect('CANARY7', 10000)).toBe(20000)
+      expect(parseHeartbeatDisconnect('CANARY7', 10000)).toBe(40000)
       expect(parseLogLevel('CANARY7')).toBe('info')
     } finally {
       spy.mockRestore()

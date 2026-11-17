@@ -57,6 +57,13 @@ const TASK_OFFLINE_STALE_MS = 10 * 60_000
 const TASK_SESSION_MISSING_STALE_MS = 2 * 60_000
 /** Maximum time one Mesh long-poll waits for the next remote Session event. */
 const STREAM_WAIT_MS = 15_000
+/**
+ * Minimum gap between `/status`-driven Host reconnect nudges.
+ *
+ * Long enough that a terminal failure cannot be retried on every poll, short
+ * enough that a machine coming back from sleep is reachable within ~10s.
+ */
+const HOST_NUDGE_COOLDOWN_MS = 10_000
 
 /** Tell the remote worker where its attachments are and how to return files. */
 function taskPrompt(taskText: string, files: MeshTask['files']): string {
@@ -95,6 +102,9 @@ export interface TaskCreateOptions {
 export interface MeshHostController {
   start(state: MeshState): Promise<void>
   stop(): Promise<void>
+  /** Host control-connection health; absent on controllers without a Host side. */
+  hostStatus?(): { online: boolean; reconnecting: boolean; error?: string }
+  reconnectHost?(): boolean
 }
 
 export class MeshService {
@@ -108,6 +118,8 @@ export class MeshService {
   private taskReconcile?: Promise<void>
   private readonly taskIdleChecks = new Map<string, number>()
   private closedClient = false
+  /** Last forced Host reconnect; rate-limits the `/status` self-heal nudge. */
+  private hostNudgedAt = 0
   /** A link created by startLink and not yet completed by finishLink. */
   private pendingLink?: { serverUrl: string; linkId: string; nonce: string; expiresAt: number }
 
@@ -164,10 +176,14 @@ export class MeshService {
     }
     const online = this.peers?.onlineCount() ?? 0
     const total = this.peers?.size ?? 0
+    const host = this.hostHealth()
     return {
       paired: true,
       server: { url: state.serverUrl, fingerprint: state.fingerprint },
-      node: { ...this.localNode, online: true, self: true },
+      // The node is only reachable from other machines while its Host control
+      // socket is up. Reporting `online: true` unconditionally made a node that
+      // had silently retired its Host look healthy from its own machine.
+      node: { ...this.localNode, online: host?.online === true, self: true },
       // With one device there are no *remote* peers by design (refresh skips
       // self), so `online > 0` is not the right connected signal. Only a real
       // startup failure should read as offline; otherwise a paired device is
@@ -176,8 +192,34 @@ export class MeshService {
       peersOnline: online,
       peersTotal: total,
       ...(this.startError === undefined ? {} : { error: this.startError }),
+      ...(host === undefined ? {} : { hostOnline: host.online, hostReconnecting: host.reconnecting }),
+      ...(host?.error === undefined ? {} : { hostError: host.error }),
       ...defaultServer,
     }
+  }
+
+  /**
+   * Read-and-repair for the Host control socket.
+   *
+   * The UI polls `/status`, which makes it the one place guaranteed to be called
+   * regularly. Host reconnect is enabled in `MeshHost`, but a socket that went
+   * away while the process was suspended (macOS sleep, Wi-Fi switch) can leave
+   * the run loop parked in backoff for a long stretch. Observed state is
+   * "disconnected and not reconnecting", so nudge it instead of waiting.
+   *
+   * The nudge is rate-limited: a terminal failure (revoked device, another
+   * instance holding the identity) leaves the loop exited, so an unthrottled
+   * nudge would turn every `/status` poll into a fresh authentication attempt.
+   */
+  private hostHealth(): { online: boolean; reconnecting: boolean; error?: string } | undefined {
+    const host = this.host
+    if (host?.hostStatus === undefined) return undefined
+    const status = host.hostStatus()
+    if (!status.online && !status.reconnecting && Date.now() - this.hostNudgedAt >= HOST_NUDGE_COOLDOWN_MS) {
+      this.hostNudgedAt = Date.now()
+      host.reconnectHost?.()
+    }
+    return status
   }
 
   async pair(input: PairingInput): Promise<MeshStatus> {

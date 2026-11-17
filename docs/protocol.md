@@ -1771,6 +1771,12 @@ Event 去重 key 为 `(hostDeviceId, seq)`。收到 `seq <= lastSeq` 的重放�
 Control Channel heartbeat 默认 25 秒。75 秒未收到有效 pong 时，连接断开。
 Control ping/pong 的 nonce 可用于估计 Server RTT。
 
+自部署 `apps/server` 的默认值是 10 秒间隔、**4 个间隔（40 秒）**未收到 pong 才断开，
+可用 `DSH_SERVER_HEARTBEAT_INTERVAL_MS` / `DSH_SERVER_HEARTBEAT_DISCONNECT_MS` 调整，
+后者不得低于 2 个间隔。留足余量是刻意的：2 个间隔（20 秒）会把笔记本短暂休眠、
+Wi-Fi 漫游或一次 TCP 重传突发误判成离线。生产实测中所有被踢连接的 `elapsedMs`
+都紧贴旧阈值（20.0–21.9 秒），其中绝大多数几秒后就重连成功。
+
 关闭语义以 **close reason 为准，close code 视为随实现版本变化的传输细节**。所有端点
 （Host plugin、WebRTC transport、Relay transport、各 App）必须按 (code, reason) 对分类，
 不得单独比较 close code；共享实现为 `packages/protocol/src/close-semantics.ts` 的
