@@ -10,6 +10,15 @@ interface WebServerLike {
     path: string
     handler(req: IncomingMessage, res: ServerResponse): void | Promise<void>
   }): () => void | Promise<void>
+  /**
+   * The webServer's own Context. An app-level plugin (the phone runtime loads
+   * `dsh-mesh` this way) is constructed in a *different* Context from the
+   * webServer, and `runtimeContext.get('connection', false)` is undefined
+   * there: the connection service belongs to the webServer's Context, not the
+   * plugin's. Without this fallback every `/.dsh-mesh/v1/*` request would be
+   * rejected with 401 even though the upstream route guard already admitted it.
+   */
+  ctx?: { get?(name: string, optional?: boolean): unknown }
 }
 
 interface ConnectionLike {
@@ -17,6 +26,23 @@ interface ConnectionLike {
 }
 
 const MAX_BODY = 64 * 1024
+
+/**
+ * Find the connection service through the webServer's Context.
+ *
+ * Cordis `get(name, false)` returns undefined for a missing service; other
+ * shapes (or a webServer without a Context) must not throw here, because a
+ * thrown error at registration time would take the whole plugin down. Callers
+ * still fail closed when this returns undefined.
+ */
+function resolveWebServerConnection(webServer: WebServerLike): ConnectionLike | undefined {
+  const ctx = webServer.ctx
+  if (ctx === undefined || typeof ctx.get !== 'function') return undefined
+  const candidate = ctx.get('connection', false)
+  if (candidate === null || typeof candidate !== 'object') return undefined
+  const connection = candidate as ConnectionLike
+  return typeof connection.requestRejection === 'function' ? connection : undefined
+}
 
 function json(res: ServerResponse, status: number, value: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
@@ -53,6 +79,11 @@ export function registerMeshRoutes(
     const dispose = () => undefined
     return dispose
   }
+  // The plugin's Context does not expose the `connection` service on the phone;
+  // the webServer's Context does. Resolve it per request, not once here: the
+  // service is registered asynchronously (`dshGoRouteRejection` waits up to 5s
+  // for it), and a registration-time lookup can see it as absent forever.
+  const guardFromWebServer = (): ConnectionLike | undefined => resolveWebServerConnection(webServer)
   return webServer.register({
     kind: 'prefix',
     path: MESH_ROUTE_PREFIX,
@@ -66,8 +97,11 @@ export function registerMeshRoutes(
          * that as "allowed" would turn a version skew into a local
          * privilege-escalation hole.
          */
-        const rejection = typeof connection?.requestRejection === 'function'
-          ? connection.requestRejection({ headers: req.headers })
+        const guard = typeof connection?.requestRejection === 'function'
+          ? connection
+          : guardFromWebServer()
+        const rejection = typeof guard?.requestRejection === 'function'
+          ? guard.requestRejection({ headers: req.headers })
           : 401
         if (rejection !== undefined) {
           json(res, rejection, { error: 'unauthorized', message: 'This request is not authenticated.' })

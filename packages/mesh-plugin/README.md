@@ -53,3 +53,12 @@ socket once stayed unreachable for the rest of the process lifetime. The fix
 (0.1.1) existed only as a file copied into two machines' `node_modules`; a clean
 checkout, a reinstall or a phone rebuild would have silently reintroduced the
 bug. Committing the tarball is what makes the fix survive that.
+
+0.1.3 also fixes the phone's `/.dsh-mesh/v1/*` routes. The phone loads this
+plugin as an app-level module, whose Cordis Context has no `connection`
+service; `registerMeshRoutes` therefore saw `undefined`, failed closed and
+returned 401 "This request is not authenticated." for every request, so the
+phone's Interconnect page showed no server and no peers even though the engine
+was paired and all three devices were online. The guard now falls back to the
+webServer's Context, resolved **per request**: that service is registered
+asynchronously and is still absent at plugin-registration time.
