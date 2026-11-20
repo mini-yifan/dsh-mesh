@@ -52,6 +52,7 @@
 - **实现或审查 Plugin**：读[功能设计](design/plugin/functional-design.md)和[Host 接入指南](plugin-integration.md)。
 - **实现外部 Server**：以[协议](protocol.md)为线协议权威，再参考[Server 设计](server.md)。
 - **跟踪尚未完成的工作**：读[开发任务](TODO.md)。
+- **重新打包 `@dsh-mesh/plugin` 并把它推到电脑端/手机端**：读 [插件包说明](../packages/mesh-plugin/README.md)，跨仓库的完整顺序见 `dsh-orb-cordis/docs/21-packaging-and-deploy.md`。
 
 文档优先级：`protocol.md` 的线协议约束高于示例代码；Server 设计发生变化时必须同步检查协议兼容性和版本号。
 
