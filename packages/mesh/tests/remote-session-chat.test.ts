@@ -33,6 +33,9 @@ function fakeGateway(sessions: Array<{ sessionId: string; title: string; running
       if (endpoint === 'session/list') {
         return { ok: true as const, value: { items: sessions } }
       }
+      if (endpoint === 'session/create') {
+        return { ok: true as const, value: { sessionId: 'session-created-1', title: 'New session', updatedAt: 400 } }
+      }
       return { ok: true as const, value: {} }
     },
   }
@@ -161,5 +164,29 @@ describe('remote normal session chat', () => {
       {},
     )
     expect(stopNormal).toEqual({ accepted: false })
+  })
+
+  it('creates a normal remote session without adding a task entry', async () => {
+    const { service, remoteCalls } = setupService()
+    const created = await service.createSession('node-remote', 'ws-1')
+
+    expect(created).toEqual({
+      nodeId: 'node-remote',
+      workspaceId: 'ws-1',
+      sessionId: 'session-created-1',
+      title: 'New session',
+      status: 'idle',
+      controllable: true,
+      updatedAt: 400,
+    })
+    expect(remoteCalls.some(c => c.endpoint === 'session/create')).toBe(true)
+    expect(service.tasks()).toHaveLength(1)
+  })
+
+  it('rejects createSession when workspaceId is empty or node is local/offline', async () => {
+    const { service } = setupService()
+    await expect(service.createSession('node-remote', '   ')).rejects.toMatchObject({ code: 'invalid_workspace', status: 400 })
+    await expect(service.createSession('node-self', 'ws-1')).rejects.toMatchObject({ code: 'local_not_remote', status: 400 })
+    await expect(service.createSession('node-offline', 'ws-1')).rejects.toMatchObject({ code: 'offline', status: 503 })
   })
 })

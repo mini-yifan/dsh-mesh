@@ -40,6 +40,7 @@ import type {
   MeshInteraction,
   MeshNode,
   MeshPrefs,
+  MeshSession,
   MeshStatus,
   MeshTask,
   MeshTree,
@@ -618,6 +619,42 @@ export class MeshService {
     if (task !== undefined) {
       task.updatedAt = Date.now()
       saveState(this.config.stateDir, this.requireState())
+    }
+  }
+
+  async createSession(
+    nodeId: string,
+    workspaceId: string,
+  ): Promise<MeshSession & { nodeId: string; workspaceId: string }> {
+    this.requireState()
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId === '') {
+      throw new MeshError('invalid_workspace', 'Workspace id must not be empty.', 400)
+    }
+    const gateway = this.gatewayFor(nodeId)
+    const created = await gateway.dispatch('session/create', {
+      args: { request: { workspaceId: trimmedWorkspaceId } },
+    }, new AbortController().signal)
+    if (!created.ok) throw new MeshError(created.error.code, created.error.message, 502)
+    const value = record(created.value)
+    const sessionId = value.sessionId
+    if (typeof sessionId !== 'string' || sessionId === '') {
+      throw new MeshError('invalid_session', 'The target did not return a session id.', 502)
+    }
+    const title = typeof value.title === 'string' && value.title.trim() !== ''
+      ? value.title.trim()
+      : sessionId
+    const updatedAt = typeof value.updatedAt === 'number' && Number.isFinite(value.updatedAt)
+      ? value.updatedAt
+      : Date.now()
+    return {
+      nodeId,
+      workspaceId: trimmedWorkspaceId,
+      sessionId,
+      title,
+      status: 'idle',
+      controllable: true,
+      updatedAt,
     }
   }
 

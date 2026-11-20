@@ -177,6 +177,15 @@ export function registerMeshRoutes(
             String(input.text ?? ''),
           )); return
         }
+        const createSession = /^\/sessions\/([^/]+)\/create$/.exec(path)
+        if (method === 'POST' && createSession !== null) {
+          const input = record(await body(req))
+          json(res, 200, await service.createSession(
+            decodeURIComponent(createSession[1]!),
+            String(input.workspaceId ?? ''),
+          ))
+          return
+        }
         const session = /^\/sessions\/([^/]+)\/([^/]+)\/(page|stream|prompt|cancel)$/.exec(path)
         if (session !== null) {
           const [, nodeId, sessionId, action] = session

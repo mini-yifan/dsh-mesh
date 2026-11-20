@@ -1,6 +1,6 @@
 {
   "name": "@dsh-mesh/plugin",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Orb Mesh v0 DSH plugin: pairing, multi-peer tree, remote sessions and device_agent.",
   "type": "module",
   "main": "./dist/index.js",
