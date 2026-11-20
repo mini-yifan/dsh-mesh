@@ -474,7 +474,7 @@ export class MeshService {
       ...this.localNode,
       online: true,
       self: true,
-      workspaces: this.markTaskSessions(this.localNode.nodeId, localCatalog?.workspaces ?? []),
+      workspaces: this.markTaskSessions(this.localNode.nodeId, localCatalog?.workspaces ?? [], { isSelf: true, online: true }),
     })
     for (const entry of this.peers?.nodes() ?? []) {
       if (entry.nodeId === this.localNode.nodeId) continue
@@ -486,25 +486,34 @@ export class MeshService {
       const catalog = await readRemoteCatalog(peer.gateway, new AbortController().signal).catch(() => undefined)
       nodes.push({
         ...entry,
-        workspaces: this.markTaskSessions(entry.nodeId, catalog?.workspaces ?? []),
+        workspaces: this.markTaskSessions(entry.nodeId, catalog?.workspaces ?? [], { isSelf: false, online: true }),
       })
     }
     this.treeCursor += 1
     return { nodes, cursor: this.treeCursor }
   }
 
-  /** Only a Session this device started through device_agent accepts prompt/cancel. */
+  /**
+   * Online remote sessions can all be prompted/cancelled by the user; tasks also
+   * carry `taskId` so UIs and "stop all tasks" keep them distinct from normal chats.
+   */
   private markTaskSessions(
     nodeId: string,
     workspaces: MeshTree['nodes'][number]['workspaces'],
+    options: { isSelf: boolean; online: boolean },
   ): MeshTree['nodes'][number]['workspaces'] {
     const tasks = this.state?.tasks ?? []
+    const controllable = !options.isSelf && options.online
     return workspaces.map(workspace => ({
       ...workspace,
-      sessions: workspace.sessions.map(session => ({
-        ...session,
-        controllable: tasks.some(task => task.targetNodeId === nodeId && task.sessionId === session.sessionId),
-      })),
+      sessions: workspace.sessions.map(session => {
+        const task = tasks.find(item => item.targetNodeId === nodeId && item.sessionId === session.sessionId)
+        return {
+          ...session,
+          ...(task === undefined ? {} : { taskId: task.taskId }),
+          controllable,
+        }
+      }),
     }))
   }
 
@@ -599,24 +608,30 @@ export class MeshService {
   }
 
   async prompt(nodeId: string, sessionId: string, text: string): Promise<void> {
-    const task = this.requireTask(nodeId, sessionId)
+    this.requireState()
     const gateway = this.gatewayFor(nodeId)
     const result = await gateway.dispatch('session/prompt', {
       args: { request: { sessionId, requestId: randomUUID(), mode: 'queue', content: [{ type: 'text', text }] } },
     }, new AbortController().signal)
     if (!result.ok) throw new MeshError(result.error.code, result.error.message, 502)
-    task.updatedAt = Date.now()
-    saveState(this.config.stateDir, this.requireState())
+    const task = this.findTask(nodeId, sessionId)
+    if (task !== undefined) {
+      task.updatedAt = Date.now()
+      saveState(this.config.stateDir, this.requireState())
+    }
   }
 
   async cancel(nodeId: string, sessionId: string): Promise<void> {
-    const task = this.requireTask(nodeId, sessionId)
+    this.requireState()
     const gateway = this.gatewayFor(nodeId)
     const result = await gateway.dispatch('session/cancel', { args: { request: { sessionId } } }, new AbortController().signal)
     if (!result.ok) throw new MeshError(result.error.code, result.error.message, 502)
-    task.status = 'cancelled'
-    task.updatedAt = Date.now()
-    saveState(this.config.stateDir, this.requireState())
+    const task = this.findTask(nodeId, sessionId)
+    if (task !== undefined) {
+      task.status = 'cancelled'
+      task.updatedAt = Date.now()
+      saveState(this.config.stateDir, this.requireState())
+    }
   }
 
   interactions(): MeshInteraction[] {
@@ -1050,11 +1065,8 @@ export class MeshService {
     return this.state
   }
 
-  private requireTask(nodeId: string, sessionId: string): MeshTask {
-    const state = this.requireState()
-    const task = state.tasks.find(item => item.targetNodeId === nodeId && item.sessionId === sessionId)
-    if (task === undefined) throw new MeshError('session_not_remote_controllable', 'Only a task created by device_agent can be controlled.', 403)
-    return task
+  private findTask(nodeId: string, sessionId: string): MeshTask | undefined {
+    return this.state?.tasks.find(item => item.targetNodeId === nodeId && item.sessionId === sessionId)
   }
 }
 
