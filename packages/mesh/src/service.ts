@@ -119,6 +119,8 @@ export class MeshService {
   private taskReconcile?: Promise<void>
   private readonly taskIdleChecks = new Map<string, number>()
   private closedClient = false
+  private defaultWorkspaceEnsured = false
+  private defaultWorkspacePromise?: Promise<void>
   /** Last forced Host reconnect; rate-limits the `/status` self-heal nudge. */
   private hostNudgedAt = 0
   /** A link created by startLink and not yet completed by finishLink. */
@@ -143,6 +145,7 @@ export class MeshService {
   }
 
   async start(): Promise<void> {
+    void this.ensureAndroidDefaultWorkspace()
     const state = this.state
     if (state === undefined || state.pending === true) return
     try {
@@ -468,9 +471,48 @@ export class MeshService {
     return state.prefs
   }
 
+  async ensureAndroidDefaultWorkspace(): Promise<void> {
+    if (this.config.platform !== 'android' || this.defaultWorkspaceEnsured) return
+    this.defaultWorkspacePromise ??= (async () => {
+      try {
+        const existing = await readRemoteCatalog(this.localGateway, AbortSignal.timeout(10_000))
+        if (existing.workspaces.length > 0) {
+          this.defaultWorkspaceEnsured = true
+          return
+        }
+        const created = await this.localGateway.dispatch('workspace/create', {
+          args: { request: { path: '/root/workspace' } },
+        }, AbortSignal.timeout(10_000))
+        if (!created.ok) {
+          this.logger.warn('android default workspace create failed', { code: created.error.code })
+          return
+        }
+        const workspace = record(record(created.value).workspace)
+        const workspaceId = workspace.workspaceId
+        const title = typeof workspace.title === 'string' ? workspace.title.trim() : ''
+        if (typeof workspaceId === 'string' && workspaceId !== '' && title !== 'default-workspace') {
+          await this.localGateway.dispatch('workspace/rename', {
+            args: { request: { workspaceId, title: 'default-workspace' } },
+          }, AbortSignal.timeout(10_000)).catch(() => undefined)
+        }
+        this.defaultWorkspaceEnsured = true
+      } catch (error) {
+        this.logger.warn('android default workspace bootstrap failed', {
+          code: error instanceof Error ? error.message.slice(0, 120) : 'unknown',
+        })
+      } finally {
+        this.defaultWorkspacePromise = undefined
+      }
+    })()
+    return this.defaultWorkspacePromise
+  }
+
   async tree(): Promise<MeshTree> {
-    const nodes: Array<MeshNode & { workspaces: MeshTree['nodes'][number]['workspaces'] }> = []
-    const localCatalog = await readRemoteCatalog(this.localGateway, new AbortController().signal).catch(() => undefined)
+    if (this.config.platform === 'android' && !this.defaultWorkspaceEnsured) {
+      await this.ensureAndroidDefaultWorkspace()
+    }
+    const nodes: MeshTree['nodes'] = []
+    const localCatalog = await readRemoteCatalog(this.localGateway, AbortSignal.timeout(10_000)).catch(() => undefined)
     nodes.push({
       ...this.localNode,
       online: true,
@@ -484,9 +526,27 @@ export class MeshService {
         nodes.push({ ...entry, workspaces: [] })
         continue
       }
-      const catalog = await readRemoteCatalog(peer.gateway, new AbortController().signal).catch(() => undefined)
+      let catalog: Awaited<ReturnType<typeof readRemoteCatalog>> | undefined
+      let catalogError: string | undefined
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          catalog = await readRemoteCatalog(peer.gateway, AbortSignal.timeout(15_000))
+          catalogError = undefined
+          break
+        } catch (error) {
+          catalogError = error instanceof Error && error.message !== '' ? error.message : 'catalog_read_failed'
+          if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 200))
+        }
+      }
+      if (catalogError !== undefined) {
+        this.logger.warn('mesh remote catalog read failed', {
+          nodeId: entry.nodeId,
+          code: catalogError.slice(0, 120),
+        })
+      }
       nodes.push({
         ...entry,
+        ...(catalogError === undefined ? {} : { catalogError }),
         workspaces: this.markTaskSessions(entry.nodeId, catalog?.workspaces ?? [], { isSelf: false, online: true }),
       })
     }

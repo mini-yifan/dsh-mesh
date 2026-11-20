@@ -30,7 +30,7 @@ export interface MeshSession {
 }
 
 export interface MeshTree {
-  nodes: Array<MeshNode & { workspaces: MeshWorkspace[] }>
+  nodes: Array<MeshNode & { workspaces: MeshWorkspace[]; catalogError?: string }>
   cursor: number
 }
 

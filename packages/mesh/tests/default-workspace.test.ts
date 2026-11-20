@@ -33,6 +33,20 @@ describe('device_agent default workspace', () => {
     ])?.workspaceId).toBe('win')
   })
 
+  it('prefers the Android default-workspace / /root/workspace over other empty workspaces', () => {
+    const picked = pickDefaultWorkspace([
+      workspace('other', 'notes', '/sdcard/notes', 2),
+      workspace('phone', 'default-workspace', '/root/workspace', 0),
+    ])
+    expect(picked?.workspaceId).toBe('phone')
+
+    const byPath = pickDefaultWorkspace([
+      workspace('other', 'notes', '/sdcard/notes', 2),
+      workspace('phone-path', 'workspace', '/root/workspace', 0),
+    ])
+    expect(byPath?.workspaceId).toBe('phone-path')
+  })
+
   it('falls back to the busiest workspace when no dsh_orb exists', () => {
     const picked = pickDefaultWorkspace([
       workspace('small', 'small', '/work/small', 1),

@@ -190,3 +190,161 @@ describe('remote normal session chat', () => {
     await expect(service.createSession('node-offline', 'ws-1')).rejects.toMatchObject({ code: 'offline', status: 503 })
   })
 })
+
+describe('device_agent discovery, diagnostics, and Android default workspace', () => {
+  it('lists paired devices and their workspaces via device_agent_devices', async () => {
+    const tools = new Map<string, any>()
+    const mesh = {
+      status: () => ({ paired: true }),
+      tree: async () => ({
+        cursor: 1,
+        nodes: [
+          { nodeId: 'node-self', name: 'Mac', platform: 'darwin', online: true, self: true, hostDeviceId: 'h0', workspaces: [] },
+          {
+            nodeId: 'node-phone',
+            name: 'android-node',
+            platform: 'android',
+            online: true,
+            hostDeviceId: 'h1',
+            workspaces: [{ workspaceId: 'ws-phone', title: 'default-workspace', path: '/root/workspace', sessions: [] }],
+          },
+          {
+            nodeId: 'node-broken',
+            name: 'win-node',
+            platform: 'win32',
+            online: true,
+            hostDeviceId: 'h2',
+            catalogError: 'catalog_timeout',
+            workspaces: [],
+          },
+        ],
+      }),
+    }
+    const ctx = {
+      get: (name: string) => name === 'mesh' ? mesh : undefined,
+      tools: { register: (def: any) => { tools.set(def.name, def) } },
+    }
+    applyDeviceAgent(ctx as never)
+    const tool = tools.get('device_agent_devices')!
+    const result = await tool.execute({}, {})
+    expect(result.paired).toBe(true)
+    expect(result.count).toBe(2)
+    expect(result.devices[0]).toMatchObject({ name: 'android-node', platform: 'android', online: true })
+    const rendered = tool.output.render({}, result)[0].text as string
+    expect(rendered).toContain('android-node (android, online)')
+    expect(rendered).toContain('default-workspace (/root/workspace)')
+    expect(rendered).toContain('catalog error: catalog_timeout')
+  })
+
+  it('surfaces catalogError and available workspaces when device_agent fails', async () => {
+    const tools = new Map<string, any>()
+    const mesh = {
+      status: () => ({ paired: true }),
+      nodes: () => [
+        { nodeId: 'node-phone', name: 'android-node', platform: 'android', online: true, hostDeviceId: 'h1' },
+        { nodeId: 'node-broken', name: 'broken-node', platform: 'android', online: true, hostDeviceId: 'h2' },
+      ],
+      tasks: () => [],
+      tree: async () => ({
+        cursor: 1,
+        nodes: [
+          {
+            nodeId: 'node-phone',
+            name: 'android-node',
+            platform: 'android',
+            online: true,
+            hostDeviceId: 'h1',
+            workspaces: [{ workspaceId: 'ws-1', title: 'default-workspace', path: '/root/workspace', sessions: [] }],
+          },
+          {
+            nodeId: 'node-broken',
+            name: 'broken-node',
+            platform: 'android',
+            online: true,
+            hostDeviceId: 'h2',
+            catalogError: 'tunnel_closed',
+            workspaces: [],
+          },
+        ],
+      }),
+    }
+    const ctx = {
+      get: (name: string) => name === 'mesh' ? mesh : undefined,
+      tools: { register: (def: any) => { tools.set(def.name, def) } },
+    }
+    applyDeviceAgent(ctx as never)
+    const tool = tools.get('device_agent')!
+
+    const missing = await tool.execute({ device: 'android-node', workspace: 'wrong', task: 'hi' }, {})
+    expect(missing).toMatchObject({ accepted: false, reason: 'workspace_not_found' })
+    expect(tool.output.render({}, missing)[0].text).toContain('default-workspace (path: /root/workspace, id: ws-1)')
+
+    const failed = await tool.execute({ device: 'broken-node', task: 'hi' }, {})
+    expect(failed).toMatchObject({ accepted: false, reason: 'catalog_read_failed', detail: 'tunnel_closed' })
+    expect(tool.output.render({}, failed)[0].text).toContain('Detail: tunnel_closed')
+  })
+
+  it('auto-registers /root/workspace as default-workspace on Android when empty, and records catalogError on failed peer tree reads', async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), 'dsh-mesh-android-boot-'))
+    const calls: Array<{ endpoint: string; payload: unknown }> = []
+    let workspaces: Array<{ workspaceId: string; path: string; title: string; sessionIds: string[] }> = []
+
+    const androidService = new MeshService(
+      resolveMeshConfig({ stateDir, platform: 'android', deviceName: 'Phone' }),
+      {
+        supportsCarrier: false,
+        async invoke() { return {} },
+        async open(endpoint: string) {
+          if (endpoint === 'workspace/follow') {
+            return (async function* () {
+              yield { type: 'baseline', value: { items: workspaces } }
+            })()
+          }
+          throw new Error(`unexpected open: ${endpoint}`)
+        },
+        async dispatch(endpoint: string, payload: unknown) {
+          calls.push({ endpoint, payload })
+          if (endpoint === 'session/list') return { ok: true as const, value: { items: [] } }
+          if (endpoint === 'workspace/create') {
+            const ws = { workspaceId: 'ws-default', path: '/root/workspace', title: 'workspace', sessionIds: [] }
+            workspaces = [ws]
+            return { ok: true as const, value: { workspace: ws, created: true } }
+          }
+          if (endpoint === 'workspace/rename') {
+            workspaces[0]!.title = 'default-workspace'
+            return { ok: true as const, value: { workspace: workspaces[0] } }
+          }
+          return { ok: true as const, value: {} }
+        },
+        failure(error: unknown) { return { code: 'INVALID_MESSAGE', message: String(error) } },
+      },
+      { debug() {}, info() {}, warn() {}, error() {} },
+    )
+
+    await androidService.ensureAndroidDefaultWorkspace()
+    expect(calls.some(c => c.endpoint === 'workspace/create')).toBe(true)
+    expect(calls.some(c => c.endpoint === 'workspace/rename')).toBe(true)
+    expect(workspaces[0]?.title).toBe('default-workspace')
+
+    // Calling again is a no-op once ensured.
+    const countBefore = calls.length
+    await androidService.ensureAndroidDefaultWorkspace()
+    expect(calls.length).toBe(countBefore)
+
+    // Tree records catalogError instead of silently pretending a failing peer has 0 workspaces.
+    ;(androidService as unknown as { peers: unknown }).peers = {
+      nodes: () => [{ nodeId: 'node-fail', name: 'Win', platform: 'win32', online: true, hostDeviceId: 'hf' }],
+      peer: () => ({
+        status: 'online',
+        gateway: {
+          open: async () => { throw new Error('peer_timeout') },
+          dispatch: async () => { throw new Error('peer_timeout') },
+        },
+      }),
+    }
+    const tree = await androidService.tree()
+    const failedPeer = tree.nodes.find(n => n.nodeId === 'node-fail')
+    expect(failedPeer?.catalogError).toBe('peer_timeout')
+    expect(failedPeer?.workspaces).toEqual([])
+  })
+})
