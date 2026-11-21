@@ -1,17 +1,17 @@
-# Hosted (account) mode reverse proxy.
+# Account (hosted) mode reverse proxy for dshorb.top.
 #
-# One domain serves both the web portal and the device control plane, so a
-# single publicly trusted certificate covers everything. Caddy obtains and
-# renews it automatically: no pinning, no 90-day expiry surprise.
+# Two sites, one certificate wildcard-free pair (both auto-issued by Caddy):
+#   - dshorb.top      : the mesh portal, API and WebSocket (server:8080).
+#                       /app/* is the DSH Orb in-app update origin, served by
+#                       the separately deployed site container (dsh-orb-site).
+#   - www.dshorb.top  : the DSH Orb product website (dsh-orb-site container).
 #
-# Replace `mesh.example.com` with your own domain. Caddy needs ports 80 and 443
-# reachable for the ACME challenge.
+# The site container is an independent compose project in /opt/dsh-orb-site
+# joined to this project network; stopping it must never affect the mesh.
 
-mesh.example.com {
+dshorb.top {
 	encode zstd gzip
 
-	# Security headers. The CSP is strict because the SPA ships its own assets:
-	# no inline scripts, no third-party origins.
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
@@ -20,21 +20,55 @@ mesh.example.com {
 		-Server
 	}
 
-	# Everything goes to the server: the portal, the API and the WebSocket.
-	reverse_proxy server:8080 {
-		# The device control plane upgrades to WebSocket on this path.
-		header_up X-Forwarded-For {remote_host}
-		header_up X-Real-IP {remote_host}
+	# DSH Orb in-app update origin + release downloads: served by the
+	# independently deployed site container.
+	handle /app/* {
+		reverse_proxy dsh-orb-site:80
+	}
+
+	# Everything else goes to the mesh server: portal, API and WebSocket.
+	handle {
+		reverse_proxy server:8080 {
+			# The device control plane upgrades to WebSocket on these paths.
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Real-IP {remote_host}
+		}
 	}
 
 	log {
 		output stdout
 		# Never log query strings: they can carry link ids.
-		# `exclude` is not a `log` subdirective in Caddy 2.8; the filter form is.
 		format filter {
 			wrap console
 			fields {
-				request>uri>query delete
+				request>uri regexp [?].* ""
+			}
+		}
+	}
+}
+
+www.dshorb.top {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	handle {
+		reverse_proxy dsh-orb-site:80
+	}
+
+	log {
+		output stdout
+		# Never log query strings: they can carry link ids.
+		format filter {
+			wrap console
+			fields {
+				request>uri regexp [?].* ""
 			}
 		}
 	}
