@@ -13,6 +13,7 @@ import type { ResolvedMeshConfig } from './config.js'
 import {
   clearServerScoped,
   clearState,
+  loadDeviceProfile,
   loadState,
   saveState,
   serverScopedDirectory,
@@ -192,12 +193,16 @@ export async function unpairMesh(config: ResolvedMeshConfig): Promise<void> {
   const scoped = serverScopedDirectory(config.stateDir, state.serverUrl)
   try {
     const hostIdentityStore = new IdentityStore({ directory: join(scoped, 'host'), role: 'host' })
-    const hostIdentity = await hostIdentityStore.loadOrCreate(config.deviceName ?? `${config.platform}-node`)
+    const hostName = state.node?.name ?? loadDeviceProfile(config.stateDir)?.deviceName ?? config.deviceName ?? `${config.platform}-node`
+    const hostIdentity = await hostIdentityStore.loadOrCreate(hostName)
     const hostApi = new HostServerApi(
       state.serverUrl,
       new ServerCredentialStore(hostIdentityStore.directory),
       createPinnedFetch(state.fingerprint),
     )
+    // Bind the loaded host identity before revoking so authenticate() uses its stored credentials
+    // and actually sends DELETE /api/v1/nodes/self instead of throwing inside requireIdentity().
+    hostApi.bindIdentity(hostIdentity)
     await hostApi.revokeNodeSelf().catch(() => undefined)
   } finally {
     clearState(config.stateDir)

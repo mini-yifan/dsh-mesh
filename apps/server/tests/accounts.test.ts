@@ -696,8 +696,8 @@ describe('account mode: duplicate device name suffix', () => {
     const secondMe = await call('/me', { token: second.credentials.accessToken })
     const thirdMe = await call('/me', { token: third.credentials.accessToken })
     expect(firstMe.data.name).toBe('书房设备')
-    expect(secondMe.data.name).toBe('书房设备 (2)')
-    expect(thirdMe.data.name).toBe('书房设备 (3)')
+    expect(secondMe.data.name).toBe('书房设备2')
+    expect(thirdMe.data.name).toBe('书房设备3')
 
     // Renaming to its own current name stays unchanged; renaming to another node's name gets suffixed.
     const sameRename = await call(`/devices/${first.credentials.deviceId}/name`, {
@@ -712,13 +712,20 @@ describe('account mode: duplicate device name suffix', () => {
       body: { name: '书房设备' },
     })
     expect(collisionRename.status).toBe(200)
-    expect(collisionRename.data.node.name).toBe('书房设备 (3)')
+    expect(collisionRename.data.node.name).toBe('书房设备3')
 
     const secondCollision = await call(`/devices/${second.credentials.deviceId}/name`, {
       token: second.credentials.accessToken,
       body: { name: '书房设备' },
     })
     expect(secondCollision.status).toBe(200)
-    expect(secondCollision.data.node.name).toBe('书房设备 (2)')
+    expect(secondCollision.data.node.name).toBe('书房设备2')
+
+    // Revoking the first node frees the exact name so a rejoining device reclaims '书房设备'.
+    const revoked = await call('/nodes/self', { method: 'DELETE', token: first.credentials.accessToken })
+    expect(revoked.status).toBe(200)
+    const rejoined = await approveDevice(owner.cookie, 34, '书房设备', 'darwin')
+    const rejoinedMe = await call('/me', { token: rejoined.credentials.accessToken })
+    expect(rejoinedMe.data.name).toBe('书房设备')
   })
 })

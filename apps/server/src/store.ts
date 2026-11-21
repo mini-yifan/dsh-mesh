@@ -256,7 +256,7 @@ export class Store {
       if (base.length > 0 && !taken.has(base.toLowerCase())) return base
       if (base.length > 0) {
         for (let index = 2; index < 10_000; index += 1) {
-          const suffix = ` (${index})`
+          const suffix = `${index}`
           const prefix = truncateDeviceName(base, 80 - suffix.length, 128 - Buffer.byteLength(suffix, 'utf8'))
           const suffixed = prefix.length > 0 ? `${prefix}${suffix}` : `${platformPrefix(platform)}${index}`
           if (!taken.has(suffixed.toLowerCase())) return suffixed

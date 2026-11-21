@@ -65,14 +65,16 @@ describe('MeshService device name persistence', () => {
     expect(loadDeviceProfile(stateDir)).toBeUndefined()
   })
 
-  it('persists name on startLink, reconciles server-suffixed name on pollLink, and keeps it across unpair', async () => {
+  it('persists name on startLink, reconciles server-suffixed name on pollLink, revokes on unpair, and keeps it across unpair', async () => {
     const stateDir = tempDir()
     let registeredDeviceId = ''
-    let nodeName = '我的手机 (2)'
+    let nodeName = '我的手机2'
+    const revokeHeaders: string[] = []
 
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
       const body = init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {}
+      const headers = new Headers(init?.headers)
       const jsonResponse = (data: unknown, status = 200) =>
         new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } })
 
@@ -106,6 +108,7 @@ describe('MeshService device name persistence', () => {
         })
       }
       if (url.endsWith('/api/v1/nodes/self') && init?.method === 'DELETE') {
+        revokeHeaders.push(headers.get('authorization') ?? '')
         return jsonResponse({ status: 'revoked' })
       }
       if (url.endsWith('/api/v1/auth/token')) {
@@ -126,7 +129,7 @@ describe('MeshService device name persistence', () => {
         })
       }
       if (url.endsWith(`/api/v1/devices/${encodeURIComponent(registeredDeviceId)}/name`)) {
-        nodeName = `${String(body.name)} (2)`
+        nodeName = `${String(body.name)}2`
         return jsonResponse({
           node: { nodeId: 'node-1', name: nodeName, platform: 'android', online: true, hostDeviceId: registeredDeviceId },
         })
@@ -148,24 +151,26 @@ describe('MeshService device name persistence', () => {
 
     const linkedStatus = await service.pollLink()
     expect(linkedStatus?.paired).toBe(true)
-    expect(linkedStatus?.node?.name).toBe('我的手机 (2)')
-    expect(linkedStatus?.deviceName).toBe('我的手机 (2)')
+    expect(linkedStatus?.node?.name).toBe('我的手机2')
+    expect(linkedStatus?.deviceName).toBe('我的手机2')
     // Server-confirmed suffixed name overwrote local persistence.
-    expect(loadDeviceProfile(stateDir)?.deviceName).toBe('我的手机 (2)')
+    expect(loadDeviceProfile(stateDir)?.deviceName).toBe('我的手机2')
 
     const renamed = await service.rename('客厅平板')
-    expect(renamed.name).toBe('客厅平板 (2)')
-    expect(loadDeviceProfile(stateDir)?.deviceName).toBe('客厅平板 (2)')
+    expect(renamed.name).toBe('客厅平板2')
+    expect(loadDeviceProfile(stateDir)?.deviceName).toBe('客厅平板2')
 
     await service.unpair()
+    // Must actually send an authenticated DELETE /api/v1/nodes/self before clearing local state.
+    expect(revokeHeaders).toEqual(['Bearer access-token-1234567890abcdef'])
     const afterUnpair = service.status()
     expect(afterUnpair.paired).toBe(false)
-    expect(afterUnpair.deviceName).toBe('客厅平板 (2)')
+    expect(afterUnpair.deviceName).toBe('客厅平板2')
     expect(afterUnpair.deviceNameSaved).toBe(true)
 
     // A fresh service instance after restart still sees the persisted name.
     const restarted = new MeshService(config, makeGateway(), silentLogger as never)
-    expect(restarted.status().deviceName).toBe('客厅平板 (2)')
+    expect(restarted.status().deviceName).toBe('客厅平板2')
     expect(restarted.status().deviceNameSaved).toBe(true)
     await service.stop()
     await restarted.stop()
@@ -185,7 +190,7 @@ describe('MeshService device name persistence', () => {
       tasks: [],
     }
     expect(resolveHostRuntimeConfig(state, config).deviceName).toBe('书房主机')
-    expect(resolveHostRuntimeConfig({ ...state, node: { nodeId: 'n1', name: '书房主机 (2)', platform: 'darwin', online: true, hostDeviceId: 'h1' } }, config).deviceName)
-      .toBe('书房主机 (2)')
+    expect(resolveHostRuntimeConfig({ ...state, node: { nodeId: 'n1', name: '书房主机2', platform: 'darwin', online: true, hostDeviceId: 'h1' } }, config).deviceName)
+      .toBe('书房主机2')
   })
 })
