@@ -21,8 +21,11 @@ dshorb.top {
 	}
 
 	# DSH Orb in-app update origin + release downloads: served by the
-	# independently deployed site container.
-	handle /app/* {
+	# independently deployed site container. Only the two exact update paths
+	# are routed there; the portal SPA owns the other /app/* pages (devices,
+	# remote, login, admin), which rely on the server SPA fallback.
+	@update path /app/update.json /app/download/*
+	handle @update {
 		reverse_proxy dsh-orb-site:80
 	}
 
