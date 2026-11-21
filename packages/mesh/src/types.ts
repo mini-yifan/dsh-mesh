@@ -63,6 +63,10 @@ export interface MeshStatus {
    * Absent means the user has to type an address.
    */
   defaultServer?: string
+  /** Resolved local device name (saved custom name, active node name, or platform default). */
+  deviceName?: string
+  /** Whether a custom/confirmed device name has been persisted on this device. */
+  deviceNameSaved?: boolean
 }
 
 export interface MeshPrefs {

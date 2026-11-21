@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
-import { homedir } from 'node:os'
+import { homedir, hostname } from 'node:os'
 import { basename, join, resolve, sep } from 'node:path'
 import {
   ClientServerApi,
@@ -25,7 +25,15 @@ import {
   waitForDeviceLink,
   type LinkCredentials,
 } from './account-link.js'
-import { loadState, saveState, serverScopedDirectory, type MeshState } from './state.js'
+import {
+  loadDeviceProfile,
+  loadState,
+  normalizeDeviceName,
+  saveDeviceProfile,
+  saveState,
+  serverScopedDirectory,
+  type MeshState,
+} from './state.js'
 import { readRemoteCatalog } from './tree.js'
 import {
   MAX_UPLOAD_BYTES,
@@ -124,7 +132,7 @@ export class MeshService {
   /** Last forced Host reconnect; rate-limits the `/status` self-heal nudge. */
   private hostNudgedAt = 0
   /** A link created by startLink and not yet completed by finishLink. */
-  private pendingLink?: { serverUrl: string; linkId: string; nonce: string; expiresAt: number }
+  private pendingLink?: { serverUrl: string; linkId: string; nonce: string; expiresAt: number; deviceName: string }
 
   constructor(
     private readonly config: ResolvedMeshConfig,
@@ -133,15 +141,38 @@ export class MeshService {
     private readonly host?: MeshHostController,
   ) {
     this.state = loadState(config.stateDir)
+    const initialName = this.state?.node?.name ?? this.resolvedDeviceName().name
     this.localNode = {
       ...(this.state?.node ?? {}),
       nodeId: this.state?.node?.nodeId ?? 'local',
-      name: this.state?.node?.name ?? config.deviceName ?? `${config.platform}-local`,
+      name: initialName,
       platform: config.platform,
       online: true,
       hostDeviceId: this.state?.node?.hostDeviceId ?? 'local',
       self: true,
     }
+  }
+
+  private defaultDeviceName(): string {
+    if (this.config.deviceName) {
+      const configured = normalizeDeviceName(this.config.deviceName)
+      if (configured !== '') return configured
+    }
+    if (this.config.platform !== 'android') {
+      const host = normalizeDeviceName(hostname().replace(/\.local$/i, ''))
+      if (host !== '' && host.toLowerCase() !== 'localhost') return host
+    }
+    return `${this.config.platform}-node`
+  }
+
+  private resolvedDeviceName(): { name: string; saved: boolean } {
+    const saved = loadDeviceProfile(this.config.stateDir)?.deviceName
+    if (saved) return { name: saved, saved: true }
+    return { name: this.defaultDeviceName(), saved: false }
+  }
+
+  private effectiveNodeName(): string {
+    return this.state?.node?.name ?? this.resolvedDeviceName().name
   }
 
   async start(): Promise<void> {
@@ -171,12 +202,21 @@ export class MeshService {
 
   status(): MeshStatus {
     const state = this.state
+    const resolved = this.resolvedDeviceName()
     // The settings switch offers this origin first; absent means "type one".
     const defaultServer = this.config.defaultServer === undefined
       ? {}
       : { defaultServer: this.config.defaultServer }
     if (state === undefined) {
-      return { paired: false, connection: 'unpaired', peersOnline: 0, peersTotal: 0, ...defaultServer }
+      return {
+        paired: false,
+        connection: 'unpaired',
+        peersOnline: 0,
+        peersTotal: 0,
+        deviceName: resolved.name,
+        deviceNameSaved: resolved.saved,
+        ...defaultServer,
+      }
     }
     const online = this.peers?.onlineCount() ?? 0
     const total = this.peers?.size ?? 0
@@ -188,6 +228,8 @@ export class MeshService {
       // socket is up. Reporting `online: true` unconditionally made a node that
       // had silently retired its Host look healthy from its own machine.
       node: { ...this.localNode, online: host?.online === true, self: true },
+      deviceName: this.localNode.name || resolved.name,
+      deviceNameSaved: resolved.saved,
       // With one device there are no *remote* peers by design (refresh skips
       // self), so `online > 0` is not the right connected signal. Only a real
       // startup failure should read as offline; otherwise a paired device is
@@ -227,7 +269,18 @@ export class MeshService {
   }
 
   async pair(input: PairingInput): Promise<MeshStatus> {
-    const result = await pairMesh(this.config, input)
+    let resolvedName: string
+    if (input.name !== undefined) {
+      resolvedName = normalizeDeviceName(input.name)
+      if (resolvedName === '') throw new MeshError('invalid_name', 'Device name must not be empty.')
+      saveDeviceProfile(this.config.stateDir, { deviceName: resolvedName })
+    } else {
+      resolvedName = this.resolvedDeviceName().name
+    }
+    const result = await pairMesh(this.config, { ...input, name: resolvedName })
+    if (result.state.node?.name) {
+      saveDeviceProfile(this.config.stateDir, { deviceName: result.state.node.name })
+    }
     this.state = result.state
     this.localNode = { ...this.localNode, ...(result.state.node ?? {}), self: true }
     await this.peers?.close()
@@ -253,6 +306,14 @@ export class MeshService {
     await unpairMesh(this.config)
     this.state = undefined
     this.startError = undefined
+    this.localNode = {
+      nodeId: 'local',
+      name: this.resolvedDeviceName().name,
+      platform: this.config.platform,
+      online: true,
+      hostDeviceId: 'local',
+      self: true,
+    }
   }
 
   /**
@@ -289,7 +350,15 @@ export class MeshService {
     // stable if the user retries.
     const scoped = serverScopedDirectory(this.config.stateDir, normalized)
     const hostIdentityStore = new IdentityStore({ directory: join(scoped, 'host'), role: 'host' })
-    const resolvedName = (deviceName?.trim() || this.config.deviceName || `${this.config.platform}-node`).slice(0, 80)
+    let resolvedName: string
+    if (deviceName !== undefined) {
+      resolvedName = normalizeDeviceName(deviceName)
+      if (resolvedName === '') throw new MeshError('invalid_name', 'Device name must not be empty.')
+    } else {
+      resolvedName = this.resolvedDeviceName().name
+    }
+    saveDeviceProfile(this.config.stateDir, { deviceName: resolvedName })
+    this.localNode = { ...this.localNode, name: resolvedName }
     const identity = await hostIdentityStore.loadOrCreate(resolvedName)
 
     const started = await startDeviceLink({
@@ -307,6 +376,7 @@ export class MeshService {
       linkId: started.linkId,
       nonce: started.nonce,
       expiresAt: started.expiresAt,
+      deviceName: resolvedName,
     }
     return {
       approvalUrl: started.approveUrl,
@@ -394,13 +464,17 @@ export class MeshService {
    * state; only the wait differs.
    */
   private async adoptPendingLink(credentials: LinkCredentials): Promise<MeshStatus> {
+    const requestedName = this.pendingLink?.deviceName ?? this.resolvedDeviceName().name
     this.pendingLink = undefined
     const next = await adoptLinkCredentials(
       this.config.stateDir,
       this.config.platform,
       credentials,
-      this.config.deviceName,
+      requestedName,
     )
+    if (next.node?.name) {
+      saveDeviceProfile(this.config.stateDir, { deviceName: next.node.name })
+    }
     this.state = next
     this.localNode = { ...this.localNode, ...(next.node ?? {}), self: true }
     this.startError = undefined
@@ -424,15 +498,23 @@ export class MeshService {
 
   async rename(name: string): Promise<MeshNode> {
     const state = this.requireState()
-    const trimmed = name.trim().slice(0, 80)
+    const trimmed = normalizeDeviceName(name)
     if (!trimmed) throw new MeshError('invalid_name', 'Device name must not be empty.')
     const host = this.hostApi(state)
     const identity = await this.hostIdentity(state)
     await host.authenticate(identity)
-    await host.renameSelf(trimmed)
-    state.node = { ...(state.node ?? this.localNode), name: trimmed }
+    const response = record(await host.renameSelf(trimmed))
+    const serverNode = record(response.node)
+    const finalName = typeof serverNode?.name === 'string' && serverNode.name.trim() !== ''
+      ? normalizeDeviceName(serverNode.name) || trimmed
+      : trimmed
+    const scoped = serverScopedDirectory(this.config.stateDir, state.serverUrl)
+    await new IdentityStore({ directory: join(scoped, 'host'), role: 'host' }).loadOrCreate(finalName).catch(() => undefined)
+    await new IdentityStore({ directory: join(scoped, 'client'), role: 'client' }).loadOrCreate(finalName).catch(() => undefined)
+    state.node = { ...(state.node ?? this.localNode), name: finalName }
     saveState(this.config.stateDir, state)
-    this.localNode = { ...this.localNode, name: trimmed }
+    saveDeviceProfile(this.config.stateDir, { deviceName: finalName })
+    this.localNode = { ...this.localNode, name: finalName }
     return this.localNode
   }
 
@@ -1067,7 +1149,7 @@ export class MeshService {
       const scoped = serverScopedDirectory(this.config.stateDir, state.serverUrl)
       const clientDir = join(scoped, 'client')
       const identityStore = new IdentityStore({ directory: clientDir, role: 'client' })
-      const identity = await identityStore.loadOrCreate(this.config.deviceName ?? `${this.config.platform}-node`)
+      const identity = await identityStore.loadOrCreate(this.effectiveNodeName())
       const server = new ClientServerApi(state.serverUrl, new ServerCredentialStore(clientDir), createPinnedFetch(state.fingerprint))
       await server.authenticate(identity)
       const runtimeConfig = this.runtimeConfig(state)
@@ -1117,7 +1199,7 @@ export class MeshService {
       // A public-CA deployment has no pin. Passing an empty string fails
       // resolveConfig's `.min(32)` check, so omit the field entirely instead.
       ...(state.fingerprint === '' ? {} : { serverFingerprint: state.fingerprint }),
-      deviceName: this.config.deviceName ?? `${this.config.platform}-node`,
+      deviceName: this.effectiveNodeName(),
       forceRelay: true,
       terminal: { enabled: false },
       remoteTools: { enabled: false },
@@ -1134,7 +1216,7 @@ export class MeshService {
   private hostIdentity(state: MeshState): Promise<import('ds-harness-remote/internal').HostIdentity> {
     const scoped = serverScopedDirectory(this.config.stateDir, state.serverUrl)
     const store = new IdentityStore({ directory: join(scoped, 'host'), role: 'host' })
-    return store.loadOrCreate(this.config.deviceName ?? `${this.config.platform}-node`)
+    return store.loadOrCreate(this.effectiveNodeName())
   }
 
   private hostApi(state: MeshState): HostServerApi {

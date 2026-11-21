@@ -108,6 +108,20 @@ function pairingCode(): string {
   return code
 }
 
+function truncateDeviceName(raw: string, maxChars: number, maxBytes: number): string {
+  let chars = 0
+  let bytes = 0
+  let out = ''
+  for (const ch of raw) {
+    const chBytes = Buffer.byteLength(ch, 'utf8')
+    if (chars + 1 > maxChars || bytes + chBytes > maxBytes) break
+    out += ch
+    chars += 1
+    bytes += chBytes
+  }
+  return out.trimEnd()
+}
+
 function platformPrefix(platform: string): string {
   switch (platform) {
     case 'darwin': return 'Mac'
@@ -237,7 +251,18 @@ export class Store {
 
   private uniqueName(desired: string | undefined, platform: string, owner: string, taken = new Set(Object.values(this.state.nodes).filter(n => !n.revoked && n.owner === owner).map(n => n.name.toLowerCase()))): string {
     const candidate = desired?.trim()
-    if (candidate && candidate.length > 0 && candidate.length <= 80 && !taken.has(candidate.toLowerCase())) return candidate
+    if (candidate && candidate.length > 0) {
+      const base = truncateDeviceName(candidate, 80, 128)
+      if (base.length > 0 && !taken.has(base.toLowerCase())) return base
+      if (base.length > 0) {
+        for (let index = 2; index < 10_000; index += 1) {
+          const suffix = ` (${index})`
+          const prefix = truncateDeviceName(base, 80 - suffix.length, 128 - Buffer.byteLength(suffix, 'utf8'))
+          const suffixed = prefix.length > 0 ? `${prefix}${suffix}` : `${platformPrefix(platform)}${index}`
+          if (!taken.has(suffixed.toLowerCase())) return suffixed
+        }
+      }
+    }
     const prefix = platformPrefix(platform)
     for (let index = 1; index < 10_000; index += 1) {
       const name = `${prefix}${index}`
@@ -308,12 +333,15 @@ export class Store {
     return this.transaction(() => {
       const existing = this.state.devices[descriptor.deviceId]
       if (existing && existing.owner !== owner) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
-      if (existing?.nodeId && this.state.nodes[existing.nodeId]) return this.registerDevice(descriptor, existing.nodeId, owner)
+      if (existing?.nodeId && this.state.nodes[existing.nodeId]) {
+        const node = this.state.nodes[existing.nodeId]!
+        return this.registerDevice({ ...descriptor, name: node.name }, existing.nodeId, owner)
+      }
       // A brand-new identity also creates a node: check both budgets up front so
       // a rejected registration cannot leave a half-created node behind.
       if (existing === undefined) this.assertDeviceQuota(owner, true)
       const node = this.createNode(descriptor, owner)
-      return this.registerDevice(descriptor, node.id, owner)
+      return this.registerDevice({ ...descriptor, name: node.name }, node.id, owner)
     })
   }
 
@@ -338,7 +366,7 @@ export class Store {
       const node = this.createNode(descriptor, scope)
       record.usedAt = Date.now()
       record.nodeId = node.id
-      return this.registerDevice(descriptor, node.id, scope)
+      return this.registerDevice({ ...descriptor, name: node.name }, node.id, scope)
     })
   }
 
@@ -361,7 +389,7 @@ export class Store {
         if (node.clientDeviceId !== undefined && node.clientDeviceId !== descriptor.deviceId) throw new ApiError('NODE_CLIENT_CONFLICT', 409)
         node.clientDeviceId = descriptor.deviceId
       }
-      return this.registerDevice(descriptor, node.id, owner)
+      return this.registerDevice({ ...descriptor, name: node.name }, node.id, owner)
     })
   }
 
@@ -403,7 +431,13 @@ export class Store {
   renameNodeForDevice(deviceId: string, name: string, scope?: string): MeshNode {
     return this.transaction(() => {
       const node = this.nodeForDevice(deviceId, scope)
-      node.name = name.trim().slice(0, 80)
+      const owner = node.owner ?? this.defaultOwner
+      const taken = new Set(
+        Object.values(this.state.nodes)
+          .filter(n => !n.revoked && n.owner === owner && n.id !== node.id)
+          .map(n => n.name.toLowerCase()),
+      )
+      node.name = this.uniqueName(name, node.platform, owner, taken)
       for (const id of [node.hostDeviceId, node.clientDeviceId]) {
         if (!id) continue
         const device = this.state.devices[id]

@@ -23,6 +23,7 @@ export interface PairingInput {
   serverUrl: string
   code: string
   fingerprint: string
+  name?: string
 }
 
 export class MeshPairError extends Error {
@@ -120,8 +121,9 @@ export async function pairMesh(config: ResolvedMeshConfig, input: PairingInput):
   }
   await verifyServer(input.serverUrl, input.fingerprint)
   const scoped = serverScopedDirectory(config.stateDir, input.serverUrl)
+  const resolvedName = input.name?.trim() || config.deviceName || `${config.platform}-node`
   const hostIdentityStore = new IdentityStore({ directory: join(scoped, 'host'), role: 'host' })
-  const hostIdentity = await hostIdentityStore.loadOrCreate(config.deviceName ?? `${config.platform}-node`)
+  const hostIdentity = await hostIdentityStore.loadOrCreate(resolvedName)
   const hostApi = new HostServerApi(
     input.serverUrl,
     new ServerCredentialStore(hostIdentityStore.directory),
@@ -152,7 +154,7 @@ export async function pairMesh(config: ResolvedMeshConfig, input: PairingInput):
     tasks: [],
   })
   const clientIdentityStore = new IdentityStore({ directory: join(scoped, 'client'), role: 'client' })
-  const clientIdentity = await clientIdentityStore.loadOrCreate(config.deviceName ?? `${config.platform}-node`)
+  const clientIdentity = await clientIdentityStore.loadOrCreate(resolvedName)
   const clientApi = new ClientServerApi(
     input.serverUrl,
     new ServerCredentialStore(clientIdentityStore.directory),

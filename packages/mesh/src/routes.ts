@@ -113,16 +113,19 @@ export function registerMeshRoutes(
         if (method === 'GET' && path === '/status') { json(res, 200, service.status()); return }
         if (method === 'POST' && path === '/pair') {
           const input = record(await body(req))
-          const pairing: PairingInput = typeof input.pairing === 'string'
+          const parsed: PairingInput = typeof input.pairing === 'string'
             ? parsePairing(input.pairing)
             : {
                 serverUrl: String(input.serverUrl ?? '').trim(),
                 code: String(input.code ?? '').trim(),
                 fingerprint: String(input.fingerprint ?? '').trim(),
               }
-          if (pairing.serverUrl === '' || pairing.code === '' || pairing.fingerprint === '') {
+          if (parsed.serverUrl === '' || parsed.code === '' || parsed.fingerprint === '') {
             throw new MeshError('bad_pairing', 'serverUrl, code and fingerprint are required.')
           }
+          const pairing: PairingInput = typeof input.name === 'string'
+            ? { ...parsed, name: input.name }
+            : parsed
           json(res, 200, await service.pair(pairing)); return
         }
         if (method === 'POST' && path === '/unpair') { await service.unpair(); json(res, 200, service.status()); return }

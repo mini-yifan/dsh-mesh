@@ -16,11 +16,61 @@ export interface MeshState {
   tasks: MeshTask[]
 }
 
+export interface MeshDeviceProfile {
+  v: 1
+  deviceName: string
+}
+
 export const defaultPrefs = (): MeshPrefs => ({
   allowIncoming: true,
   allowedCallers: [],
   allowGuardedTools: false,
 })
+
+export function normalizeDeviceName(raw: string): string {
+  const trimmed = raw.trim()
+  let chars = 0
+  let bytes = 0
+  let out = ''
+  for (const ch of trimmed) {
+    const chBytes = Buffer.byteLength(ch, 'utf8')
+    if (chars + 1 > 80 || bytes + chBytes > 128) break
+    out += ch
+    chars += 1
+    bytes += chBytes
+  }
+  return out.trimEnd()
+}
+
+export function deviceProfileFile(stateDir: string): string {
+  return join(stateDir, 'device-profile.json')
+}
+
+export function loadDeviceProfile(stateDir: string): MeshDeviceProfile | undefined {
+  const file = deviceProfileFile(stateDir)
+  if (!existsSync(file)) return undefined
+  try {
+    const value = JSON.parse(readFileSync(file, 'utf8')) as Partial<MeshDeviceProfile>
+    if (value.v !== 1 || typeof value.deviceName !== 'string') return undefined
+    const deviceName = normalizeDeviceName(value.deviceName)
+    if (deviceName === '') return undefined
+    return { v: 1, deviceName }
+  } catch {
+    return undefined
+  }
+}
+
+export function saveDeviceProfile(stateDir: string, profile: { deviceName: string }): MeshDeviceProfile {
+  const deviceName = normalizeDeviceName(profile.deviceName)
+  if (deviceName === '') throw new Error('Device name must not be empty.')
+  const file = deviceProfileFile(stateDir)
+  mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+  const record: MeshDeviceProfile = { v: 1, deviceName }
+  const temporary = `${file}.tmp`
+  writeFileSync(temporary, JSON.stringify(record, null, 2), { mode: 0o600 })
+  renameSync(temporary, file)
+  return record
+}
 
 export function stateFile(stateDir: string): string {
   return join(stateDir, 'state.json')

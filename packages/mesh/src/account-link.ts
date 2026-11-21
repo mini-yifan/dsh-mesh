@@ -264,6 +264,10 @@ export async function adoptLinkCredentials(
   // file alone does not populate it.
   await hostApi.authenticate(identity)
   const node = await hostApi.nodeSelf<MeshState['node']>()
+  if (node?.name && node.name !== identity.name) {
+    await hostIdentityStore.loadOrCreate(node.name).catch(() => undefined)
+    await clientIdentityStore.loadOrCreate(node.name).catch(() => undefined)
+  }
 
   const next: MeshState = {
     v: 1,

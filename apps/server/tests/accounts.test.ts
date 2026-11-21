@@ -682,3 +682,43 @@ describe('account mode: admin account paging', () => {
     expect((await call('/admin/accounts', { cookie: owner.cookie })).status).toBe(403)
   })
 })
+
+describe('account mode: duplicate device name suffix', () => {
+  it('appends an incrementing suffix when linking or renaming to a taken name in the same account', async () => {
+    await start()
+    const owner = await signIn('owner@example.com')
+
+    const first = await approveDevice(owner.cookie, 31, '书房设备', 'darwin')
+    const second = await approveDevice(owner.cookie, 32, '书房设备', 'android')
+    const third = await approveDevice(owner.cookie, 33, '书房设备', 'win32')
+
+    const firstMe = await call('/me', { token: first.credentials.accessToken })
+    const secondMe = await call('/me', { token: second.credentials.accessToken })
+    const thirdMe = await call('/me', { token: third.credentials.accessToken })
+    expect(firstMe.data.name).toBe('书房设备')
+    expect(secondMe.data.name).toBe('书房设备 (2)')
+    expect(thirdMe.data.name).toBe('书房设备 (3)')
+
+    // Renaming to its own current name stays unchanged; renaming to another node's name gets suffixed.
+    const sameRename = await call(`/devices/${first.credentials.deviceId}/name`, {
+      token: first.credentials.accessToken,
+      body: { name: '书房设备' },
+    })
+    expect(sameRename.status).toBe(200)
+    expect(sameRename.data.node.name).toBe('书房设备')
+
+    const collisionRename = await call(`/devices/${third.credentials.deviceId}/name`, {
+      token: third.credentials.accessToken,
+      body: { name: '书房设备' },
+    })
+    expect(collisionRename.status).toBe(200)
+    expect(collisionRename.data.node.name).toBe('书房设备 (3)')
+
+    const secondCollision = await call(`/devices/${second.credentials.deviceId}/name`, {
+      token: second.credentials.accessToken,
+      body: { name: '书房设备' },
+    })
+    expect(secondCollision.status).toBe(200)
+    expect(secondCollision.data.node.name).toBe('书房设备 (2)')
+  })
+})

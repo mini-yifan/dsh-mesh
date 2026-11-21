@@ -19,7 +19,7 @@ import {
 } from 'ds-harness-remote/internal'
 import { join } from 'node:path'
 import type { ResolvedMeshConfig } from './config.js'
-import { serverScopedDirectory, type MeshState } from './state.js'
+import { loadDeviceProfile, serverScopedDirectory, type MeshState } from './state.js'
 
 /**
  * The v0 Host half. It deliberately instantiates the upstream Host runtime
@@ -200,6 +200,7 @@ export class MeshHost {
  * unreachable after the first control-socket drop.
  */
 export function resolveHostRuntimeConfig(state: MeshState, config: ResolvedMeshConfig): ResolvedConfig {
+  const persisted = loadDeviceProfile(config.stateDir)?.deviceName
   return resolveConfig({
     enabled: true,
     role: 'both',
@@ -207,7 +208,7 @@ export function resolveHostRuntimeConfig(state: MeshState, config: ResolvedMeshC
     // A public-CA deployment has no pin. Passing an empty string fails
     // resolveConfig's `.min(32)` check, so omit the field entirely instead.
     ...(state.fingerprint === '' ? {} : { serverFingerprint: state.fingerprint }),
-    deviceName: config.deviceName ?? `${config.platform}-node`,
+    deviceName: state.node?.name ?? persisted ?? config.deviceName ?? `${config.platform}-node`,
     forceRelay: true,
     terminal: { enabled: false },
     remoteTools: { enabled: false },
