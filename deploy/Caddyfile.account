@@ -29,10 +29,13 @@ mesh.example.com {
 
 	log {
 		output stdout
-		format console
 		# Never log query strings: they can carry link ids.
-		format console {
-			exclude http.request.uri.query
+		# `exclude` is not a `log` subdirective in Caddy 2.8; the filter form is.
+		format filter {
+			wrap console
+			fields {
+				request>uri>query delete
+			}
 		}
 	}
 }

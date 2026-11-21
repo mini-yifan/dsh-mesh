@@ -261,6 +261,33 @@ ssh <host> 'docker run --rm -v deploy_server-data:/data -v /root/backup:/b alpin
 ssh <host> 'cd <install-dir>/deploy && docker compose -f compose.account.yaml start server'
 ```
 
+> **源码包会覆盖 `deploy/` 下的线上配置。** `tar czf .` 会把仓库里的 `Caddyfile.account`
+> 和 `compose.account.yaml` 一并解到 `<install-dir>/deploy/`，而线上那份是手工改过的：
+> `Caddyfile.account` 第一行的 `mesh.example.com` 必须换成真实域名。一旦被覆盖回占位符，
+> Caddy 会去给 `mesh.example.com` 申请证书并进入 `Restarting` 循环，公网直接不可用。
+>
+> 传源码前备份 `deploy/`，解包后把域名改回来并校验：
+>
+> ```bash
+> ssh <host> 'cd <install-dir>/deploy && cp -a Caddyfile.account /tmp/caddy.bak'
+> # ...tar xzf 之后...
+> ssh <host> "cd <install-dir>/deploy && sed -i 's/^mesh\.example\.com {/<your-domain> {/' Caddyfile.account"
+> ssh <host> 'cd <install-dir>/deploy && docker run --rm \
+>   -v "$PWD/Caddyfile.account":/etc/caddy/Caddyfile:ro \
+>   caddy:2.8-alpine caddy validate --config /etc/caddy/Caddyfile'
+> ```
+>
+> 必须 `caddy validate`：配置不合法时容器会一直 `Restarting`，而 `docker compose up -d`
+> 本身返回成功，很容易误判成「部署完成」。`docker ps` 里看到 `Restarting` 就是这类问题。
+>
+> 快速自检（三项都要过）：
+>
+> ```bash
+> ssh <host> 'docker ps --format "{{.Names}} {{.Status}}"'   # 没有 Restarting
+> ssh <host> 'curl -s https://<your-domain>/health'          # {"status":"ok",...}
+> ssh <host> 'docker exec deploy-server-1 grep -o "suffix = .[^;]*" dist/store.js'
+> ```
+
 ### 回滚到 v0
 
 ```bash
