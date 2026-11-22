@@ -304,7 +304,7 @@ describe('HostPluginRuntime multi-Client routing', () => {
     }
   })
 
-  it('keeps another Client WebSocket preview alive during connection replacement and closes sockets on Host shutdown', async () => {
+  it('keeps existing Client WebSocket previews when another connection joins and closes sockets on Host shutdown', async () => {
     const server = createServer()
     const upstream = new WebSocketServer({ server })
     upstream.on('connection', socket => socket.on('message', (data, binary) => socket.send(data, { binary })))
@@ -326,12 +326,13 @@ describe('HostPluginRuntime multi-Client routing', () => {
       await peerRpc(desktop, open)
       const replacement = fakeChannel('connection-desktop-2', 'client-desktop')
       await runtime.acceptAuthenticatedPeer(replacement)
-      await vi.waitFor(() => expect(upstream.clients.size).toBe(1))
+      await vi.waitFor(() => expect(upstream.clients.size).toBe(2))
       await peerRpc(phone, { op: 'ws.send', id, data: Buffer.from('phone still connected').toString('base64'), binary: false })
       const echo = await peerRpc<LoopbackWsRead>(phone, { op: 'ws.read', id })
       expect(echo.closed).toBe(false)
       expect(echo.messages.map(message => Buffer.from(message.data, 'base64').toString())).toEqual(['phone still connected'])
       await peerRpc(replacement, open)
+      await vi.waitFor(() => expect(upstream.clients.size).toBe(3))
       await runtime.close()
       await vi.waitFor(() => expect(upstream.clients.size).toBe(0))
     } finally {
