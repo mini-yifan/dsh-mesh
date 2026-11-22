@@ -74,12 +74,12 @@ describe('ConnectionController', () => {
         },
       },
       {
-        name: 'replaces only the previous connection from the same Client device',
+        name: 'keeps links from the same Client device and replaces a reused connection id',
         run: async () => {
-          const routers = new Map<
-            string,
-            { handle: ReturnType<typeof vi.fn>; closePeerStreams: ReturnType<typeof vi.fn> }
-          >()
+          const routers: Array<{
+            connectionId: string
+            router: { handle: ReturnType<typeof vi.fn>; closePeerStreams: ReturnType<typeof vi.fn> }
+          }> = []
           const controller = new ConnectionController(
             { isTrusted: () => true } as unknown as IdentityStore,
             (context) => {
@@ -87,7 +87,7 @@ describe('ConnectionController', () => {
                 handle: vi.fn(async () => createRpcRequest('harness.api.call', {}) as RemoteMessage),
                 closePeerStreams: vi.fn(async () => undefined),
               }
-              routers.set(context.connectionId, router)
+              routers.push({ connectionId: context.connectionId, router })
               return router as unknown as RpcRouter
             },
           )
@@ -98,19 +98,33 @@ describe('ConnectionController', () => {
           await controller.accept(desktop)
           await controller.accept(nextPhone)
 
-          expect(firstPhone.close).toHaveBeenCalledWith('CONNECTION_REPLACED')
-          expect(routers.get('connection-phone-1')!.closePeerStreams).toHaveBeenCalledOnce()
+          // A Client device owns one control connection per remote Host, so a
+          // different connection id from the same device must coexist.
+          expect(firstPhone.close).not.toHaveBeenCalled()
+          expect(routers[0].router.closePeerStreams).not.toHaveBeenCalled()
           expect(desktop.close).not.toHaveBeenCalled()
-          expect(routers.get('connection-desktop')!.closePeerStreams).not.toHaveBeenCalled()
+          expect(routers[1].router.closePeerStreams).not.toHaveBeenCalled()
           expect(nextPhone.close).not.toHaveBeenCalled()
-          expect(controller.connectionCount()).toBe(2)
-          expect(controller.peerDeviceIds()).toEqual(['client-desktop', 'client-phone'])
+          expect(routers[2].router.closePeerStreams).not.toHaveBeenCalled()
+          expect(controller.connectionCount()).toBe(3)
+          expect(controller.peerDeviceIds()).toEqual(['client-phone', 'client-desktop'])
+
+          // A reconnect that reuses the same logical connection id replaces
+          // only its predecessor.
+          const reconnect = fakeChannel('connection-phone-1', 'client-phone')
+          await controller.accept(reconnect)
+          expect(firstPhone.close).toHaveBeenCalledWith('CONNECTION_REPLACED')
+          expect(routers[0].router.closePeerStreams).toHaveBeenCalledOnce()
+          expect(reconnect.close).not.toHaveBeenCalled()
+          expect(controller.connectionCount()).toBe(3)
 
           desktop.push(createRpcRequest('harness.api.call', { method: 'session.list' }))
           nextPhone.push(createRpcRequest('harness.api.call', { method: 'session.list' }))
+          reconnect.push(createRpcRequest('harness.api.call', { method: 'session.list' }))
           await vi.waitFor(() => {
             expect(desktop.send).toHaveBeenCalledOnce()
             expect(nextPhone.send).toHaveBeenCalledOnce()
+            expect(reconnect.send).toHaveBeenCalledOnce()
           })
         },
       },
