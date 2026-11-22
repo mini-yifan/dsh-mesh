@@ -4,9 +4,9 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a>
+  <a href="README.en.md">English</a>
   &nbsp;·&nbsp;
-  <a href="README.zh.md">中文</a>
+  <a href="README.md">中文</a>
   &nbsp;·&nbsp;
   <strong>日本語</strong>
 </p>
