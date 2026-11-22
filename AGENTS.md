@@ -839,7 +839,7 @@ store/父组件渲染变化的 effect 依赖，避免已消费的一次性 token
 token 与二维码内容不写日志。
 
 验证：Android check、24 文件 / 136 测试（含 QR provider/start/poll 同源与状态矩阵）、
-`tsc --noEmit` 通过；真实 Server `dsh.r2049.cn` 的 providers、QR start 与 poll 合约已用 curl
+`tsc --noEmit` 通过；真实 Server `mesh.example.test` 的 providers、QR start 与 poll 合约已用 curl
 核对。本轮未完成大屏真机 UI 扫码端到端验收。
 
 ## Android tablet split view (2026-10-18)

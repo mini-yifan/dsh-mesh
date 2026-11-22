@@ -39,9 +39,9 @@ var __toESM = (mod3, isNodeMode, target3) => (target3 = mod3 != null ? __create(
   mod3
 ));
 
-// node_modules/ws/lib/constants.js
+// ../../node_modules/ws/lib/constants.js
 var require_constants = __commonJS({
-  "node_modules/ws/lib/constants.js"(exports, module) {
+  "../../node_modules/ws/lib/constants.js"(exports, module) {
     "use strict";
     var BINARY_TYPES = ["nodebuffer", "arraybuffer", "fragments"];
     var hasBlob = typeof Blob !== "undefined";
@@ -62,9 +62,9 @@ var require_constants = __commonJS({
   }
 });
 
-// node_modules/ws/lib/buffer-util.js
+// ../../node_modules/ws/lib/buffer-util.js
 var require_buffer_util = __commonJS({
-  "node_modules/ws/lib/buffer-util.js"(exports, module) {
+  "../../node_modules/ws/lib/buffer-util.js"(exports, module) {
     "use strict";
     var { EMPTY_BUFFER } = require_constants();
     var FastBuffer = Buffer[Symbol.species];
@@ -137,9 +137,9 @@ var require_buffer_util = __commonJS({
   }
 });
 
-// node_modules/ws/lib/limiter.js
+// ../../node_modules/ws/lib/limiter.js
 var require_limiter = __commonJS({
-  "node_modules/ws/lib/limiter.js"(exports, module) {
+  "../../node_modules/ws/lib/limiter.js"(exports, module) {
     "use strict";
     var kDone = Symbol("kDone");
     var kRun = Symbol("kRun");
@@ -187,9 +187,9 @@ var require_limiter = __commonJS({
   }
 });
 
-// node_modules/ws/lib/permessage-deflate.js
+// ../../node_modules/ws/lib/permessage-deflate.js
 var require_permessage_deflate = __commonJS({
-  "node_modules/ws/lib/permessage-deflate.js"(exports, module) {
+  "../../node_modules/ws/lib/permessage-deflate.js"(exports, module) {
     "use strict";
     var zlib = __require("zlib");
     var bufferUtil = require_buffer_util();
@@ -570,9 +570,9 @@ var require_permessage_deflate = __commonJS({
   }
 });
 
-// node_modules/ws/lib/validation.js
+// ../../node_modules/ws/lib/validation.js
 var require_validation = __commonJS({
-  "node_modules/ws/lib/validation.js"(exports, module) {
+  "../../node_modules/ws/lib/validation.js"(exports, module) {
     "use strict";
     var { isUtf8 } = __require("buffer");
     var { hasBlob } = require_constants();
@@ -771,9 +771,9 @@ var require_validation = __commonJS({
   }
 });
 
-// node_modules/ws/lib/receiver.js
+// ../../node_modules/ws/lib/receiver.js
 var require_receiver = __commonJS({
-  "node_modules/ws/lib/receiver.js"(exports, module) {
+  "../../node_modules/ws/lib/receiver.js"(exports, module) {
     "use strict";
     var { Writable } = __require("stream");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -1394,9 +1394,9 @@ var require_receiver = __commonJS({
   }
 });
 
-// node_modules/ws/lib/sender.js
+// ../../node_modules/ws/lib/sender.js
 var require_sender = __commonJS({
-  "node_modules/ws/lib/sender.js"(exports, module) {
+  "../../node_modules/ws/lib/sender.js"(exports, module) {
     "use strict";
     var { Duplex } = __require("stream");
     var { randomFillSync } = __require("crypto");
@@ -1887,9 +1887,9 @@ var require_sender = __commonJS({
   }
 });
 
-// node_modules/ws/lib/event-target.js
+// ../../node_modules/ws/lib/event-target.js
 var require_event_target = __commonJS({
-  "node_modules/ws/lib/event-target.js"(exports, module) {
+  "../../node_modules/ws/lib/event-target.js"(exports, module) {
     "use strict";
     var { kForOnEventAttribute, kListener } = require_constants();
     var kCode = Symbol("kCode");
@@ -2116,9 +2116,9 @@ var require_event_target = __commonJS({
   }
 });
 
-// node_modules/ws/lib/extension.js
+// ../../node_modules/ws/lib/extension.js
 var require_extension = __commonJS({
-  "node_modules/ws/lib/extension.js"(exports, module) {
+  "../../node_modules/ws/lib/extension.js"(exports, module) {
     "use strict";
     var { tokenChars } = require_validation();
     function push2(dest, name2, elem) {
@@ -2269,16 +2269,16 @@ var require_extension = __commonJS({
   }
 });
 
-// node_modules/ws/lib/websocket.js
+// ../../node_modules/ws/lib/websocket.js
 var require_websocket = __commonJS({
-  "node_modules/ws/lib/websocket.js"(exports, module) {
+  "../../node_modules/ws/lib/websocket.js"(exports, module) {
     "use strict";
     var EventEmitter3 = __require("events");
     var https = __require("https");
     var http = __require("http");
     var net2 = __require("net");
     var tls3 = __require("tls");
-    var { randomBytes: randomBytes14, createHash: createHash8 } = __require("crypto");
+    var { randomBytes: randomBytes14, createHash: createHash9 } = __require("crypto");
     var { Duplex, Readable } = __require("stream");
     var { URL: URL2 } = __require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2946,7 +2946,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash8("sha1").update(key + GUID).digest("base64");
+        const digest = createHash9("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -3165,9 +3165,9 @@ var require_websocket = __commonJS({
   }
 });
 
-// node_modules/ws/lib/stream.js
+// ../../node_modules/ws/lib/stream.js
 var require_stream = __commonJS({
-  "node_modules/ws/lib/stream.js"(exports, module) {
+  "../../node_modules/ws/lib/stream.js"(exports, module) {
     "use strict";
     var WebSocket4 = require_websocket();
     var { Duplex } = __require("stream");
@@ -3263,9 +3263,9 @@ var require_stream = __commonJS({
   }
 });
 
-// node_modules/ws/lib/subprotocol.js
+// ../../node_modules/ws/lib/subprotocol.js
 var require_subprotocol = __commonJS({
-  "node_modules/ws/lib/subprotocol.js"(exports, module) {
+  "../../node_modules/ws/lib/subprotocol.js"(exports, module) {
     "use strict";
     var { tokenChars } = require_validation();
     function parse5(header) {
@@ -3308,14 +3308,14 @@ var require_subprotocol = __commonJS({
   }
 });
 
-// node_modules/ws/lib/websocket-server.js
+// ../../node_modules/ws/lib/websocket-server.js
 var require_websocket_server = __commonJS({
-  "node_modules/ws/lib/websocket-server.js"(exports, module) {
+  "../../node_modules/ws/lib/websocket-server.js"(exports, module) {
     "use strict";
     var EventEmitter3 = __require("events");
     var http = __require("http");
     var { Duplex } = __require("stream");
-    var { createHash: createHash8 } = __require("crypto");
+    var { createHash: createHash9 } = __require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -3622,7 +3622,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash8("sha1").update(key + GUID).digest("base64");
+        const digest = createHash9("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -3709,9 +3709,9 @@ var require_websocket_server = __commonJS({
   }
 });
 
-// node_modules/dns-packet/types.js
+// ../../node_modules/dns-packet/types.js
 var require_types = __commonJS({
-  "node_modules/dns-packet/types.js"(exports) {
+  "../../node_modules/dns-packet/types.js"(exports) {
     "use strict";
     exports.toString = function(type) {
       switch (type) {
@@ -3905,9 +3905,9 @@ var require_types = __commonJS({
   }
 });
 
-// node_modules/dns-packet/rcodes.js
+// ../../node_modules/dns-packet/rcodes.js
 var require_rcodes = __commonJS({
-  "node_modules/dns-packet/rcodes.js"(exports) {
+  "../../node_modules/dns-packet/rcodes.js"(exports) {
     "use strict";
     exports.toString = function(rcode) {
       switch (rcode) {
@@ -3986,9 +3986,9 @@ var require_rcodes = __commonJS({
   }
 });
 
-// node_modules/dns-packet/opcodes.js
+// ../../node_modules/dns-packet/opcodes.js
 var require_opcodes = __commonJS({
-  "node_modules/dns-packet/opcodes.js"(exports) {
+  "../../node_modules/dns-packet/opcodes.js"(exports) {
     "use strict";
     exports.toString = function(opcode) {
       switch (opcode) {
@@ -4067,9 +4067,9 @@ var require_opcodes = __commonJS({
   }
 });
 
-// node_modules/dns-packet/classes.js
+// ../../node_modules/dns-packet/classes.js
 var require_classes = __commonJS({
-  "node_modules/dns-packet/classes.js"(exports) {
+  "../../node_modules/dns-packet/classes.js"(exports) {
     "use strict";
     exports.toString = function(klass) {
       switch (klass) {
@@ -4104,9 +4104,9 @@ var require_classes = __commonJS({
   }
 });
 
-// node_modules/dns-packet/optioncodes.js
+// ../../node_modules/dns-packet/optioncodes.js
 var require_optioncodes = __commonJS({
-  "node_modules/dns-packet/optioncodes.js"(exports) {
+  "../../node_modules/dns-packet/optioncodes.js"(exports) {
     "use strict";
     exports.toString = function(type) {
       switch (type) {
@@ -4198,9 +4198,9 @@ var require_optioncodes = __commonJS({
   }
 });
 
-// node_modules/@leichtgewicht/ip-codec/index.cjs
+// ../../node_modules/@leichtgewicht/ip-codec/index.cjs
 var require_ip_codec = __commonJS({
-  "node_modules/@leichtgewicht/ip-codec/index.cjs"(exports, module) {
+  "../../node_modules/@leichtgewicht/ip-codec/index.cjs"(exports, module) {
     var ipCodec = (function(exports2) {
       "use strict";
       Object.defineProperty(exports2, "__esModule", {
@@ -4391,9 +4391,9 @@ var require_ip_codec = __commonJS({
   }
 });
 
-// node_modules/dns-packet/index.js
+// ../../node_modules/dns-packet/index.js
 var require_dns_packet = __commonJS({
-  "node_modules/dns-packet/index.js"(exports) {
+  "../../node_modules/dns-packet/index.js"(exports) {
     "use strict";
     var Buffer9 = __require("buffer").Buffer;
     var types22 = require_types();
@@ -5819,9 +5819,9 @@ var require_dns_packet = __commonJS({
   }
 });
 
-// node_modules/thunky/index.js
+// ../../node_modules/thunky/index.js
 var require_thunky = __commonJS({
-  "node_modules/thunky/index.js"(exports, module) {
+  "../../node_modules/thunky/index.js"(exports, module) {
     "use strict";
     var nextTick = nextTickArgs;
     process.nextTick(upgrade, 42);
@@ -5868,9 +5868,9 @@ var require_thunky = __commonJS({
   }
 });
 
-// node_modules/multicast-dns/index.js
+// ../../node_modules/multicast-dns/index.js
 var require_multicast_dns = __commonJS({
-  "node_modules/multicast-dns/index.js"(exports, module) {
+  "../../node_modules/multicast-dns/index.js"(exports, module) {
     var packet = require_dns_packet();
     var dgram = __require("dgram");
     var thunky = require_thunky();
@@ -6041,7 +6041,7 @@ var require_multicast_dns = __commonJS({
   }
 });
 
-// node_modules/werift/lib/index.mjs
+// ../../node_modules/werift/lib/index.mjs
 var lib_exports = {};
 __export(lib_exports, {
   AAC_HBR_AU_HEADER_BITS: () => AAC_HBR_AU_HEADER_BITS,
@@ -8933,12 +8933,12 @@ async function createStunOverTurnClient(config2, options = {}) {
 }
 function alternateTlsOptions(configured, alternateDomain, tlsOptions = {}) {
   const identity3 = alternateDomain ?? tlsOptions.servername ?? configured[0];
-  const checkServerIdentity2 = tlsOptions.checkServerIdentity ?? tls2.checkServerIdentity;
+  const checkServerIdentity22 = tlsOptions.checkServerIdentity ?? tls2.checkServerIdentity;
   return {
     ...tlsOptions,
     // SNI cannot carry an IP literal.
     servername: isIP3(identity3) ? void 0 : identity3,
-    checkServerIdentity: (_host, cert) => checkServerIdentity2(identity3, cert)
+    checkServerIdentity: (_host, cert) => checkServerIdentity22(identity3, cert)
   };
 }
 function tryAlternateOf(error62, addressFamily) {
@@ -10169,7 +10169,7 @@ function sameCodecList(a, b) {
 }
 var import_multicast_dns, __defProp2, __export2, EventTarget, BitWriter, BitWriter2, BufferChain, dumpBuffer, BitStream, binaryData_exports, NotEnoughDataError, BinaryReader, BinaryWriter, isObject3, isType, isPlainObject3, createContext, cloneContext, assertSchema, encodeCommon, encodeSchema, decodeCommon, decodeSchema, createUIntBE, assertLengthSpec, checkLength, checkLengthType, types, POLY_CRC32, POLY_CRC32C, table32, tables32By16, table32c, tables32cBy16, Event2, EventDisposer, WeriftError, colors, stateKey, state, debugFactory, debug, interfaceAddress, int2, PromiseQueue, FifoQueue, log, DEFAULT_CONNECT_TIMEOUT_MS, UdpTransport, TcpTransport, TlsTransport, StreamTransport, log2, RTCDataChannel, RTCDataChannelParameters, SignatureAlgorithm, HashAlgorithm, CipherSuite, CipherSuiteList, NamedCurveAlgorithm, NamedCurveAlgorithmList, CurveType, SignatureScheme, certificateTypes, signatures, SessionType, AbstractCipher, Asn1Tag, dumpBuffer2, getObjectSummary, decode22, encode22, types2, FragmentedHandshake, types3, uint16be, uint24be, buffer2, array22, uint8, string22, Extension, ExtensionList, ASN11Cert, ClientCertificateType, DistinguishedName, SignatureHashAlgorithm, ProtocolVersion, decode32, encode32, types4, DtlsRandom, decode4, encode4, types5, ClientHello, decode5, encode5, types6, MACHeader, DtlsPlaintext, createFragments, createPlaintext, AlertDesc, warn, err, Flight, Flight1, log3, Flight3, signTypes, keyTypes, kxTypes, KeyExchange, p256Keypair, p256PreMasterSecret, x25519Oid, x25519RawKeyLength, x25519AlgorithmIdentifier, emptyX25519RawKey, x25519PrivateKeyPrefix, x25519PublicKeyPrefix, err2, AEADCipher, cipherSuites, AEAD_AES_128_GCM, AEAD_AES_256_GCM, RSA_KEY_EXCHANGE, ECDHE_RSA_KEY_EXCHANGE, ECDHE_ECDSA_KEY_EXCHANGE, PSK_KEY_EXCHANGE, ECDHE_PSK_KEY_EXCHANGE, SrtpContext, ExtendedMasterSecret, decode6, encode6, types7, RenegotiationIndication, decode7, encode7, types8, UseSRTP, decode8, encode8, types9, Certificate, decode9, encode9, types10, ChangeCipherSpec, decode10, encode10, types11, CertificateVerify, decode11, encode11, types12, ClientKeyExchange, Finished, decode12, encode12, types13, ServerCertificateRequest, decode13, encode13, types14, ServerHello, decode14, encode14, ServerHelloDone, encode15, decode15, types15, ServerKeyExchange, MTU, ExtensionProfiles, seqNumOffset, timestampOffset, ssrcOffset, csrcOffset, csrcSize, RtpHeader, RtpPacket, DePacketizerBase, PacketizerBase, log4, AV1RtpPayload, AV1Obu, OBU_TYPES, OBU_TYPE_IDS, MAX_W_ELEMENTS, OBU_SEQUENCE_HEADER, OBU_TEMPORAL_DELIMITER, Av1Packetizer, PCMU_PAYLOAD_TYPE, PCMA_PAYLOAD_TYPE, G711_CLOCK_RATE, DEFAULT_FRAME_DURATION_MS, PcmuRtpPayload, PcmaRtpPayload, G711Packetizer, PcmuPacketizer, PcmaPacketizer, G722_PAYLOAD_TYPE, G722_CLOCK_RATE, G722_OCTET_RATE, DEFAULT_FRAME_DURATION_MS2, G722RtpPayload, G722Packetizer, H265_PAYLOAD_TYPE_AP, H265_PAYLOAD_TYPE_FU, H265_PAYLOAD_TYPE_PACI, H265_IRAP_NAL_TYPES, H265_NAL_TYPE, annexBStartCode, H265RtpPayload, H265AnnexBParser, H265Packetizer, H264RtpPayload, NalUnitType, annex_bNALUStartCode, stap_aHeaderSize, stap_aNALULengthSize, H264_MIN_NAL_LENGTH, H264Packetizer, MPEG4_GENERIC_ENCODING_NAME, AAC_HBR_SIZE_LENGTH, AAC_HBR_INDEX_LENGTH, AAC_HBR_INDEX_DELTA_LENGTH, AAC_HBR_AU_HEADER_BITS, FRAG_SIZE_PREFIX, AacHbrRtpPayload, AacHbrPacketizer, OPUS_CLOCK_RATE, OpusRtpPayload, OpusPacketizer, Vp8RtpPayload, VP8_PAYLOAD_DESCRIPTOR_LENGTH, VP8_PICTURE_ID_MASK, Vp8Packetizer, Vp9RtpPayload, Vp9Packetizer, TELEPHONE_EVENT_DEFAULT_PAYLOAD_TYPE, TELEPHONE_EVENT_DEFAULT_CLOCK_RATE, PAYLOAD_SIZE, TelephoneEventRtpPayload, TelephoneEventPacketizer, depacketizerCodecs, timer, RTCP_HEADER_SIZE, RtcpHeader, FullIntraRequest, PictureLossIndication, ReceiverEstimatedMaxBitrate, log5, RtcpPayloadSpecificFeedback, RtcpRrPacket, RtcpReceiverInfo, RtcpTransportLayerFeedbackType, GenericNack, log6, TransportWideCC, RunLengthChunk, StatusVectorChunk, RecvDelta, PacketChunk, PacketStatus, PacketResult, log7, RtcpTransportLayerFeedback, RtcpSourceDescriptionPacket, SourceDescriptionChunk, SourceDescriptionItem, RtcpSrPacket, RtcpSenderInfo, ntpTime2Sec, log8, RtcpPacketConverter, RTP_EXTENSION_URI, UINT32_MODULO, SLOT_EPSILON, RtpMediaTimeline, defaultScheduler, RtpMediaClock, RtpMediaPacer, log9, Red, RedHeader, RedEncoder, Max14Uint, RedHandler, ProtectionProfileAes128CmHmacSha1_80, ProtectionProfileAeadAes128Gcm, Profiles, keyLength, saltLength, SrtpAuthenticationError, minRtpHeaderSize, minRtcpPacketSize, CipherAesBase, CipherAesCtr, srtcpIndexSize, CipherAesGcm, srtcpIndexSize2, rtcpEncryptionFlag, Context, SrtpRolloverCounterOverflowError, SequenceNumberCycle, HalfSequenceNumberCycle, MaxRolloverCounter, packetIndex, guessRolloverCounter, SrtcpContext, maxSRTCPIndex, Session, SrtcpSession, SrtpContext2, SrtpSession, UINT32_MODULO2, RtpBuilder, log10, Flight5, handlers, decode16, encode16, types16, ServerHelloVerifyRequest, signatureAlgorithms, attributeTypes, encode17, types17, generateKeyPairAsync, CipherContext, log11, DtlsContext, TransportContext, decode17, encode18, types18, EllipticCurves, decode18, encode19, types19, Signature, decode19, encode20, types20, Alert, log12, err3, parsePacket, parsePlainText, decode20, types21, log13, err4, DtlsSocket, log14, DtlsClient, log15, flight2, log16, Flight4, log17, Flight6, handlers2, log18, DtlsServer, Candidate, UDP_TYPE_PREFERENCE, TCP_TYPE_PREFERENCE, ACTIVE_PASSIVE_DIRECTION_PREFERENCE, REFLEXIVE_DIRECTION_PREFERENCE, MdnsLookup, TransactionError, TransactionFailed, TransactionTimeout, TransactionCancelled, AddressFamilyMismatch, TurnRedirectError, PQueue, cancelable, COOKIE, FINGERPRINT_LENGTH, FINGERPRINT_XOR, HEADER_LENGTH, INTEGRITY_LENGTH, IPV4_PROTOCOL, IPV6_PROTOCOL, RETRY_MAX, RETRY_RTO, AttributeKeys, classes, methods, TCP_CHECK_RESPONSE_TIMEOUT_MS, cookieBuffer, packUnsigned, unpackUnsigned, packUnsignedShort, unpackUnsignedShort, packUnsigned64, unpackUnsigned64, packString, unpackString, packSoftware, packBytes, unpackBytes, packNone, unpackNone, ATTRIBUTES, AttributeRepository, ATTRIBUTES_BY_TYPE, ATTRIBUTES_BY_NAME, Message, setBodyLength, log19, CandidatePair, ICE_COMPLETED, ICE_FAILED, CONSENT_INTERVAL, CONSENT_FAILURES, CONSENT_TIMEOUT, CONSENT_RESPONSE_TIMEOUT, CONSENT_RESPONSE_TIMEOUT_MIN, CandidatePairState, defaultOptions, log20, Transaction, log21, StunProtocol, log22, BaseTcpProtocol, TcpActiveProtocol, TcpPassiveProtocol, log23, DEFAULT_CHANNEL_REFRESH_TIME, DEFAULT_ALLOCATION_LIFETIME, UDP_TRANSPORT, DEFAULT_MAX_ALLOCATE_REDIRECTS, StunOverTurnProtocol, TurnProtocol, logger, url2Address, log24, DEFAULT_STUN_SERVER, Connection, encodeTxUsername, decodeTxUsername, socketTypeOf, stripZoneId2, SCTP_PADDING_MULTIPLE, SCTP_COMMON_HEADER_SIZE, SCTP_CHUNK_HEADER_SIZE, SCTP_DATA_FIXED_HEADER_SIZE, SCTP_DATA_CHUNK_HEADER_SIZE, Chunk, BaseInitChunk, InitChunk, InitAckChunk, ReConfigChunk, ForwardTsnChunk, DataChunk, CookieEchoChunk, CookieAckChunk, BaseParamsChunk, AbortChunk, ErrorChunk, HeartbeatChunk, HeartbeatAckChunk, ReconfigChunk, SackChunk, ShutdownChunk, ShutdownAckChunk, ShutdownCompleteChunk, CHUNK_CLASSES, CHUNK_BY_TYPE, OutgoingSSNResetRequestParam, StreamAddOutgoingParam, reconfigResult, ReconfigResponseParam, RECONFIG_PARAM_BY_TYPES, log25, COOKIE_LENGTH, COOKIE_LIFETIME, MAX_STREAMS, DEFAULT_SCTP_MTU, SCTP_DATA_LAST_FRAG, SCTP_DATA_FIRST_FRAG, SCTP_DATA_UNORDERED, SCTP_MAX_ASSOCIATION_RETRANS, SCTP_MAX_INIT_RETRANS, SCTP_RTO_ALPHA, SCTP_RTO_BETA, SCTP_RTO_INITIAL, SCTP_RTO_MIN, SCTP_RTO_MAX, SCTP_TSN_MODULO, SCTP_SACK_DELAY_MS, SCTP_HEARTBEAT_INTERVAL, RECONFIG_MAX_STREAMS, SCTP_STATE_COOKIE, SCTP_SUPPORTED_CHUNK_EXT, SCTP_PRSCTP_SUPPORTED, SCTPConnectionStates, SCTP, InboundStream, RTCSctpCapabilities, useFIR, useNACK, usePLI, useREMB, useTWCC, RTCRtpCodecParameters, RTCRtpHeaderExtensionParameters, RTCRtcpParameters, RTCRtcpFeedback, RTCRtpRtxParameters, RTCRtpCodingParameters, RTCRtpSimulcastParameters, useH264, useVP8, useVP9, useAV1, useAV1X, useOPUS, usePCMU, usePCMA, useG722, supportedCodecs, supportedVideoCodecs, supportedAudioCodecs, DATA_CHANNEL_ACK, DATA_CHANNEL_OPEN, DATA_CHANNEL_RELIABLE, DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT, DATA_CHANNEL_PARTIAL_RELIABLE_TIMED, DATA_CHANNEL_RELIABLE_UNORDERED, DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT_UNORDERED, DATA_CHANNEL_PARTIAL_RELIABLE_TIMED_UNORDERED, WEBRTC_DCEP, WEBRTC_STRING, WEBRTC_BINARY, WEBRTC_STRING_EMPTY, WEBRTC_BINARY_EMPTY, DISCARD_HOST, DISCARD_PORT, DTLS_ROLE_SETUP, DTLS_SETUP_ROLE, FMTP_INT_PARAMETERS, SSRC_INFO_ATTRS, SRTP_PROFILE, SenderDirections, ReceiverDirection, RTCStatsReport, ridRouteKey, applicationStops, RTCRtpTransceiver, Inactive, Sendonly, Recvonly, Sendrecv, Directions, sourceCodecsByTrack, sourceCodecsCapturedByTrack, TrackBroadcastSource, MediaStreamTrack, MediaStream, log26, fingerprintHashAlgorithms, andDirection, milliTime, startupTimestampInMicroseconds, microTime, timestampSeconds, ntpTime, ntpTimeToEpochMs, compactNtp, createSelfSignedCertificate, MediaStreamTrackFactory, deepMerge, log27, RTCDtlsTransport, DtlsStates, RTCCertificate, RTCDtlsFingerprint, RTCDtlsParameters, deduplicateFingerprints, preferredFingerprintAlgorithms, selectPreferredFingerprintAlgorithm, IceTransport, createIceTransport, emptyCandidateFields, candidateTypes, tcpTypes, isToken, isUint, fqdnLabel, fqdn, isValid, toNumber, log28, RTCIceTransport, IceTransportStates, IceGathererStates, RTCIceGatherer, parsedFields, RTCIceCandidate, IceCandidate, RTCIceParameters, log29, DEFAULT_MAX_MESSAGE_SIZE, RTCSctpTransport, RTCSctpCapabilities2, BridgeDtls, SessionDescription, MediaDescription, GroupDescription, RTCSessionDescription, SsrcDescription, log30, LOST_SIZE, NackHandler, log31, ReceiverTWCC, StreamStatistics, log32, RTCRtpReceiver, feedbackKey, log33, KeyFrameRequestRoutingModes, ridOfRouteKey, RtpRouter, MLineReuseModes, findCodecByMimeType, defaultPeerConfig, log34, TransceiverManager, CumulativeResult, COUNTER_MAX, SCORE_MAX, SENT_INFO_MAX_AGE_MS, SENT_INFO_MAX_COUNT, SenderBandwidthEstimator, log35, RTP_HISTORY_SIZE, DEFAULT_PENDING_RTP_MAX_LENGTH, RTT_ALPHA, RTCRtpSender, RTCTrackEvent, BundleTopology, DescriptionValidation, IceRestartRequest, NegotiationNeeded, RemoteCandidates, RemoteMediaApplication, ownerOf, liveTransport, groupOf, log36, TransportActivation, ProposalResources, RETIRED_UFRAG_HISTORY, NegotiationTransaction, log37, SctpTransportManager, SDPManager, log38, SecureTransportManager, srtpProfiles, log39, RTCPeerConnection2, SignalingStates, ConnectionStates;
 var init_lib = __esm({
-  "node_modules/werift/lib/index.mjs"() {
+  "../../node_modules/werift/lib/index.mjs"() {
     import_multicast_dns = __toESM(require_multicast_dns(), 1);
     __defProp2 = Object.defineProperty;
     __export2 = (target3, all) => {
@@ -34754,9 +34754,9 @@ var init_lib = __esm({
   }
 });
 
-// node_modules/@xterm/headless/lib-headless/xterm-headless.js
+// ../../node_modules/@xterm/headless/lib-headless/xterm-headless.js
 var require_xterm_headless = __commonJS({
-  "node_modules/@xterm/headless/lib-headless/xterm-headless.js"(exports) {
+  "../../node_modules/@xterm/headless/lib-headless/xterm-headless.js"(exports) {
     (() => {
       "use strict";
       var e = { 5639: (e2, t2, s2) => {
@@ -39800,9 +39800,9 @@ ${i3.join("\n")}
   }
 });
 
-// node_modules/@xterm/addon-serialize/lib/addon-serialize.js
+// ../../node_modules/@xterm/addon-serialize/lib/addon-serialize.js
 var require_addon_serialize = __commonJS({
-  "node_modules/@xterm/addon-serialize/lib/addon-serialize.js"(exports, module) {
+  "../../node_modules/@xterm/addon-serialize/lib/addon-serialize.js"(exports, module) {
     !(function(t, e) {
       "object" == typeof exports && "object" == typeof module ? module.exports = e() : "function" == typeof define && define.amd ? define([], e) : "object" == typeof exports ? exports.SerializeAddon = e() : t.SerializeAddon = e();
     })(globalThis, (() => (() => {
@@ -40165,18 +40165,18 @@ var require_addon_serialize = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/can-promise.js
+// ../../node_modules/qrcode/lib/can-promise.js
 var require_can_promise = __commonJS({
-  "node_modules/qrcode/lib/can-promise.js"(exports, module) {
+  "../../node_modules/qrcode/lib/can-promise.js"(exports, module) {
     module.exports = function() {
       return typeof Promise === "function" && Promise.prototype && Promise.prototype.then;
     };
   }
 });
 
-// node_modules/qrcode/lib/core/utils.js
+// ../../node_modules/qrcode/lib/core/utils.js
 var require_utils = __commonJS({
-  "node_modules/qrcode/lib/core/utils.js"(exports) {
+  "../../node_modules/qrcode/lib/core/utils.js"(exports) {
     var toSJISFunction;
     var CODEWORDS_COUNT = [
       0,
@@ -40253,9 +40253,9 @@ var require_utils = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/error-correction-level.js
+// ../../node_modules/qrcode/lib/core/error-correction-level.js
 var require_error_correction_level = __commonJS({
-  "node_modules/qrcode/lib/core/error-correction-level.js"(exports) {
+  "../../node_modules/qrcode/lib/core/error-correction-level.js"(exports) {
     exports.L = { bit: 1 };
     exports.M = { bit: 0 };
     exports.Q = { bit: 3 };
@@ -40298,9 +40298,9 @@ var require_error_correction_level = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/bit-buffer.js
+// ../../node_modules/qrcode/lib/core/bit-buffer.js
 var require_bit_buffer = __commonJS({
-  "node_modules/qrcode/lib/core/bit-buffer.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/bit-buffer.js"(exports, module) {
     function BitBuffer() {
       this.buffer = [];
       this.length = 0;
@@ -40333,9 +40333,9 @@ var require_bit_buffer = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/bit-matrix.js
+// ../../node_modules/qrcode/lib/core/bit-matrix.js
 var require_bit_matrix = __commonJS({
-  "node_modules/qrcode/lib/core/bit-matrix.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/bit-matrix.js"(exports, module) {
     function BitMatrix(size2) {
       if (!size2 || size2 < 1) {
         throw new Error("BitMatrix size must be defined and greater than 0");
@@ -40362,9 +40362,9 @@ var require_bit_matrix = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/alignment-pattern.js
+// ../../node_modules/qrcode/lib/core/alignment-pattern.js
 var require_alignment_pattern = __commonJS({
-  "node_modules/qrcode/lib/core/alignment-pattern.js"(exports) {
+  "../../node_modules/qrcode/lib/core/alignment-pattern.js"(exports) {
     var getSymbolSize = require_utils().getSymbolSize;
     exports.getRowColCoords = function getRowColCoords(version2) {
       if (version2 === 1) return [];
@@ -40397,9 +40397,9 @@ var require_alignment_pattern = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/finder-pattern.js
+// ../../node_modules/qrcode/lib/core/finder-pattern.js
 var require_finder_pattern = __commonJS({
-  "node_modules/qrcode/lib/core/finder-pattern.js"(exports) {
+  "../../node_modules/qrcode/lib/core/finder-pattern.js"(exports) {
     var getSymbolSize = require_utils().getSymbolSize;
     var FINDER_PATTERN_SIZE = 7;
     exports.getPositions = function getPositions(version2) {
@@ -40416,9 +40416,9 @@ var require_finder_pattern = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/mask-pattern.js
+// ../../node_modules/qrcode/lib/core/mask-pattern.js
 var require_mask_pattern = __commonJS({
-  "node_modules/qrcode/lib/core/mask-pattern.js"(exports) {
+  "../../node_modules/qrcode/lib/core/mask-pattern.js"(exports) {
     exports.Patterns = {
       PATTERN000: 0,
       PATTERN001: 1,
@@ -40558,9 +40558,9 @@ var require_mask_pattern = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/error-correction-code.js
+// ../../node_modules/qrcode/lib/core/error-correction-code.js
 var require_error_correction_code = __commonJS({
-  "node_modules/qrcode/lib/core/error-correction-code.js"(exports) {
+  "../../node_modules/qrcode/lib/core/error-correction-code.js"(exports) {
     var ECLevel = require_error_correction_level();
     var EC_BLOCKS_TABLE = [
       // L  M  Q  H
@@ -40919,9 +40919,9 @@ var require_error_correction_code = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/galois-field.js
+// ../../node_modules/qrcode/lib/core/galois-field.js
 var require_galois_field = __commonJS({
-  "node_modules/qrcode/lib/core/galois-field.js"(exports) {
+  "../../node_modules/qrcode/lib/core/galois-field.js"(exports) {
     var EXP_TABLE = new Uint8Array(512);
     var LOG_TABLE = new Uint8Array(256);
     (function initTables() {
@@ -40952,9 +40952,9 @@ var require_galois_field = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/polynomial.js
+// ../../node_modules/qrcode/lib/core/polynomial.js
 var require_polynomial = __commonJS({
-  "node_modules/qrcode/lib/core/polynomial.js"(exports) {
+  "../../node_modules/qrcode/lib/core/polynomial.js"(exports) {
     var GF = require_galois_field();
     exports.mul = function mul(p1, p2) {
       const coeff = new Uint8Array(p1.length + p2.length - 1);
@@ -40988,9 +40988,9 @@ var require_polynomial = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/reed-solomon-encoder.js
+// ../../node_modules/qrcode/lib/core/reed-solomon-encoder.js
 var require_reed_solomon_encoder = __commonJS({
-  "node_modules/qrcode/lib/core/reed-solomon-encoder.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/reed-solomon-encoder.js"(exports, module) {
     var Polynomial = require_polynomial();
     function ReedSolomonEncoder(degree) {
       this.genPoly = void 0;
@@ -41020,18 +41020,18 @@ var require_reed_solomon_encoder = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/version-check.js
+// ../../node_modules/qrcode/lib/core/version-check.js
 var require_version_check = __commonJS({
-  "node_modules/qrcode/lib/core/version-check.js"(exports) {
+  "../../node_modules/qrcode/lib/core/version-check.js"(exports) {
     exports.isValid = function isValid2(version2) {
       return !isNaN(version2) && version2 >= 1 && version2 <= 40;
     };
   }
 });
 
-// node_modules/qrcode/lib/core/regex.js
+// ../../node_modules/qrcode/lib/core/regex.js
 var require_regex = __commonJS({
-  "node_modules/qrcode/lib/core/regex.js"(exports) {
+  "../../node_modules/qrcode/lib/core/regex.js"(exports) {
     var numeric = "[0-9]+";
     var alphanumeric = "[A-Z $%*+\\-./:]+";
     var kanji = "(?:[u3000-u303F]|[u3040-u309F]|[u30A0-u30FF]|[uFF00-uFFEF]|[u4E00-u9FAF]|[u2605-u2606]|[u2190-u2195]|u203B|[u2010u2015u2018u2019u2025u2026u201Cu201Du2225u2260]|[u0391-u0451]|[u00A7u00A8u00B1u00B4u00D7u00F7])+";
@@ -41057,9 +41057,9 @@ var require_regex = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/mode.js
+// ../../node_modules/qrcode/lib/core/mode.js
 var require_mode = __commonJS({
-  "node_modules/qrcode/lib/core/mode.js"(exports) {
+  "../../node_modules/qrcode/lib/core/mode.js"(exports) {
     var VersionCheck = require_version_check();
     var Regex = require_regex();
     exports.NUMERIC = {
@@ -41138,9 +41138,9 @@ var require_mode = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/version.js
+// ../../node_modules/qrcode/lib/core/version.js
 var require_version = __commonJS({
-  "node_modules/qrcode/lib/core/version.js"(exports) {
+  "../../node_modules/qrcode/lib/core/version.js"(exports) {
     var Utils = require_utils();
     var ECCode = require_error_correction_code();
     var ECLevel = require_error_correction_level();
@@ -41233,9 +41233,9 @@ var require_version = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/format-info.js
+// ../../node_modules/qrcode/lib/core/format-info.js
 var require_format_info = __commonJS({
-  "node_modules/qrcode/lib/core/format-info.js"(exports) {
+  "../../node_modules/qrcode/lib/core/format-info.js"(exports) {
     var Utils = require_utils();
     var G15 = 1 << 10 | 1 << 8 | 1 << 5 | 1 << 4 | 1 << 2 | 1 << 1 | 1 << 0;
     var G15_MASK = 1 << 14 | 1 << 12 | 1 << 10 | 1 << 4 | 1 << 1;
@@ -41251,9 +41251,9 @@ var require_format_info = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/numeric-data.js
+// ../../node_modules/qrcode/lib/core/numeric-data.js
 var require_numeric_data = __commonJS({
-  "node_modules/qrcode/lib/core/numeric-data.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/numeric-data.js"(exports, module) {
     var Mode = require_mode();
     function NumericData(data2) {
       this.mode = Mode.NUMERIC;
@@ -41286,9 +41286,9 @@ var require_numeric_data = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/alphanumeric-data.js
+// ../../node_modules/qrcode/lib/core/alphanumeric-data.js
 var require_alphanumeric_data = __commonJS({
-  "node_modules/qrcode/lib/core/alphanumeric-data.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/alphanumeric-data.js"(exports, module) {
     var Mode = require_mode();
     var ALPHA_NUM_CHARS = [
       "0",
@@ -41365,9 +41365,9 @@ var require_alphanumeric_data = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/byte-data.js
+// ../../node_modules/qrcode/lib/core/byte-data.js
 var require_byte_data = __commonJS({
-  "node_modules/qrcode/lib/core/byte-data.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/byte-data.js"(exports, module) {
     var Mode = require_mode();
     function ByteData(data2) {
       this.mode = Mode.BYTE;
@@ -41395,9 +41395,9 @@ var require_byte_data = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/kanji-data.js
+// ../../node_modules/qrcode/lib/core/kanji-data.js
 var require_kanji_data = __commonJS({
-  "node_modules/qrcode/lib/core/kanji-data.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/kanji-data.js"(exports, module) {
     var Mode = require_mode();
     var Utils = require_utils();
     function KanjiData(data2) {
@@ -41434,9 +41434,9 @@ var require_kanji_data = __commonJS({
   }
 });
 
-// node_modules/dijkstrajs/dijkstra.js
+// ../../node_modules/dijkstrajs/dijkstra.js
 var require_dijkstra = __commonJS({
-  "node_modules/dijkstrajs/dijkstra.js"(exports, module) {
+  "../../node_modules/dijkstrajs/dijkstra.js"(exports, module) {
     "use strict";
     var dijkstra = {
       single_source_shortest_paths: function(graph, s, d) {
@@ -41535,9 +41535,9 @@ var require_dijkstra = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/segments.js
+// ../../node_modules/qrcode/lib/core/segments.js
 var require_segments = __commonJS({
-  "node_modules/qrcode/lib/core/segments.js"(exports) {
+  "../../node_modules/qrcode/lib/core/segments.js"(exports) {
     var Mode = require_mode();
     var NumericData = require_numeric_data();
     var AlphanumericData = require_alphanumeric_data();
@@ -41721,9 +41721,9 @@ var require_segments = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/qrcode.js
+// ../../node_modules/qrcode/lib/core/qrcode.js
 var require_qrcode = __commonJS({
-  "node_modules/qrcode/lib/core/qrcode.js"(exports) {
+  "../../node_modules/qrcode/lib/core/qrcode.js"(exports) {
     var Utils = require_utils();
     var ECLevel = require_error_correction_level();
     var BitBuffer = require_bit_buffer();
@@ -41982,9 +41982,9 @@ var require_qrcode = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/chunkstream.js
+// ../../node_modules/pngjs/lib/chunkstream.js
 var require_chunkstream = __commonJS({
-  "node_modules/pngjs/lib/chunkstream.js"(exports, module) {
+  "../../node_modules/pngjs/lib/chunkstream.js"(exports, module) {
     "use strict";
     var util = __require("util");
     var Stream = __require("stream");
@@ -42120,9 +42120,9 @@ var require_chunkstream = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/interlace.js
+// ../../node_modules/pngjs/lib/interlace.js
 var require_interlace = __commonJS({
-  "node_modules/pngjs/lib/interlace.js"(exports) {
+  "../../node_modules/pngjs/lib/interlace.js"(exports) {
     "use strict";
     var imagePasses = [
       {
@@ -42203,9 +42203,9 @@ var require_interlace = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/paeth-predictor.js
+// ../../node_modules/pngjs/lib/paeth-predictor.js
 var require_paeth_predictor = __commonJS({
-  "node_modules/pngjs/lib/paeth-predictor.js"(exports, module) {
+  "../../node_modules/pngjs/lib/paeth-predictor.js"(exports, module) {
     "use strict";
     module.exports = function paethPredictor(left, above, upLeft) {
       let paeth = left + above - upLeft;
@@ -42223,9 +42223,9 @@ var require_paeth_predictor = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/filter-parse.js
+// ../../node_modules/pngjs/lib/filter-parse.js
 var require_filter_parse = __commonJS({
-  "node_modules/pngjs/lib/filter-parse.js"(exports, module) {
+  "../../node_modules/pngjs/lib/filter-parse.js"(exports, module) {
     "use strict";
     var interlaceUtils = require_interlace();
     var paethPredictor = require_paeth_predictor();
@@ -42364,9 +42364,9 @@ var require_filter_parse = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/filter-parse-async.js
+// ../../node_modules/pngjs/lib/filter-parse-async.js
 var require_filter_parse_async = __commonJS({
-  "node_modules/pngjs/lib/filter-parse-async.js"(exports, module) {
+  "../../node_modules/pngjs/lib/filter-parse-async.js"(exports, module) {
     "use strict";
     var util = __require("util");
     var ChunkStream = require_chunkstream();
@@ -42390,9 +42390,9 @@ var require_filter_parse_async = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/constants.js
+// ../../node_modules/pngjs/lib/constants.js
 var require_constants2 = __commonJS({
-  "node_modules/pngjs/lib/constants.js"(exports, module) {
+  "../../node_modules/pngjs/lib/constants.js"(exports, module) {
     "use strict";
     module.exports = {
       PNG_SIGNATURE: [137, 80, 78, 71, 13, 10, 26, 10],
@@ -42425,9 +42425,9 @@ var require_constants2 = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/crc.js
+// ../../node_modules/pngjs/lib/crc.js
 var require_crc = __commonJS({
-  "node_modules/pngjs/lib/crc.js"(exports, module) {
+  "../../node_modules/pngjs/lib/crc.js"(exports, module) {
     "use strict";
     var crcTable = [];
     (function() {
@@ -42465,9 +42465,9 @@ var require_crc = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/parser.js
+// ../../node_modules/pngjs/lib/parser.js
 var require_parser = __commonJS({
-  "node_modules/pngjs/lib/parser.js"(exports, module) {
+  "../../node_modules/pngjs/lib/parser.js"(exports, module) {
     "use strict";
     var constants7 = require_constants2();
     var CrcCalculator = require_crc();
@@ -42686,9 +42686,9 @@ var require_parser = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/bitmapper.js
+// ../../node_modules/pngjs/lib/bitmapper.js
 var require_bitmapper = __commonJS({
-  "node_modules/pngjs/lib/bitmapper.js"(exports) {
+  "../../node_modules/pngjs/lib/bitmapper.js"(exports) {
     "use strict";
     var interlaceUtils = require_interlace();
     var pixelBppMapper = [
@@ -42934,9 +42934,9 @@ var require_bitmapper = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/format-normaliser.js
+// ../../node_modules/pngjs/lib/format-normaliser.js
 var require_format_normaliser = __commonJS({
-  "node_modules/pngjs/lib/format-normaliser.js"(exports, module) {
+  "../../node_modules/pngjs/lib/format-normaliser.js"(exports, module) {
     "use strict";
     function dePalette(indata, outdata, width, height, palette) {
       let pxPos = 0;
@@ -43015,9 +43015,9 @@ var require_format_normaliser = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/parser-async.js
+// ../../node_modules/pngjs/lib/parser-async.js
 var require_parser_async = __commonJS({
-  "node_modules/pngjs/lib/parser-async.js"(exports, module) {
+  "../../node_modules/pngjs/lib/parser-async.js"(exports, module) {
     "use strict";
     var util = __require("util");
     var zlib = __require("zlib");
@@ -43141,9 +43141,9 @@ var require_parser_async = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/bitpacker.js
+// ../../node_modules/pngjs/lib/bitpacker.js
 var require_bitpacker = __commonJS({
-  "node_modules/pngjs/lib/bitpacker.js"(exports, module) {
+  "../../node_modules/pngjs/lib/bitpacker.js"(exports, module) {
     "use strict";
     var constants7 = require_constants2();
     module.exports = function(dataIn, width, height, options) {
@@ -43291,9 +43291,9 @@ var require_bitpacker = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/filter-pack.js
+// ../../node_modules/pngjs/lib/filter-pack.js
 var require_filter_pack = __commonJS({
-  "node_modules/pngjs/lib/filter-pack.js"(exports, module) {
+  "../../node_modules/pngjs/lib/filter-pack.js"(exports, module) {
     "use strict";
     var paethPredictor = require_paeth_predictor();
     function filterNone(pxData, pxPos, byteWidth, rawData, rawPos) {
@@ -43433,9 +43433,9 @@ var require_filter_pack = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/packer.js
+// ../../node_modules/pngjs/lib/packer.js
 var require_packer = __commonJS({
-  "node_modules/pngjs/lib/packer.js"(exports, module) {
+  "../../node_modules/pngjs/lib/packer.js"(exports, module) {
     "use strict";
     var constants7 = require_constants2();
     var CrcStream = require_crc();
@@ -43533,9 +43533,9 @@ var require_packer = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/packer-async.js
+// ../../node_modules/pngjs/lib/packer-async.js
 var require_packer_async = __commonJS({
-  "node_modules/pngjs/lib/packer-async.js"(exports, module) {
+  "../../node_modules/pngjs/lib/packer-async.js"(exports, module) {
     "use strict";
     var util = __require("util");
     var Stream = __require("stream");
@@ -43575,9 +43575,9 @@ var require_packer_async = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/sync-inflate.js
+// ../../node_modules/pngjs/lib/sync-inflate.js
 var require_sync_inflate = __commonJS({
-  "node_modules/pngjs/lib/sync-inflate.js"(exports, module) {
+  "../../node_modules/pngjs/lib/sync-inflate.js"(exports, module) {
     "use strict";
     var assert2 = __require("assert").ok;
     var zlib = __require("zlib");
@@ -43712,9 +43712,9 @@ var require_sync_inflate = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/sync-reader.js
+// ../../node_modules/pngjs/lib/sync-reader.js
 var require_sync_reader = __commonJS({
-  "node_modules/pngjs/lib/sync-reader.js"(exports, module) {
+  "../../node_modules/pngjs/lib/sync-reader.js"(exports, module) {
     "use strict";
     var SyncReader = module.exports = function(buffer3) {
       this._buffer = buffer3;
@@ -43750,9 +43750,9 @@ var require_sync_reader = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/filter-parse-sync.js
+// ../../node_modules/pngjs/lib/filter-parse-sync.js
 var require_filter_parse_sync = __commonJS({
-  "node_modules/pngjs/lib/filter-parse-sync.js"(exports) {
+  "../../node_modules/pngjs/lib/filter-parse-sync.js"(exports) {
     "use strict";
     var SyncReader = require_sync_reader();
     var Filter = require_filter_parse();
@@ -43774,9 +43774,9 @@ var require_filter_parse_sync = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/parser-sync.js
+// ../../node_modules/pngjs/lib/parser-sync.js
 var require_parser_sync = __commonJS({
-  "node_modules/pngjs/lib/parser-sync.js"(exports, module) {
+  "../../node_modules/pngjs/lib/parser-sync.js"(exports, module) {
     "use strict";
     var hasSyncZlib = true;
     var zlib = __require("zlib");
@@ -43865,9 +43865,9 @@ var require_parser_sync = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/packer-sync.js
+// ../../node_modules/pngjs/lib/packer-sync.js
 var require_packer_sync = __commonJS({
-  "node_modules/pngjs/lib/packer-sync.js"(exports, module) {
+  "../../node_modules/pngjs/lib/packer-sync.js"(exports, module) {
     "use strict";
     var hasSyncZlib = true;
     var zlib = __require("zlib");
@@ -43910,9 +43910,9 @@ var require_packer_sync = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/png-sync.js
+// ../../node_modules/pngjs/lib/png-sync.js
 var require_png_sync = __commonJS({
-  "node_modules/pngjs/lib/png-sync.js"(exports) {
+  "../../node_modules/pngjs/lib/png-sync.js"(exports) {
     "use strict";
     var parse5 = require_parser_sync();
     var pack = require_packer_sync();
@@ -43925,9 +43925,9 @@ var require_png_sync = __commonJS({
   }
 });
 
-// node_modules/pngjs/lib/png.js
+// ../../node_modules/pngjs/lib/png.js
 var require_png = __commonJS({
-  "node_modules/pngjs/lib/png.js"(exports) {
+  "../../node_modules/pngjs/lib/png.js"(exports) {
     "use strict";
     var util = __require("util");
     var Stream = __require("stream");
@@ -44062,9 +44062,9 @@ var require_png = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/utils.js
+// ../../node_modules/qrcode/lib/renderer/utils.js
 var require_utils2 = __commonJS({
-  "node_modules/qrcode/lib/renderer/utils.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/utils.js"(exports) {
     function hex2rgba(hex3) {
       if (typeof hex3 === "number") {
         hex3 = hex3.toString();
@@ -44142,9 +44142,9 @@ var require_utils2 = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/png.js
+// ../../node_modules/qrcode/lib/renderer/png.js
 var require_png2 = __commonJS({
-  "node_modules/qrcode/lib/renderer/png.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/png.js"(exports) {
     var fs4 = __require("fs");
     var PNG = require_png().PNG;
     var Utils = require_utils2();
@@ -44209,9 +44209,9 @@ var require_png2 = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/utf8.js
+// ../../node_modules/qrcode/lib/renderer/utf8.js
 var require_utf8 = __commonJS({
-  "node_modules/qrcode/lib/renderer/utf8.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/utf8.js"(exports) {
     var Utils = require_utils2();
     var BLOCK_CHAR = {
       WW: " ",
@@ -44271,9 +44271,9 @@ var require_utf8 = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/terminal/terminal.js
+// ../../node_modules/qrcode/lib/renderer/terminal/terminal.js
 var require_terminal = __commonJS({
-  "node_modules/qrcode/lib/renderer/terminal/terminal.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/terminal/terminal.js"(exports) {
     exports.render = function(qrData, options, cb) {
       const size2 = qrData.modules.size;
       const data2 = qrData.modules.data;
@@ -44299,9 +44299,9 @@ var require_terminal = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/terminal/terminal-small.js
+// ../../node_modules/qrcode/lib/renderer/terminal/terminal-small.js
 var require_terminal_small = __commonJS({
-  "node_modules/qrcode/lib/renderer/terminal/terminal-small.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/terminal/terminal-small.js"(exports) {
     var backgroundWhite = "\x1B[47m";
     var backgroundBlack = "\x1B[40m";
     var foregroundWhite = "\x1B[37m";
@@ -44358,9 +44358,9 @@ var require_terminal_small = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/terminal.js
+// ../../node_modules/qrcode/lib/renderer/terminal.js
 var require_terminal2 = __commonJS({
-  "node_modules/qrcode/lib/renderer/terminal.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/terminal.js"(exports) {
     var big = require_terminal();
     var small = require_terminal_small();
     exports.render = function(qrData, options, cb) {
@@ -44372,9 +44372,9 @@ var require_terminal2 = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/svg-tag.js
+// ../../node_modules/qrcode/lib/renderer/svg-tag.js
 var require_svg_tag = __commonJS({
-  "node_modules/qrcode/lib/renderer/svg-tag.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/svg-tag.js"(exports) {
     var Utils = require_utils2();
     function getColorAttrib(color, attrib) {
       const alpha = color.a / 255;
@@ -44430,9 +44430,9 @@ var require_svg_tag = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/svg.js
+// ../../node_modules/qrcode/lib/renderer/svg.js
 var require_svg = __commonJS({
-  "node_modules/qrcode/lib/renderer/svg.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/svg.js"(exports) {
     var svgTagRenderer = require_svg_tag();
     exports.render = svgTagRenderer.render;
     exports.renderToFile = function renderToFile(path, qrData, options, cb) {
@@ -44448,9 +44448,9 @@ var require_svg = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/canvas.js
+// ../../node_modules/qrcode/lib/renderer/canvas.js
 var require_canvas = __commonJS({
-  "node_modules/qrcode/lib/renderer/canvas.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/canvas.js"(exports) {
     var Utils = require_utils2();
     function clearCanvas(ctx, canvas, size2) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -44501,9 +44501,9 @@ var require_canvas = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/browser.js
+// ../../node_modules/qrcode/lib/browser.js
 var require_browser = __commonJS({
-  "node_modules/qrcode/lib/browser.js"(exports) {
+  "../../node_modules/qrcode/lib/browser.js"(exports) {
     var canPromise = require_can_promise();
     var QRCode = require_qrcode();
     var CanvasRenderer = require_canvas();
@@ -44571,9 +44571,9 @@ var require_browser = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/server.js
+// ../../node_modules/qrcode/lib/server.js
 var require_server = __commonJS({
-  "node_modules/qrcode/lib/server.js"(exports) {
+  "../../node_modules/qrcode/lib/server.js"(exports) {
     var canPromise = require_can_promise();
     var QRCode = require_qrcode();
     var PngRenderer = require_png2();
@@ -44691,17 +44691,17 @@ var require_server = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/index.js
+// ../../node_modules/qrcode/lib/index.js
 var require_lib = __commonJS({
-  "node_modules/qrcode/lib/index.js"(exports, module) {
+  "../../node_modules/qrcode/lib/index.js"(exports, module) {
     module.exports = require_server();
   }
 });
 
-// packages/plugin/src/index.ts
+// src/index.ts
 import * as DshConnection from "@deepseek-ai/dsh-client-connection";
 
-// node_modules/zod/v4/classic/external.js
+// ../../node_modules/zod/v4/classic/external.js
 var external_exports = {};
 __export(external_exports, {
   $brand: () => $brand,
@@ -44964,7 +44964,7 @@ __export(external_exports, {
   xor: () => xor
 });
 
-// node_modules/zod/v4/core/index.js
+// ../../node_modules/zod/v4/core/index.js
 var core_exports2 = {};
 __export(core_exports2, {
   $ZodAny: () => $ZodAny,
@@ -45281,7 +45281,7 @@ __export(core_exports2, {
   withParser: () => withParser
 });
 
-// node_modules/zod/v4/core/util.js
+// ../../node_modules/zod/v4/core/util.js
 var util_exports = {};
 __export(util_exports, {
   BIGINT_FORMAT_RANGES: () => BIGINT_FORMAT_RANGES,
@@ -46137,7 +46137,7 @@ function constantCatch(value) {
   return fn;
 }
 
-// node_modules/zod/v4/core/core.js
+// ../../node_modules/zod/v4/core/core.js
 var _a;
 var NEVER = /* @__PURE__ */ Object.freeze({
   status: "aborted"
@@ -46259,7 +46259,7 @@ function config(newConfig) {
   return globalConfig;
 }
 
-// node_modules/zod/v4/core/errors.js
+// ../../node_modules/zod/v4/core/errors.js
 function _getMessage() {
   const internals = this._zod;
   internals.message ?? (internals.message = JSON.stringify(internals.def, jsonStringifyReplacer, 2));
@@ -46451,7 +46451,7 @@ function prettifyError(error62) {
   return lines.join("\n");
 }
 
-// node_modules/zod/v4/core/parse.js
+// ../../node_modules/zod/v4/core/parse.js
 function finalizeParams(callee, params) {
   return { callee: params?.callee ?? callee, Err: params?.Err };
 }
@@ -46611,7 +46611,7 @@ var _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
 };
 var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync($ZodRealError);
 
-// node_modules/zod/v4/core/regexes.js
+// ../../node_modules/zod/v4/core/regexes.js
 var regexes_exports = {};
 __export(regexes_exports, {
   anyString: () => anyString,
@@ -46783,7 +46783,7 @@ var sha512_hex = /^[0-9a-fA-F]{128}$/;
 var sha512_base64 = /* @__PURE__ */ fixedBase64(86, "==");
 var sha512_base64url = /* @__PURE__ */ fixedBase64url(86);
 
-// node_modules/zod/v4/core/checks.js
+// ../../node_modules/zod/v4/core/checks.js
 var $ZodCheck = /* @__PURE__ */ $constructor("$ZodCheck", (inst, def) => {
   var _a3;
   inst._zod ?? (inst._zod = {});
@@ -47259,7 +47259,7 @@ var $ZodCheckOverwrite = /* @__PURE__ */ $constructor("$ZodCheckOverwrite", (ins
   };
 });
 
-// node_modules/zod/v4/core/doc.js
+// ../../node_modules/zod/v4/core/doc.js
 var Doc = class {
   constructor(args = [], closed = {}) {
     this.content = [];
@@ -47300,14 +47300,14 @@ ${content.join("\n")}
   }
 };
 
-// node_modules/zod/v4/core/versions.js
+// ../../node_modules/zod/v4/core/versions.js
 var version = {
   major: 4,
   minor: 6,
   patch: 7
 };
 
-// node_modules/zod/v4/core/schemas.js
+// ../../node_modules/zod/v4/core/schemas.js
 var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
   var _a3;
   inst ?? (inst = {});
@@ -49749,7 +49749,7 @@ function handleRefineResult(result, payload, input4, inst) {
   }
 }
 
-// node_modules/zod/v4/core/memoizer.js
+// ../../node_modules/zod/v4/core/memoizer.js
 var $ZodCyclicError = class extends Error {
   constructor() {
     super(`Cannot parse a reference cycle that closes through a transform`);
@@ -50026,7 +50026,7 @@ function isBackEdge(ctx, value) {
   return backEdges !== void 0 && isRef(value) && backEdges.has(value);
 }
 
-// node_modules/zod/v4/locales/index.js
+// ../../node_modules/zod/v4/locales/index.js
 var locales_exports = {};
 __export(locales_exports, {
   ar: () => ar_default,
@@ -50094,7 +50094,7 @@ __export(locales_exports, {
   zhTW: () => zh_TW_default
 });
 
-// node_modules/zod/v4/locales/ar.js
+// ../../node_modules/zod/v4/locales/ar.js
 var error = () => {
   const Sizable = {
     string: { unit: "\u062D\u0631\u0641", verb: "\u0623\u0646 \u064A\u062D\u0648\u064A" },
@@ -50206,7 +50206,7 @@ function ar_default() {
   };
 }
 
-// node_modules/zod/v4/locales/az.js
+// ../../node_modules/zod/v4/locales/az.js
 var error2 = () => {
   const Sizable = {
     string: { unit: "simvol", verb: "olmal\u0131d\u0131r" },
@@ -50317,7 +50317,7 @@ function az_default() {
   };
 }
 
-// node_modules/zod/v4/locales/be.js
+// ../../node_modules/zod/v4/locales/be.js
 function getBelarusianPlural(count, one, few, many) {
   const absCount = Math.abs(count);
   const lastDigit = absCount % 10;
@@ -50486,7 +50486,7 @@ function be_default() {
   };
 }
 
-// node_modules/zod/v4/locales/bg.js
+// ../../node_modules/zod/v4/locales/bg.js
 var error4 = () => {
   const Sizable = {
     string: { unit: "\u0441\u0438\u043C\u0432\u043E\u043B\u0430", verb: "\u0434\u0430 \u0441\u044A\u0434\u044A\u0440\u0436\u0430" },
@@ -50612,7 +50612,7 @@ function bg_default() {
   };
 }
 
-// node_modules/zod/v4/locales/bn.js
+// ../../node_modules/zod/v4/locales/bn.js
 var error5 = () => {
   const Sizable = {
     string: { unit: "\u0985\u0995\u09CD\u09B7\u09B0", verb: "\u09A5\u09BE\u0995\u09A4\u09C7 \u09B9\u09AC\u09C7" },
@@ -50726,7 +50726,7 @@ function bn_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ca.js
+// ../../node_modules/zod/v4/locales/ca.js
 var error6 = () => {
   const Sizable = {
     string: { unit: "car\xE0cters", verb: "contenir" },
@@ -50840,7 +50840,7 @@ function ca_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ckb.js
+// ../../node_modules/zod/v4/locales/ckb.js
 var error7 = () => {
   const Sizable = {
     string: { unit: "\u067E\u06CC\u062A", verb: "\u0628\u06CE\u062A" },
@@ -50973,7 +50973,7 @@ function ckb_default() {
   };
 }
 
-// node_modules/zod/v4/locales/cs.js
+// ../../node_modules/zod/v4/locales/cs.js
 var error8 = () => {
   const Sizable = {
     string: { unit: "znak\u016F", verb: "m\xEDt" },
@@ -51090,7 +51090,7 @@ function cs_default() {
   };
 }
 
-// node_modules/zod/v4/locales/da.js
+// ../../node_modules/zod/v4/locales/da.js
 var error9 = () => {
   const Sizable = {
     string: { unit: "tegn", verb: "havde" },
@@ -51211,7 +51211,7 @@ function da_default() {
   };
 }
 
-// node_modules/zod/v4/locales/de.js
+// ../../node_modules/zod/v4/locales/de.js
 var error10 = () => {
   const Sizable = {
     string: { unit: "Zeichen", verb: "zu haben" },
@@ -51325,7 +51325,7 @@ function de_default() {
   };
 }
 
-// node_modules/zod/v4/locales/el.js
+// ../../node_modules/zod/v4/locales/el.js
 var error11 = () => {
   const Sizable = {
     string: { unit: "\u03C7\u03B1\u03C1\u03B1\u03BA\u03C4\u03AE\u03C1\u03B5\u03C2", verb: "\u03BD\u03B1 \u03AD\u03C7\u03B5\u03B9" },
@@ -51438,7 +51438,7 @@ function el_default() {
   };
 }
 
-// node_modules/zod/v4/locales/en.js
+// ../../node_modules/zod/v4/locales/en.js
 var error12 = () => {
   const Sizable = {
     string: { unit: "characters", verb: "to have" },
@@ -51563,7 +51563,7 @@ function en_default() {
   };
 }
 
-// node_modules/zod/v4/locales/eo.js
+// ../../node_modules/zod/v4/locales/eo.js
 var error13 = () => {
   const Sizable = {
     string: { unit: "karaktrojn", verb: "havi" },
@@ -51678,7 +51678,7 @@ function eo_default() {
   };
 }
 
-// node_modules/zod/v4/locales/es.js
+// ../../node_modules/zod/v4/locales/es.js
 var error14 = () => {
   const Sizable = {
     string: { unit: "caracteres", verb: "tener" },
@@ -51815,7 +51815,7 @@ function es_default() {
   };
 }
 
-// node_modules/zod/v4/locales/fa.js
+// ../../node_modules/zod/v4/locales/fa.js
 var error15 = () => {
   const Sizable = {
     string: { unit: "\u06A9\u0627\u0631\u0627\u06A9\u062A\u0631", verb: "\u062F\u0627\u0634\u062A\u0647 \u0628\u0627\u0634\u062F" },
@@ -51935,7 +51935,7 @@ function fa_default() {
   };
 }
 
-// node_modules/zod/v4/locales/fi.js
+// ../../node_modules/zod/v4/locales/fi.js
 var error16 = () => {
   const Sizable = {
     string: { unit: "merkki\xE4", subject: "merkkijonon" },
@@ -52053,7 +52053,7 @@ function fi_default() {
   };
 }
 
-// node_modules/zod/v4/locales/fr.js
+// ../../node_modules/zod/v4/locales/fr.js
 var error17 = () => {
   const Sizable = {
     string: { unit: "caract\xE8res", verb: "avoir" },
@@ -52183,7 +52183,7 @@ function fr_default() {
   };
 }
 
-// node_modules/zod/v4/locales/fr-CA.js
+// ../../node_modules/zod/v4/locales/fr-CA.js
 var error18 = () => {
   const Sizable = {
     string: { unit: "caract\xE8res", verb: "avoir" },
@@ -52296,7 +52296,7 @@ function fr_CA_default() {
   };
 }
 
-// node_modules/zod/v4/locales/gu.js
+// ../../node_modules/zod/v4/locales/gu.js
 var error19 = () => {
   const Sizable = {
     string: { unit: "\u0A85\u0A95\u0ACD\u0AB7\u0AB0", verb: "\u0AB9\u0ACB\u0AB5\u0ABE \u0A9C\u0ACB\u0A88\u0A8F" },
@@ -52410,7 +52410,7 @@ function gu_default() {
   };
 }
 
-// node_modules/zod/v4/locales/he.js
+// ../../node_modules/zod/v4/locales/he.js
 var error20 = () => {
   const TypeNames = {
     string: { label: "\u05DE\u05D7\u05E8\u05D5\u05D6\u05EA", gender: "f" },
@@ -52612,7 +52612,7 @@ function he_default() {
   };
 }
 
-// node_modules/zod/v4/locales/hi.js
+// ../../node_modules/zod/v4/locales/hi.js
 var error21 = () => {
   const Sizable = {
     string: { unit: "\u0905\u0915\u094D\u0937\u0930", verb: "\u0930\u0916\u0928\u0947 \u0915\u0947 \u0932\u093F\u090F" },
@@ -52724,7 +52724,7 @@ function hi_default() {
   };
 }
 
-// node_modules/zod/v4/locales/hr.js
+// ../../node_modules/zod/v4/locales/hr.js
 var error22 = () => {
   const Sizable = {
     string: { unit: "znakova", verb: "imati" },
@@ -52851,7 +52851,7 @@ function hr_default() {
   };
 }
 
-// node_modules/zod/v4/locales/hu.js
+// ../../node_modules/zod/v4/locales/hu.js
 var error23 = () => {
   const Sizable = {
     string: { unit: "karakter", verb: "legyen" },
@@ -52965,7 +52965,7 @@ function hu_default() {
   };
 }
 
-// node_modules/zod/v4/locales/hy.js
+// ../../node_modules/zod/v4/locales/hy.js
 function getArmenianPlural(count, one, many) {
   return Math.abs(count) === 1 ? one : many;
 }
@@ -53124,7 +53124,7 @@ function hy_default() {
   };
 }
 
-// node_modules/zod/v4/locales/id.js
+// ../../node_modules/zod/v4/locales/id.js
 var error25 = () => {
   const Sizable = {
     string: { unit: "karakter", verb: "memiliki" },
@@ -53236,7 +53236,7 @@ function id_default() {
   };
 }
 
-// node_modules/zod/v4/locales/is.js
+// ../../node_modules/zod/v4/locales/is.js
 var error26 = () => {
   const Sizable = {
     string: { unit: "stafi", verb: "a\xF0 hafa" },
@@ -53351,7 +53351,7 @@ function is_default() {
   };
 }
 
-// node_modules/zod/v4/locales/it.js
+// ../../node_modules/zod/v4/locales/it.js
 var error27 = () => {
   const Sizable = {
     string: { unit: "caratteri", verb: "avere" },
@@ -53465,7 +53465,7 @@ function it_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ja.js
+// ../../node_modules/zod/v4/locales/ja.js
 var error28 = () => {
   const Sizable = {
     string: { unit: "\u6587\u5B57", verb: "\u3067\u3042\u308B" },
@@ -53578,7 +53578,7 @@ function ja_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ka.js
+// ../../node_modules/zod/v4/locales/ka.js
 var error29 = () => {
   const Sizable = {
     string: { unit: "\u10E1\u10D8\u10DB\u10D1\u10DD\u10DA\u10DD", verb: "\u10E3\u10DC\u10D3\u10D0 \u10E8\u10D4\u10D8\u10EA\u10D0\u10D5\u10D3\u10D4\u10E1" },
@@ -53696,7 +53696,7 @@ function ka_default() {
   };
 }
 
-// node_modules/zod/v4/locales/km.js
+// ../../node_modules/zod/v4/locales/km.js
 var error30 = () => {
   const Sizable = {
     string: { unit: "\u178F\u17BD\u17A2\u1780\u17D2\u179F\u179A", verb: "\u1782\u17BD\u179A\u1798\u17B6\u1793" },
@@ -53812,12 +53812,12 @@ function km_default() {
   };
 }
 
-// node_modules/zod/v4/locales/kh.js
+// ../../node_modules/zod/v4/locales/kh.js
 function kh_default() {
   return km_default();
 }
 
-// node_modules/zod/v4/locales/kn.js
+// ../../node_modules/zod/v4/locales/kn.js
 var error31 = () => {
   const Sizable = {
     string: { unit: "\u0C85\u0C95\u0CCD\u0CB7\u0CB0\u0C97\u0CB3\u0CC1", verb: "\u0CB9\u0CCA\u0C82\u0CA6\u0CB2\u0CC1" },
@@ -53933,7 +53933,7 @@ function kn_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ko.js
+// ../../node_modules/zod/v4/locales/ko.js
 var error32 = () => {
   const Sizable = {
     string: { unit: "\uBB38\uC790", verb: "to have" },
@@ -54050,7 +54050,7 @@ function ko_default() {
   };
 }
 
-// node_modules/zod/v4/locales/lt.js
+// ../../node_modules/zod/v4/locales/lt.js
 var capitalizeFirstCharacter = (text) => {
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
@@ -54258,7 +54258,7 @@ function lt_default() {
   };
 }
 
-// node_modules/zod/v4/locales/mk.js
+// ../../node_modules/zod/v4/locales/mk.js
 var error34 = () => {
   const Sizable = {
     string: { unit: "\u0437\u043D\u0430\u0446\u0438", verb: "\u0434\u0430 \u0438\u043C\u0430\u0430\u0442" },
@@ -54373,7 +54373,7 @@ function mk_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ms.js
+// ../../node_modules/zod/v4/locales/ms.js
 var error35 = () => {
   const Sizable = {
     string: { unit: "aksara", verb: "mempunyai" },
@@ -54486,7 +54486,7 @@ function ms_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ne.js
+// ../../node_modules/zod/v4/locales/ne.js
 var error36 = () => {
   const Sizable = {
     string: { unit: "\u0905\u0915\u094D\u0937\u0930", verb: "\u0939\u0941\u0928\u0941\u092A\u0930\u094D\u091B" },
@@ -54598,7 +54598,7 @@ function ne_default() {
   };
 }
 
-// node_modules/zod/v4/locales/nl.js
+// ../../node_modules/zod/v4/locales/nl.js
 var error37 = () => {
   const Sizable = {
     string: { unit: "tekens", verb: "heeft" },
@@ -54714,7 +54714,7 @@ function nl_default() {
   };
 }
 
-// node_modules/zod/v4/locales/nn.js
+// ../../node_modules/zod/v4/locales/nn.js
 var error38 = () => {
   const Sizable = {
     string: { unit: "teikn", verb: "\xE5 ha" },
@@ -54828,7 +54828,7 @@ function nn_default() {
   };
 }
 
-// node_modules/zod/v4/locales/no.js
+// ../../node_modules/zod/v4/locales/no.js
 var error39 = () => {
   const Sizable = {
     string: { unit: "tegn", verb: "\xE5 ha" },
@@ -54942,7 +54942,7 @@ function no_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ota.js
+// ../../node_modules/zod/v4/locales/ota.js
 var error40 = () => {
   const Sizable = {
     string: { unit: "harf", verb: "olmal\u0131d\u0131r" },
@@ -55057,7 +55057,7 @@ function ota_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ps.js
+// ../../node_modules/zod/v4/locales/ps.js
 var error41 = () => {
   const Sizable = {
     string: { unit: "\u062A\u0648\u06A9\u064A", verb: "\u0648\u0644\u0631\u064A" },
@@ -55177,7 +55177,7 @@ function ps_default() {
   };
 }
 
-// node_modules/zod/v4/locales/pl.js
+// ../../node_modules/zod/v4/locales/pl.js
 var error42 = () => {
   const Sizable = {
     string: { unit: "znak\xF3w", verb: "mie\u0107" },
@@ -55292,7 +55292,7 @@ function pl_default() {
   };
 }
 
-// node_modules/zod/v4/locales/pt.js
+// ../../node_modules/zod/v4/locales/pt.js
 var error43 = () => {
   const Sizable = {
     string: { unit: "caracteres" },
@@ -55436,7 +55436,7 @@ function pt_default() {
   };
 }
 
-// node_modules/zod/v4/locales/pt-BR.js
+// ../../node_modules/zod/v4/locales/pt-BR.js
 var error44 = () => {
   const Sizable = {
     string: { unit: "caracteres" },
@@ -55581,7 +55581,7 @@ function pt_BR_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ro.js
+// ../../node_modules/zod/v4/locales/ro.js
 var error45 = () => {
   const Sizable = {
     string: { unit: "caractere", verb: "s\u0103 aib\u0103" },
@@ -55704,7 +55704,7 @@ function ro_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ru.js
+// ../../node_modules/zod/v4/locales/ru.js
 function getRussianPlural(count, one, few, many) {
   const absCount = Math.abs(count);
   const lastDigit = absCount % 10;
@@ -55873,7 +55873,7 @@ function ru_default() {
   };
 }
 
-// node_modules/zod/v4/locales/sk.js
+// ../../node_modules/zod/v4/locales/sk.js
 var error47 = () => {
   const Sizable = {
     string: { unit: "znakov", verb: "ma\u0165" },
@@ -55990,7 +55990,7 @@ function sk_default() {
   };
 }
 
-// node_modules/zod/v4/locales/sl.js
+// ../../node_modules/zod/v4/locales/sl.js
 var error48 = () => {
   const Sizable = {
     string: { unit: "znakov", verb: "imeti" },
@@ -56105,7 +56105,7 @@ function sl_default() {
   };
 }
 
-// node_modules/zod/v4/locales/sv.js
+// ../../node_modules/zod/v4/locales/sv.js
 var error49 = () => {
   const Sizable = {
     string: { unit: "tecken", verb: "att ha" },
@@ -56221,7 +56221,7 @@ function sv_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ta.js
+// ../../node_modules/zod/v4/locales/ta.js
 var error50 = () => {
   const Sizable = {
     string: { unit: "\u0B8E\u0BB4\u0BC1\u0BA4\u0BCD\u0BA4\u0BC1\u0B95\u0BCD\u0B95\u0BB3\u0BCD", verb: "\u0B95\u0BCA\u0BA3\u0BCD\u0B9F\u0BBF\u0BB0\u0BC1\u0B95\u0BCD\u0B95 \u0BB5\u0BC7\u0BA3\u0BCD\u0B9F\u0BC1\u0BAE\u0BCD" },
@@ -56337,7 +56337,7 @@ function ta_default() {
   };
 }
 
-// node_modules/zod/v4/locales/tg.js
+// ../../node_modules/zod/v4/locales/tg.js
 var error51 = () => {
   const Sizable = {
     string: { unit: "\u0430\u043B\u043E\u043C\u0430\u0442", verb: "\u0434\u043E\u0448\u0442\u0430 \u0431\u043E\u0448\u0430\u0434" },
@@ -56454,7 +56454,7 @@ function tg_default() {
   };
 }
 
-// node_modules/zod/v4/locales/th.js
+// ../../node_modules/zod/v4/locales/th.js
 var error52 = () => {
   const Sizable = {
     string: { unit: "\u0E15\u0E31\u0E27\u0E2D\u0E31\u0E01\u0E29\u0E23", verb: "\u0E04\u0E27\u0E23\u0E21\u0E35" },
@@ -56570,7 +56570,7 @@ function th_default() {
   };
 }
 
-// node_modules/zod/v4/locales/tk.js
+// ../../node_modules/zod/v4/locales/tk.js
 var error53 = () => {
   const Sizable = {
     string: { unit: "simwol", verb: "bolmaly" },
@@ -56678,7 +56678,7 @@ function tk_default() {
   };
 }
 
-// node_modules/zod/v4/locales/tr.js
+// ../../node_modules/zod/v4/locales/tr.js
 var error54 = () => {
   const Sizable = {
     string: { unit: "karakter", verb: "olmal\u0131" },
@@ -56789,7 +56789,7 @@ function tr_default() {
   };
 }
 
-// node_modules/zod/v4/locales/uk.js
+// ../../node_modules/zod/v4/locales/uk.js
 var error55 = () => {
   const Sizable = {
     string: { unit: "\u0441\u0438\u043C\u0432\u043E\u043B\u0456\u0432", verb: "\u043C\u0430\u0442\u0438\u043C\u0435" },
@@ -56903,12 +56903,12 @@ function uk_default() {
   };
 }
 
-// node_modules/zod/v4/locales/ua.js
+// ../../node_modules/zod/v4/locales/ua.js
 function ua_default() {
   return uk_default();
 }
 
-// node_modules/zod/v4/locales/ur.js
+// ../../node_modules/zod/v4/locales/ur.js
 var error56 = () => {
   const Sizable = {
     string: { unit: "\u062D\u0631\u0648\u0641", verb: "\u06C1\u0648\u0646\u0627" },
@@ -57024,7 +57024,7 @@ function ur_default() {
   };
 }
 
-// node_modules/zod/v4/locales/uz.js
+// ../../node_modules/zod/v4/locales/uz.js
 var error57 = () => {
   const Sizable = {
     string: { unit: "belgi", verb: "bo\u2018lishi kerak" },
@@ -57138,7 +57138,7 @@ function uz_default() {
   };
 }
 
-// node_modules/zod/v4/locales/vi.js
+// ../../node_modules/zod/v4/locales/vi.js
 var error58 = () => {
   const Sizable = {
     string: { unit: "k\xFD t\u1EF1", verb: "c\xF3" },
@@ -57252,7 +57252,7 @@ function vi_default() {
   };
 }
 
-// node_modules/zod/v4/locales/zh-CN.js
+// ../../node_modules/zod/v4/locales/zh-CN.js
 var error59 = () => {
   const Sizable = {
     string: { unit: "\u5B57\u7B26", verb: "\u5305\u542B" },
@@ -57367,7 +57367,7 @@ function zh_CN_default() {
   };
 }
 
-// node_modules/zod/v4/locales/zh-TW.js
+// ../../node_modules/zod/v4/locales/zh-TW.js
 var error60 = () => {
   const Sizable = {
     string: { unit: "\u5B57\u5143", verb: "\u64C1\u6709" },
@@ -57480,7 +57480,7 @@ function zh_TW_default() {
   };
 }
 
-// node_modules/zod/v4/locales/yo.js
+// ../../node_modules/zod/v4/locales/yo.js
 var error61 = () => {
   const Sizable = {
     string: { unit: "\xE0mi", verb: "n\xED" },
@@ -57593,7 +57593,7 @@ function yo_default() {
   };
 }
 
-// node_modules/zod/v4/core/registries.js
+// ../../node_modules/zod/v4/core/registries.js
 var _a2;
 var $output = /* @__PURE__ */ Symbol("ZodOutput");
 var $input = /* @__PURE__ */ Symbol("ZodInput");
@@ -57643,7 +57643,7 @@ function registry() {
 (_a2 = globalThis).__zod_globalRegistry ?? (_a2.__zod_globalRegistry = registry());
 var globalRegistry = globalThis.__zod_globalRegistry;
 
-// node_modules/zod/v4/core/compile.js
+// ../../node_modules/zod/v4/core/compile.js
 var INVALID = Symbol.for("zod.compile.invalid");
 var FALLBACK_FLAG = Symbol.for("zod.compile.fallback");
 var ZodCompileAsyncError = class extends Error {
@@ -59253,7 +59253,7 @@ function generateTransformCheck(doc, ctx, schema, accessor) {
   return accessor;
 }
 
-// node_modules/zod/v4/core/api.js
+// ../../node_modules/zod/v4/core/api.js
 function snapshotChecks(def) {
   if (def.checks)
     def.checks = [...def.checks];
@@ -60312,7 +60312,7 @@ function _stringFormat(Class2, format, fnOrRegex, _params = {}) {
   return inst;
 }
 
-// node_modules/zod/v4/core/to-json-schema.js
+// ../../node_modules/zod/v4/core/to-json-schema.js
 function assignProps(target3, ...sources) {
   for (const source of sources) {
     for (const key of Reflect.ownKeys(source)) {
@@ -60842,7 +60842,7 @@ var createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) =
   return finalize(ctx, schema);
 };
 
-// node_modules/zod/v4/core/json-schema-processors.js
+// ../../node_modules/zod/v4/core/json-schema-processors.js
 var narrowMin = (agg, key, value) => {
   if (agg[key] === void 0 || value > agg[key])
     agg[key] = value;
@@ -61590,7 +61590,7 @@ function toJSONSchema(input4, params) {
   return finalize(ctx, input4);
 }
 
-// node_modules/zod/v4/core/json-schema-generator.js
+// ../../node_modules/zod/v4/core/json-schema-generator.js
 var JSONSchemaGenerator = class {
   /** @deprecated Access via ctx instead */
   get metadataRegistry() {
@@ -61668,10 +61668,10 @@ var JSONSchemaGenerator = class {
   }
 };
 
-// node_modules/zod/v4/core/json-schema.js
+// ../../node_modules/zod/v4/core/json-schema.js
 var json_schema_exports = {};
 
-// node_modules/zod/v4/classic/schemas.js
+// ../../node_modules/zod/v4/classic/schemas.js
 var schemas_exports2 = {};
 __export(schemas_exports2, {
   ZodAny: () => ZodAny,
@@ -61852,7 +61852,7 @@ __export(schemas_exports2, {
   xor: () => xor
 });
 
-// node_modules/zod/v4/classic/checks.js
+// ../../node_modules/zod/v4/classic/checks.js
 var checks_exports2 = {};
 __export(checks_exports2, {
   endsWith: () => _endsWith,
@@ -61887,7 +61887,7 @@ __export(checks_exports2, {
   uppercase: () => _uppercase
 });
 
-// node_modules/zod/v4/classic/errors.js
+// ../../node_modules/zod/v4/classic/errors.js
 var _installedErrorProtos = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
 function _lazyMethod(proto, key, make) {
   Object.defineProperty(proto, key, {
@@ -61933,7 +61933,7 @@ var ZodRealError = /* @__PURE__ */ $constructor("ZodError", initializer2, void 0
   Parent: Error
 });
 
-// node_modules/zod/v4/classic/parse.js
+// ../../node_modules/zod/v4/classic/parse.js
 var parse2 = /* @__PURE__ */ _parse(ZodRealError);
 var parseAsync2 = /* @__PURE__ */ _parseAsync(ZodRealError);
 var safeParse2 = /* @__PURE__ */ _safeParse(ZodRealError);
@@ -61947,7 +61947,7 @@ var safeDecode2 = /* @__PURE__ */ _safeDecode(ZodRealError);
 var safeEncodeAsync2 = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
 var safeDecodeAsync2 = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
 
-// node_modules/zod/v4/classic/schemas.js
+// ../../node_modules/zod/v4/classic/schemas.js
 function _ensureDefaultLocale() {
   if (!globalConfig.localeError)
     config(en_default());
@@ -63412,7 +63412,7 @@ function preprocess(fn, schema) {
   });
 }
 
-// node_modules/zod/v4/classic/compat.js
+// ../../node_modules/zod/v4/classic/compat.js
 var ZodIssueCode = {
   invalid_type: "invalid_type",
   too_big: "too_big",
@@ -63438,7 +63438,7 @@ var ZodFirstPartyTypeKind;
 /* @__PURE__ */ (function(ZodFirstPartyTypeKind2) {
 })(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
 
-// node_modules/zod/v4/classic/iso.js
+// ../../node_modules/zod/v4/classic/iso.js
 var iso_exports = {};
 __export(iso_exports, {
   ZodISODate: () => ZodISODate,
@@ -63463,7 +63463,7 @@ function duration2(params) {
   return _isoDuration(ZodISODuration, params);
 }
 
-// node_modules/zod/v4/classic/from-json-schema.js
+// ../../node_modules/zod/v4/classic/from-json-schema.js
 var z = {
   ...schemas_exports2,
   ...checks_exports2,
@@ -64196,7 +64196,7 @@ function fromJSONSchema(schema, params) {
   return convertSchema(normalized, ctx);
 }
 
-// node_modules/zod/v4/core/visit.js
+// ../../node_modules/zod/v4/core/visit.js
 var RESOLVING = Symbol("z.visit/resolving");
 function visit(schema, fnOrHandlers) {
   const fn = typeof fnOrHandlers === "function" ? fnOrHandlers : (node2, rewritten) => {
@@ -64351,7 +64351,7 @@ function visit(schema, fnOrHandlers) {
   return run(schema);
 }
 
-// node_modules/zod/v4/classic/deep-partial.js
+// ../../node_modules/zod/v4/classic/deep-partial.js
 function deepPartial(schema) {
   return visit(schema, {
     object: (s) => s.partial(),
@@ -64363,7 +64363,7 @@ function deepPartial(schema) {
   });
 }
 
-// node_modules/zod/v4/classic/in-out.js
+// ../../node_modules/zod/v4/classic/in-out.js
 function withChecks(side, checks) {
   if (!checks?.length)
     return side;
@@ -64393,7 +64393,7 @@ function output(schema) {
   });
 }
 
-// node_modules/zod/v4/classic/coerce.js
+// ../../node_modules/zod/v4/classic/coerce.js
 var coerce_exports = {};
 __export(coerce_exports, {
   bigint: () => bigint3,
@@ -64418,7 +64418,7 @@ function date4(params) {
   return _coercedDate(ZodDate, params);
 }
 
-// packages/protocol/dist/loopback.js
+// ../protocol/dist/loopback.js
 var LOOPBACK_CHUNK_BYTES = 64 * 1024;
 var LOOPBACK_MAX_BODY_BYTES = 1024 * 1024;
 var LOOPBACK_MAX_WS_BYTES = 256 * 1024;
@@ -64440,7 +64440,7 @@ var loopbackRequestSchema = external_exports.discriminatedUnion("op", [
   external_exports.object({ op: external_exports.literal("ws.send"), id, data, binary: external_exports.boolean() }).strict()
 ]);
 
-// packages/protocol/dist/wire-json.js
+// ../protocol/dist/wire-json.js
 function parseWireJson(input4) {
   try {
     const text = typeof input4 === "string" ? input4 : new TextDecoder("utf-8", { fatal: true }).decode(input4);
@@ -64480,7 +64480,7 @@ function parseWireJson(input4) {
   }
 }
 
-// packages/protocol/dist/close-semantics.js
+// ../protocol/dist/close-semantics.js
 var SERVER_SHUTDOWN_REASON = "server shutdown";
 var SERVER_SHUTDOWN_CLOSE_CODES = [4009, 4001, 1013];
 var HEARTBEAT_TIMEOUT_CLOSE_CODE = 4009;
@@ -64508,7 +64508,7 @@ function classifyControlClose(code, reason) {
   };
 }
 
-// packages/protocol/dist/index.js
+// ../protocol/dist/index.js
 var WEBRTC_RESUME_CAPABILITY = "transport.webrtc.resume.v1";
 var RELAY_RESUME_CAPABILITY = "transport.relay.resume.v1";
 var WEBRTC_LEASE_MS = 3e5;
@@ -65171,7 +65171,7 @@ function cryptoRandomId() {
   return `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
 }
 
-// packages/client-core/dist/remote-gateway.js
+// ../client-core/dist/remote-gateway.js
 var DIRECT_REMOTE_CALL_BYTES = 2 * 1024 * 1024;
 function remoteWorkspaceTypeAvailable(capabilities, workspaceTypes, id6, capability) {
   if (!capabilities.includes(capability))
@@ -65198,7 +65198,7 @@ function createRemoteId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-// packages/client-core/dist/codex-client.js
+// ../client-core/dist/codex-client.js
 var MAX_DISPLAY_ITEM_TEXT = 256 * 1024;
 var CODEX_IMAGE_MEDIA_TYPES = /* @__PURE__ */ new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 var DATA_IMAGE_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/]+={0,2})$/u;
@@ -65811,7 +65811,7 @@ function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// packages/client-core/dist/acp-client.js
+// ../client-core/dist/acp-client.js
 var ACP_PROMPT_RPC_TIMEOUT_MS = 10 * 6e4;
 var AgentAcpClient = class {
   core;
@@ -66066,7 +66066,7 @@ function canonicalBase64ToBytes(value) {
   return bytes;
 }
 
-// packages/client-core/dist/index.js
+// ../client-core/dist/index.js
 var RemoteClientError = class extends Error {
   code;
   constructor(code, message, options) {
@@ -66241,7 +66241,7 @@ function transportSendError(error62) {
   return error62 instanceof Error ? error62 : new Error("remote transport send failed", { cause: error62 });
 }
 
-// packages/plugin/src/session-history-cache.ts
+// src/session-history-cache.ts
 var MAX_CACHED_SESSIONS = 32;
 var MAX_CACHED_RECORDS_PER_SESSION = 200;
 var MAX_ACP_CACHED_EVENTS_PER_SESSION = 1e4;
@@ -66749,7 +66749,7 @@ var AcpSessionHistoryCache = class {
   }
 };
 
-// packages/plugin/src/acp/image-content.ts
+// src/acp/image-content.ts
 var AGY_IMAGE_MEDIA_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 var AGY_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 var AGY_MAX_IMAGES = 4;
@@ -66809,7 +66809,7 @@ function acpImageLimits(backend) {
   return backend === "antigravity" || backend === "hermes" ? { maxImageBytes: AGY_MAX_IMAGE_BYTES, maxImagesPerMessage: AGY_MAX_IMAGES, maxMessageImageBytes: AGY_MAX_MESSAGE_IMAGE_BYTES, maxImagePixels: 4e7, maxImageDimension: 8192, mediaTypes: [...AGY_IMAGE_MEDIA_TYPES] } : { maxImageBytes: 0, maxImagesPerMessage: 0, mediaTypes: [] };
 }
 
-// packages/plugin/src/acp/virtual-catalog.ts
+// src/acp/virtual-catalog.ts
 var CURSOR_WORKSPACE_PREFIX = "cursor:cwd:";
 var AGY_WORKSPACE_PREFIX = "antigravity:cwd:";
 var OPENCODE_WORKSPACE_PREFIX = "opencode:cwd:";
@@ -66922,7 +66922,7 @@ function modelCatalog(backend = "cursor") {
   };
 }
 
-// packages/plugin/src/acp/virtual-contract.ts
+// src/acp/virtual-contract.ts
 var CURSOR_SESSION_PREFIX = "cursor:";
 var ACP_SESSION_PREFIX = "acp:";
 var OPENCODE_SESSION_PREFIX = "opencode:";
@@ -67132,7 +67132,7 @@ function acpPermissionsProjection(preset) {
   };
 }
 
-// packages/plugin/src/acp/virtual-event-carrier.ts
+// src/acp/virtual-event-carrier.ts
 var AcpEventCarrier = class {
   constructor(context) {
     this.context = context;
@@ -67217,7 +67217,7 @@ var AcpEventCarrier = class {
   }
 };
 
-// packages/plugin/src/acp/pi-tool-result.ts
+// src/acp/pi-tool-result.ts
 function piToolResult(update) {
   let content = Array.isArray(update.content) ? update.content.flatMap((item) => {
     if (item?.type === "content" && item.content?.type === "text" && typeof item.content.text === "string") return [{ type: "text", text: item.content.text }];
@@ -67236,7 +67236,7 @@ ${item.newText}` }];
   return { content, isError: update.status === "failed" || update.rawOutput?.isError === true };
 }
 
-// packages/plugin/src/acp/virtual-live.ts
+// src/acp/virtual-live.ts
 var AcpLiveProjection = class {
   constructor(context) {
     this.context = context;
@@ -67731,7 +67731,7 @@ var AcpLiveProjection = class {
   }
 };
 
-// packages/plugin/src/acp/virtual-titles.ts
+// src/acp/virtual-titles.ts
 var OPENCODE_DEFAULT_TITLE = /^(?:New|Child) session - \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 var AcpSessionTitles = class {
   constructor(backend, client, sessions, publish) {
@@ -67811,7 +67811,7 @@ function waitForTitle(delay, signal) {
   });
 }
 
-// packages/plugin/src/acp/virtual-harness.ts
+// src/acp/virtual-harness.ts
 var AcpVirtualHarness = class _AcpVirtualHarness {
   constructor(client, host, backend = "cursor", hostCarrier, historyCache = new AcpSessionHistoryCache()) {
     this.client = client;
@@ -68790,7 +68790,7 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
   }
 };
 
-// packages/webrtc/dist/websocket-backpressure.js
+// ../webrtc/dist/websocket-backpressure.js
 async function waitForRelayCapacity(socket) {
   const started = Date.now();
   while ((socket.bufferedAmount ?? 0) > 512 * 1024) {
@@ -68802,7 +68802,7 @@ async function waitForRelayCapacity(socket) {
     throw new Error("Relay transport closed");
 }
 
-// packages/webrtc/dist/transport.js
+// ../webrtc/dist/transport.js
 var BaseTransport = class {
   handlers = /* @__PURE__ */ new Set();
   closeHandlers = /* @__PURE__ */ new Set();
@@ -68824,7 +68824,7 @@ var BaseTransport = class {
   }
 };
 
-// packages/webrtc/dist/util.js
+// ../webrtc/dist/util.js
 function toBase64Url(bytes) {
   const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
   const base643 = typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
@@ -68838,7 +68838,7 @@ function fromBase64Url(value) {
   return new Uint8Array(Buffer.from(padded, "base64"));
 }
 
-// packages/webrtc/dist/rtc-adapter.js
+// ../webrtc/dist/rtc-adapter.js
 var RTC_DATA_CHANNEL_LABEL = "dsh";
 var RTC_DATA_CHANNEL_OPTIONS = { ordered: true };
 function browserRtcFactory() {
@@ -69071,7 +69071,7 @@ function adaptDataChannel(raw) {
   };
 }
 
-// packages/webrtc/dist/rtc-chunking.js
+// ../webrtc/dist/rtc-chunking.js
 var RTC_CHUNK_MAGIC = new Uint8Array([82, 84, 67, 72]);
 var RTC_CHUNK_HEADER_BYTES = 12;
 var RTC_CHUNK_PAYLOAD_BYTES = 8 * 1024;
@@ -69180,7 +69180,7 @@ function isChunk(frame) {
   return true;
 }
 
-// packages/webrtc/dist/rtc-data-channel.js
+// ../webrtc/dist/rtc-data-channel.js
 var DEFAULT_NEGOTIATE_TIMEOUT_MS = 8e3;
 var SELECTED_PATH_RETRY_COUNT = 5;
 var SELECTED_PATH_RETRY_DELAY_MS = 50;
@@ -69899,7 +69899,7 @@ function sleep(ms) {
   return new Promise((resolve9) => setTimeout(resolve9, ms));
 }
 
-// packages/webrtc/dist/control-lease.js
+// ../webrtc/dist/control-lease.js
 var WEBRTC_LEASE_MS2 = 3e5;
 var ControlLease = class {
   connectionId;
@@ -69981,7 +69981,7 @@ var ControlLease = class {
   }
 };
 
-// packages/webrtc/dist/adaptive-transport.js
+// ../webrtc/dist/adaptive-transport.js
 var DEFAULT_CAPABILITIES = [WEBRTC_RESUME_CAPABILITY, RELAY_RESUME_CAPABILITY, "transport.lan", "transport.p2p", "transport.turn", "transport.relay", "transport.relay.attach", "harness.api.v1"];
 var DEFAULT_PREFERRED_TRANSPORTS = ["lan", "p2p", "turn", "relay"];
 var AdaptiveTransport = class extends BaseTransport {
@@ -70025,6 +70025,9 @@ var AdaptiveTransport = class extends BaseTransport {
     this.url = url2;
     this.options = options;
   }
+  openSocket(url2) {
+    return this.options.createWebSocket?.(url2) ?? new WebSocket(url2);
+  }
   async connect() {
     if (this.socket !== void 0 || this.connectedAt !== void 0)
       return;
@@ -70037,7 +70040,7 @@ var AdaptiveTransport = class extends BaseTransport {
     this.selected = void 0;
     this.connectedAt = void 0;
     this.relayCounter = 0;
-    this.socket = new WebSocket(this.url);
+    this.socket = this.openSocket(this.url);
     this.controlFrameLimits = {};
     this.socket.binaryType = "arraybuffer";
     await new Promise((resolve9, reject) => {
@@ -70469,7 +70472,7 @@ var AdaptiveTransport = class extends BaseTransport {
       const token = this.options.refreshAccessToken ? await this.options.refreshAccessToken() : this.options.accessToken;
       if (this.lifetime !== lifetime || !this.lease?.canDetach())
         return;
-      const socket = new WebSocket(this.url);
+      const socket = this.openSocket(this.url);
       this.socket = socket;
       socket.binaryType = "arraybuffer";
       this.recoveryOpeningTimer = setTimeout(() => {
@@ -70570,7 +70573,7 @@ var AdaptiveTransport = class extends BaseTransport {
   async openDataSocket(assignment) {
     if (this.connectionId === void 0 || this.dataSocket !== void 0)
       return;
-    const socket = new WebSocket(assignment.relayEndpoint);
+    const socket = this.openSocket(assignment.relayEndpoint);
     socket.binaryType = "arraybuffer";
     this.dataSocket = socket;
     await new Promise((resolve9, reject) => {
@@ -70763,7 +70766,7 @@ function throwIfAborted(signal) {
     throw new Error("Adaptive connection was aborted");
 }
 
-// packages/webrtc/dist/serial-send.js
+// ../webrtc/dist/serial-send.js
 var SerialSend = class {
   tail = Promise.resolve();
   bytes = 0;
@@ -70784,7 +70787,7 @@ var SerialSend = class {
   }
 };
 
-// packages/plugin/src/client-runtime-contract.ts
+// src/client-runtime-contract.ts
 var DIRECT_WEBRTC_NEGOTIATE_TIMEOUT_MS = 12e3;
 var DIRECT_LAN_PROGRESS_DISPLAY_MS = 1400;
 var HOST_AUTHORIZATION_ERRORS = /* @__PURE__ */ new Set([
@@ -70900,7 +70903,7 @@ function iceServersForAttempt(attempt, iceServers) {
   return attempt === "direct" ? stunOnlyIceServers(iceServers) : iceServers;
 }
 
-// packages/plugin/src/client-capabilities.ts
+// src/client-capabilities.ts
 function remoteHostFeatures(clientVersion) {
   return {
     commandList: false,
@@ -70967,7 +70970,7 @@ async function probeRemoteHostFeatures(client, clientVersion) {
   };
 }
 
-// packages/plugin/src/client-codex-streams.ts
+// src/client-codex-streams.ts
 var ClientCodexStreams = class {
   constructor(context) {
     this.context = context;
@@ -71103,11 +71106,11 @@ var ClientCodexStreams = class {
   }
 };
 
-// node_modules/@noble/ciphers/esm/cryptoNode.js
+// ../crypto/node_modules/@noble/ciphers/esm/cryptoNode.js
 import * as nc from "node:crypto";
 var crypto2 = nc && typeof nc === "object" && "webcrypto" in nc ? nc.webcrypto : nc && typeof nc === "object" && "randomBytes" in nc ? nc : void 0;
 
-// node_modules/@noble/ciphers/esm/webcrypto.js
+// ../crypto/node_modules/@noble/ciphers/esm/webcrypto.js
 function randomBytes(bytesLength = 32) {
   if (crypto2 && typeof crypto2.getRandomValues === "function") {
     return crypto2.getRandomValues(new Uint8Array(bytesLength));
@@ -71118,11 +71121,11 @@ function randomBytes(bytesLength = 32) {
   throw new Error("crypto.getRandomValues must be defined");
 }
 
-// node_modules/@noble/hashes/esm/cryptoNode.js
+// ../crypto/node_modules/@noble/hashes/esm/cryptoNode.js
 import * as nc2 from "node:crypto";
 var crypto3 = nc2 && typeof nc2 === "object" && "webcrypto" in nc2 ? nc2.webcrypto : nc2 && typeof nc2 === "object" && "randomBytes" in nc2 ? nc2 : void 0;
 
-// node_modules/@noble/hashes/esm/utils.js
+// ../crypto/node_modules/@noble/hashes/esm/utils.js
 function isBytes(a) {
   return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
 }
@@ -71249,7 +71252,7 @@ function randomBytes2(bytesLength = 32) {
   throw new Error("crypto.getRandomValues must be defined");
 }
 
-// node_modules/@noble/hashes/esm/_md.js
+// ../crypto/node_modules/@noble/hashes/esm/_md.js
 function setBigUint64(view, byteOffset, value, isLE3) {
   if (typeof view.setBigUint64 === "function")
     return view.setBigUint64(byteOffset, value, isLE3);
@@ -71371,7 +71374,7 @@ var SHA512_IV = /* @__PURE__ */ Uint32Array.from([
   327033209
 ]);
 
-// node_modules/@noble/hashes/esm/_u64.js
+// ../crypto/node_modules/@noble/hashes/esm/_u64.js
 var U32_MASK64 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
 var _32n = /* @__PURE__ */ BigInt(32);
 function fromBig(n, le = false) {
@@ -71406,7 +71409,7 @@ var add4H = (low, Ah, Bh, Ch, Dh) => Ah + Bh + Ch + Dh + (low / 2 ** 32 | 0) | 0
 var add5L = (Al, Bl, Cl, Dl, El) => (Al >>> 0) + (Bl >>> 0) + (Cl >>> 0) + (Dl >>> 0) + (El >>> 0);
 var add5H = (low, Ah, Bh, Ch, Dh, Eh) => Ah + Bh + Ch + Dh + Eh + (low / 2 ** 32 | 0) | 0;
 
-// node_modules/@noble/hashes/esm/sha2.js
+// ../crypto/node_modules/@noble/hashes/esm/sha2.js
 var K512 = /* @__PURE__ */ (() => split([
   "0x428a2f98d728ae22",
   "0x7137449123ef65cd",
@@ -71606,7 +71609,7 @@ var SHA512 = class extends HashMD {
 };
 var sha512 = /* @__PURE__ */ createHasher(() => new SHA512());
 
-// node_modules/@noble/curves/esm/utils.js
+// ../crypto/node_modules/@noble/curves/esm/utils.js
 var _0n = /* @__PURE__ */ BigInt(0);
 var _1n = /* @__PURE__ */ BigInt(1);
 function _abool2(value, title = "") {
@@ -71719,7 +71722,7 @@ function memoized(fn) {
   };
 }
 
-// node_modules/@noble/curves/esm/abstract/modular.js
+// ../crypto/node_modules/@noble/curves/esm/abstract/modular.js
 var _0n2 = BigInt(0);
 var _1n2 = BigInt(1);
 var _2n = /* @__PURE__ */ BigInt(2);
@@ -72045,7 +72048,7 @@ function Field(ORDER, bitLenOrOpts, isLE3 = false, opts = {}) {
   return Object.freeze(f);
 }
 
-// node_modules/@noble/curves/esm/abstract/curve.js
+// ../crypto/node_modules/@noble/curves/esm/abstract/curve.js
 var _0n3 = BigInt(0);
 var _1n3 = BigInt(1);
 function negateCt(condition, item) {
@@ -72308,7 +72311,7 @@ function _createCurveFields(type, CURVE, curveOpts = {}, FpFnLE) {
   return { CURVE, Fp: Fp2, Fn: Fn2 };
 }
 
-// node_modules/@noble/curves/esm/abstract/edwards.js
+// ../crypto/node_modules/@noble/curves/esm/abstract/edwards.js
 var _0n4 = BigInt(0);
 var _1n4 = BigInt(1);
 var _2n2 = BigInt(2);
@@ -72859,7 +72862,7 @@ function twistedEdwards(c) {
   return _eddsa_new_output_to_legacy(c, EDDSA);
 }
 
-// node_modules/@noble/curves/esm/abstract/montgomery.js
+// ../crypto/node_modules/@noble/curves/esm/abstract/montgomery.js
 var _0n5 = BigInt(0);
 var _1n5 = BigInt(1);
 var _2n3 = BigInt(2);
@@ -72979,7 +72982,7 @@ function montgomery(curveDef) {
   };
 }
 
-// node_modules/@noble/curves/esm/ed25519.js
+// ../crypto/node_modules/@noble/curves/esm/ed25519.js
 var _0n6 = /* @__PURE__ */ BigInt(0);
 var _1n6 = BigInt(1);
 var _2n4 = BigInt(2);
@@ -73214,7 +73217,7 @@ _RistrettoPoint.ZERO = /* @__PURE__ */ (() => new _RistrettoPoint(ed25519.Point.
 _RistrettoPoint.Fp = /* @__PURE__ */ (() => Fp)();
 _RistrettoPoint.Fn = /* @__PURE__ */ (() => Fn)();
 
-// node_modules/@lukeburns/clatterjs/dist/constants.js
+// ../../node_modules/@lukeburns/clatterjs/dist/constants.js
 var MAX_KEY_LEN = 32;
 var MAX_TAG_LEN = 16;
 var MAX_MESSAGE_LEN = 65535;
@@ -73224,7 +73227,7 @@ var MAX_TOKENS_PER_HS_MESSAGE = 8;
 var MAX_HS_MESSAGES_PER_ROLE = 8;
 var HYBRID_DUAL_LAYER = new TextEncoder().encode("clatter.hybrid_dual_layer.outer");
 
-// node_modules/@lukeburns/clatterjs/dist/errors.js
+// ../../node_modules/@lukeburns/clatterjs/dist/errors.js
 var CipherError = class extends Error {
   code;
   constructor(code, message) {
@@ -73260,7 +73263,7 @@ var TransportError = class extends Error {
   }
 };
 
-// node_modules/@lukeburns/clatterjs/dist/handshakePattern.js
+// ../../node_modules/@lukeburns/clatterjs/dist/handshakePattern.js
 function checkMsgLens(initiator, responder) {
   for (const g of initiator) {
     if (g.length > MAX_TOKENS_PER_HS_MESSAGE) {
@@ -73429,7 +73432,7 @@ var HandshakePattern = class _HandshakePattern {
   }
 };
 
-// node_modules/@lukeburns/clatterjs/dist/cipherState.js
+// ../../node_modules/@lukeburns/clatterjs/dist/cipherState.js
 var U64_MAX = 0xfffffffffffffffn;
 var CipherState = class {
   C;
@@ -73501,7 +73504,7 @@ var CipherStates = class {
   }
 };
 
-// node_modules/@lukeburns/clatterjs/dist/symmetricState.js
+// ../../node_modules/@lukeburns/clatterjs/dist/symmetricState.js
 function deriveCipherKey(temp, C) {
   return temp.slice(0, C.keyLen);
 }
@@ -73588,7 +73591,7 @@ function concat2(a, b) {
   return o;
 }
 
-// node_modules/@lukeburns/clatterjs/dist/transportState.js
+// ../../node_modules/@lukeburns/clatterjs/dist/transportState.js
 function mapCipher(e) {
   if (e instanceof TransportError)
     return e;
@@ -73750,7 +73753,7 @@ var TransportState = class {
   }
 };
 
-// node_modules/@noble/hashes/_u64.js
+// ../../node_modules/@noble/hashes/_u64.js
 var U32_MASK642 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
 var _32n2 = /* @__PURE__ */ BigInt(32);
 function fromBig2(n, le = false) {
@@ -73795,7 +73798,7 @@ var add4H2 = (low, Ah, Bh, Ch, Dh) => Ah + Bh + Ch + Dh + (low / 2 ** 32 | 0) | 
 var add5L2 = (Al, Bl, Cl, Dl, El) => (Al >>> 0) + (Bl >>> 0) + (Cl >>> 0) + (Dl >>> 0) + (El >>> 0);
 var add5H2 = (low, Ah, Bh, Ch, Dh, Eh) => Ah + Bh + Ch + Dh + Eh + (low / 2 ** 32 | 0) | 0;
 
-// node_modules/@noble/hashes/utils.js
+// ../../node_modules/@noble/hashes/utils.js
 function isBytes2(a) {
   return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
 }
@@ -73970,7 +73973,7 @@ var oidNist = (suffix) => ({
   oid: Uint8Array.from([6, 9, 96, 134, 72, 1, 101, 3, 4, 2, suffix])
 });
 
-// node_modules/@noble/hashes/_md.js
+// ../../node_modules/@noble/hashes/_md.js
 function Chi2(a, b, c) {
   return a & b ^ ~a & c;
 }
@@ -74101,7 +74104,7 @@ var SHA512_IV2 = /* @__PURE__ */ Uint32Array.from([
   327033209
 ]);
 
-// node_modules/@noble/hashes/sha2.js
+// ../../node_modules/@noble/hashes/sha2.js
 var SHA256_K = /* @__PURE__ */ Uint32Array.from([
   1116352408,
   1899447441,
@@ -74498,7 +74501,7 @@ var sha5122 = /* @__PURE__ */ createHasher2(
   /* @__PURE__ */ oidNist(3)
 );
 
-// node_modules/@noble/curves/utils.js
+// ../../node_modules/@noble/curves/utils.js
 function aarray(item, title, inner = () => {
 }) {
   if (!Array.isArray(item))
@@ -74617,7 +74620,7 @@ function validateObject2(object5, fields = {}, optFields = {}, title = "object")
   iter(optFields, true);
 }
 
-// node_modules/@noble/curves/abstract/modular.js
+// ../../node_modules/@noble/curves/abstract/modular.js
 var _0n8 = /* @__PURE__ */ BigInt(0);
 var _1n8 = /* @__PURE__ */ BigInt(1);
 var _2n5 = /* @__PURE__ */ BigInt(2);
@@ -75046,7 +75049,7 @@ function Field2(ORDER, opts = {}) {
   return new _Field(ORDER, opts);
 }
 
-// node_modules/@noble/curves/abstract/curve.js
+// ../../node_modules/@noble/curves/abstract/curve.js
 var _0n9 = /* @__PURE__ */ BigInt(0);
 var _1n9 = /* @__PURE__ */ BigInt(1);
 var _4n3 = /* @__PURE__ */ BigInt(4);
@@ -75433,7 +75436,7 @@ function createKeygen(randomSecretKey, getPublicKey) {
   };
 }
 
-// node_modules/@noble/curves/abstract/edwards.js
+// ../../node_modules/@noble/curves/abstract/edwards.js
 var _0n10 = /* @__PURE__ */ BigInt(0);
 var _1n10 = /* @__PURE__ */ BigInt(1);
 var _2n6 = /* @__PURE__ */ BigInt(2);
@@ -75727,7 +75730,7 @@ function edwards2(params, extraOpts = {}) {
   return Point;
 }
 
-// node_modules/@noble/curves/abstract/montgomery.js
+// ../../node_modules/@noble/curves/abstract/montgomery.js
 var _0n11 = /* @__PURE__ */ BigInt(0);
 var _1n11 = /* @__PURE__ */ BigInt(1);
 var _2n7 = /* @__PURE__ */ BigInt(2);
@@ -75874,7 +75877,7 @@ function montgomery2(curveDef) {
   });
 }
 
-// node_modules/@noble/curves/ed25519.js
+// ../../node_modules/@noble/curves/ed25519.js
 var _0n12 = /* @__PURE__ */ BigInt(0);
 var _1n12 = /* @__PURE__ */ BigInt(1);
 var _2n8 = /* @__PURE__ */ BigInt(2);
@@ -75960,7 +75963,7 @@ var x255192 = /* @__PURE__ */ (() => {
   });
 })();
 
-// node_modules/@lukeburns/clatterjs/dist/dhX25519.js
+// ../../node_modules/@lukeburns/clatterjs/dist/dhX25519.js
 var PK = 32;
 var X25519_NAME = "25519";
 function x25519Keygen(rng) {
@@ -75974,12 +75977,12 @@ function dhPubKeyLen() {
   return PK;
 }
 
-// node_modules/@lukeburns/clatterjs/dist/protocolNames.js
+// ../../node_modules/@lukeburns/clatterjs/dist/protocolNames.js
 function nqProtocolName(patternName, cipher, hash3) {
   return `Noise_${patternName}_${X25519_NAME}_${cipher.name}_${hash3.name}`;
 }
 
-// node_modules/@lukeburns/clatterjs/dist/nqHandshake.js
+// ../../node_modules/@lukeburns/clatterjs/dist/nqHandshake.js
 var PK2 = () => dhPubKeyLen();
 var NqHandshake = class {
   pattern;
@@ -76352,7 +76355,7 @@ function raiseInv() {
   throw new HandshakeError("InvalidState");
 }
 
-// node_modules/@noble/hashes/_blake.js
+// ../../node_modules/@noble/hashes/_blake.js
 var BSIGMA = /* @__PURE__ */ Uint8Array.from([
   0,
   1,
@@ -76627,7 +76630,7 @@ function G2s(a, b, c, d, x) {
   return { a, b, c, d };
 }
 
-// node_modules/@noble/hashes/blake2.js
+// ../../node_modules/@noble/hashes/blake2.js
 var B2B_IV = /* @__PURE__ */ Uint32Array.from([
   4089235720,
   1779033703,
@@ -77060,7 +77063,7 @@ var _BLAKE2s = class extends _BLAKE2 {
 };
 var blake2s = /* @__PURE__ */ createHasher2((opts) => new _BLAKE2s(opts));
 
-// node_modules/@noble/hashes/hmac.js
+// ../../node_modules/@noble/hashes/hmac.js
 var _HMAC = class {
   oHash;
   iHash;
@@ -77137,7 +77140,7 @@ var hmac = /* @__PURE__ */ (() => {
   return hmac_;
 })();
 
-// node_modules/@lukeburns/clatterjs/dist/crypto/hash.js
+// ../../node_modules/@lukeburns/clatterjs/dist/crypto/hash.js
 function makeHash(name2, hash3, hashLen, blockLen) {
   const doHash = (data2) => hash3.create().update(data2).digest();
   const hmac1 = (key, data2) => hmac(hash3, key, data2);
@@ -77172,7 +77175,7 @@ var sha512H = makeHash("SHA512", sha5122, 64, 128);
 var blake2bH = makeHash("BLAKE2b", blake2b, 64, 128);
 var blake2sH = makeHash("BLAKE2s", blake2s, 32, 64);
 
-// node_modules/@noble/ciphers/utils.js
+// ../../node_modules/@noble/ciphers/utils.js
 function isBytes4(a) {
   return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
 }
@@ -77339,7 +77342,7 @@ function copyBytes4(bytes) {
   return Uint8Array.from(abytes4(bytes));
 }
 
-// node_modules/@noble/ciphers/_arx.js
+// ../../node_modules/@noble/ciphers/_arx.js
 var encodeStr = (str) => Uint8Array.from(str.split(""), (c) => c.charCodeAt(0));
 var sigma16_32 = /* @__PURE__ */ (() => swap32IfBE2(u322(encodeStr("expand 16-byte k"))))();
 var sigma32_32 = /* @__PURE__ */ (() => swap32IfBE2(u322(encodeStr("expand 32-byte k"))))();
@@ -77466,7 +77469,7 @@ function createCipher(core, opts) {
   };
 }
 
-// node_modules/@noble/ciphers/_poly1305.js
+// ../../node_modules/@noble/ciphers/_poly1305.js
 function u8to16(a, i) {
   return a[i++] & 255 | (a[i++] & 255) << 8;
 }
@@ -77717,7 +77720,7 @@ var Poly1305 = class {
 };
 var poly1305 = /* @__PURE__ */ wrapMacConstructor(32, (key) => new Poly1305(key));
 
-// node_modules/@noble/ciphers/chacha.js
+// ../../node_modules/@noble/ciphers/chacha.js
 function chachaCore(s, k, n, out, cnt, rounds = 20) {
   let y00 = s[0], y01 = s[1], y02 = s[2], y03 = s[3], y04 = k[0], y05 = k[1], y06 = k[2], y07 = k[3], y08 = k[4], y09 = k[5], y10 = k[6], y11 = k[7], y12 = cnt, y13 = n[0], y14 = n[1], y15 = n[2];
   let x00 = y00, x01 = y01, x02 = y02, x03 = y03, x04 = y04, x05 = y05, x06 = y06, x07 = y07, x08 = y08, x09 = y09, x10 = y10, x11 = y11, x12 = y12, x13 = y13, x14 = y14, x15 = y15;
@@ -77867,7 +77870,7 @@ var chacha20poly1305 = /* @__PURE__ */ wrapCipher(
   /* @__PURE__ */ _poly1305_aead(chacha20)
 );
 
-// node_modules/@lukeburns/clatterjs/dist/crypto/cipher.js
+// ../../node_modules/@lukeburns/clatterjs/dist/crypto/cipher.js
 var U64_MAX2 = 0xfffffffffffffffn;
 function chachaNonce(n) {
   const b = new Uint8Array(12);
@@ -77929,7 +77932,7 @@ var chachaPoly = /* @__PURE__ */ (() => {
   };
 })();
 
-// node_modules/@lukeburns/clatterjs/dist/noiseNq.js
+// ../../node_modules/@lukeburns/clatterjs/dist/noiseNq.js
 function noiseIk() {
   return new HandshakePattern("IK", [], [
     1
@@ -77950,7 +77953,7 @@ function noiseIk() {
   ]]);
 }
 
-// packages/crypto/dist/noise.js
+// ../crypto/dist/noise.js
 var NOISE_IK_PROTOCOL = "Noise_IK_25519_ChaChaPoly_SHA256";
 var NoiseIkSession = class {
   handshake;
@@ -78085,7 +78088,7 @@ function constantTimeEqual(left, right) {
   return different === 0;
 }
 
-// packages/crypto/dist/index.js
+// ../crypto/dist/index.js
 function generateKeyPair(privateKeyBytes) {
   const privateKey = privateKeyBytes ?? x25519.utils.randomPrivateKey();
   if (privateKey.byteLength !== 32)
@@ -78110,7 +78113,7 @@ function fromBase64Url2(value) {
   return new Uint8Array(Buffer.from(padded, "base64"));
 }
 
-// packages/plugin/src/client-secure-transport.ts
+// src/client-secure-transport.ts
 var ClientSecureTransport = class {
   constructor(inner, identity3, host) {
     this.inner = inner;
@@ -78259,7 +78262,7 @@ async function waitForResponder(inner, noise, signal) {
   });
 }
 
-// packages/plugin/src/client-connection.ts
+// src/client-connection.ts
 var ClientConnection = class {
   constructor(context) {
     this.context = context;
@@ -78309,6 +78312,7 @@ var ClientConnection = class {
           refreshAccessToken: async () => (await this.context.server.authenticate(identity3)).accessToken,
           targetDeviceId,
           forceRelay: this.context.config.forceRelay || attempt === "relay",
+          ...this.context.createWebSocket === void 0 ? {} : { createWebSocket: this.context.createWebSocket },
           preferredTransports: preferredTransportsForAttempt(attempt),
           negotiateTimeoutMs: attempt === "direct" ? DIRECT_WEBRTC_NEGOTIATE_TIMEOUT_MS : void 0,
           ...rtcFactory === void 0 || attempt === "relay" ? {} : { rtcFactory },
@@ -78455,7 +78459,7 @@ var ClientConnection = class {
   }
 };
 
-// packages/plugin/src/client-reconnect.ts
+// src/client-reconnect.ts
 var ClientReconnect = class {
   constructor(config2) {
     this.config = config2;
@@ -78515,11 +78519,11 @@ function canReconnect(error62) {
   return failure5.retryable !== false;
 }
 
-// packages/plugin/src/loopback-preview.ts
+// src/loopback-preview.ts
 import { randomBytes as randomBytes6, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 
-// node_modules/ws/wrapper.mjs
+// ../../node_modules/ws/wrapper.mjs
 var import_stream = __toESM(require_stream(), 1);
 var import_extension = __toESM(require_extension(), 1);
 var import_permessage_deflate = __toESM(require_permessage_deflate(), 1);
@@ -78529,10 +78533,10 @@ var import_subprotocol = __toESM(require_subprotocol(), 1);
 var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
-// packages/plugin/src/loopback-host.ts
+// src/loopback-host.ts
 import { request as httpRequest } from "node:http";
 
-// packages/plugin/src/safe-error.ts
+// src/safe-error.ts
 var RpcError = class extends Error {
   constructor(code, message, details2, retryable = false) {
     super(message);
@@ -78595,7 +78599,7 @@ function safeStartupError(error62) {
   return { code, message: "Remote plugin failed to start." };
 }
 
-// packages/plugin/src/loopback-host.ts
+// src/loopback-host.ts
 var HOP_HEADERS = /* @__PURE__ */ new Set([
   "connection",
   "keep-alive",
@@ -78849,7 +78853,7 @@ var LoopbackHost = class {
   }
 };
 
-// packages/plugin/src/loopback-preview.ts
+// src/loopback-preview.ts
 var LoopbackPreview = class {
   constructor(client) {
     this.client = client;
@@ -79085,7 +79089,7 @@ var LoopbackPreview = class {
   }
 };
 
-// packages/plugin/src/plugin-route-bridge.ts
+// src/plugin-route-bridge.ts
 var PLUGIN_ROUTE_ALLOWLIST = ["api/bot"];
 var BOT_REMOTE_OPERATIONS = [
   "state",
@@ -79213,7 +79217,7 @@ function serializedBytes(value) {
   return new TextEncoder().encode(JSON.stringify(value)).byteLength;
 }
 
-// packages/plugin/src/client-control.ts
+// src/client-control.ts
 var ClientControl = class {
   constructor(context) {
     this.context = context;
@@ -79501,7 +79505,7 @@ var ClientControl = class {
   }
 };
 
-// packages/plugin/src/client-workspace-queries.ts
+// src/client-workspace-queries.ts
 async function readRemoteWorkspaceBaseline(gateway, signal) {
   const lifetime = new AbortController();
   const activeSignal = signal === void 0 ? lifetime.signal : AbortSignal.any([signal, lifetime.signal]);
@@ -79534,7 +79538,7 @@ function remoteWorkspaceTitle(path) {
   return normalized.split(/[\\/]+/u).filter(Boolean).at(-1) ?? path;
 }
 
-// packages/plugin/src/codex/permissions.ts
+// src/codex/permissions.ts
 function codexPermissionPresetFromResponse(value) {
   const root2 = record4(value);
   for (const settings of [root2, record4(root2.threadSettings)]) {
@@ -79553,7 +79557,7 @@ function record4(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-// packages/plugin/src/codex/virtual-values.ts
+// src/codex/virtual-values.ts
 var CODEX_SESSION_PREFIX = "codex:";
 var CODEX_HISTORY_PAGE_MAX_MESSAGES = 200;
 function nativeThreadId(sessionId) {
@@ -79627,7 +79631,7 @@ function errorCode(error62) {
   return "code" in error62 && typeof error62.code === "string" ? error62.code : void 0;
 }
 
-// packages/plugin/src/codex/virtual-catalog.ts
+// src/codex/virtual-catalog.ts
 var CODEX_WORKSPACE_PREFIX = "codex-workspace:";
 var CODEX_PROVIDER = "codex";
 var CODEX_MODEL = "codex";
@@ -79903,7 +79907,7 @@ function isProjectListUnsupported(error62) {
   return code === "METHOD_NOT_ALLOWED" || code === "METHOD_NOT_FOUND" || code === "CODEX_UPSTREAM_ERROR" || error62.message.includes("The requested Codex method is not available over Remote.");
 }
 
-// packages/plugin/src/codex/codex-image-codec.ts
+// src/codex/codex-image-codec.ts
 var CODEX_IMAGE_MEDIA_TYPES2 = /* @__PURE__ */ new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 var CODEX_IMAGE_ATTACHMENT_PREFIX = "codex-image:";
 var MAX_CODEX_IMAGE_BASE64 = 288 * 1024 * 1024;
@@ -80129,7 +80133,7 @@ function hashString2(value) {
   return (hash3 >>> 0).toString(16).padStart(8, "0");
 }
 
-// packages/plugin/src/codex/virtual-contract.ts
+// src/codex/virtual-contract.ts
 var SESSION_SEARCH_RESULT_LIMIT = 20;
 var SESSION_SEARCH_SNIPPET_CODE_POINTS = 240;
 var CODEX_DEFAULT_PERMISSION = "workspace-write";
@@ -80305,7 +80309,7 @@ var AsyncValueQueue2 = class {
   }
 };
 
-// packages/plugin/src/codex/virtual-event-carrier.ts
+// src/codex/virtual-event-carrier.ts
 var CodexEventCarrier = class {
   constructor(context) {
     this.context = context;
@@ -80379,7 +80383,7 @@ var CodexEventCarrier = class {
   }
 };
 
-// packages/plugin/src/codex/virtual-history.ts
+// src/codex/virtual-history.ts
 var MAX_LIVE_TOOL_OUTPUT = 128 * 1024;
 var DEFAULT_HISTORY_MESSAGES = 50;
 function projectCodexNativeHistory(thread, sessionId, sessionGeneration = "legacy") {
@@ -80877,7 +80881,7 @@ function isCodexNativeHistoryPage(value, sessionId) {
   return header.id === sessionId && integer3(page.cursor) !== void 0 && integer3(page.nextTurn) !== void 0 && Array.isArray(page.records) && typeof page.hasMore === "boolean" && (page.activeTurnId === void 0 || typeof page.activeTurnId === "string");
 }
 
-// packages/plugin/src/codex/virtual-live.ts
+// src/codex/virtual-live.ts
 var CodexLiveProjection = class {
   constructor(context) {
     this.context = context;
@@ -81372,7 +81376,7 @@ function turnEndReason2(turn) {
   return { kind: "completed" };
 }
 
-// packages/plugin/src/codex/virtual-harness.ts
+// src/codex/virtual-harness.ts
 var CODEX_CATALOG_CACHE_MS = 2e3;
 var CodexVirtualHarness = class _CodexVirtualHarness {
   constructor(client, host, sessionGeneration = "legacy", hostCarrier, historyCache = new CodexSessionHistoryCache()) {
@@ -82260,7 +82264,7 @@ function awaitWithAbort(promise2, signal) {
   });
 }
 
-// packages/plugin/src/control-route.ts
+// src/control-route.ts
 var CONTROL_RPC_PREFIX = "/ds-harness-remote";
 var STATUS_STREAM_ENDPOINT = "status.events";
 var STATUS_STREAM_PATH = `${CONTROL_RPC_PREFIX}/${STATUS_STREAM_ENDPOINT}`;
@@ -82386,7 +82390,7 @@ function writeText(res, status2, body) {
   res.end(body);
 }
 
-// packages/plugin/src/harness-version.ts
+// src/harness-version.ts
 import { readFile, realpath as realpathEntrypoint } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, join } from "node:path";
@@ -82487,7 +82491,7 @@ async function readHarnessDistributionVersion(entrypoint = process.argv[1], cont
   return void 0;
 }
 
-// packages/plugin/src/ids.ts
+// src/ids.ts
 import { randomBytes as randomBytes7 } from "node:crypto";
 function uuidV7(now = Date.now()) {
   if (!Number.isSafeInteger(now) || now < 0 || now > 281474976710655) {
@@ -82505,7 +82509,7 @@ function uuidV7(now = Date.now()) {
   return `${hex3.slice(0, 8)}-${hex3.slice(8, 12)}-${hex3.slice(12, 16)}-${hex3.slice(16, 20)}-${hex3.slice(20)}`;
 }
 
-// packages/plugin/src/session-format-compat.ts
+// src/session-format-compat.ts
 function normalizeLegacySessionGatewayValue(endpoint, value) {
   if (endpoint === "session/page") return normalizePage(value);
   if (endpoint === "session/follow") return normalizeFollowFrame(value);
@@ -82673,7 +82677,7 @@ function isEventSeq(value) {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && !Object.is(value, -0);
 }
 
-// packages/plugin/src/remote-typert-gateway.ts
+// src/remote-typert-gateway.ts
 var DIRECT_REMOTE_CALL_BYTES2 = 2 * 1024 * 1024;
 var WELCOME_NOTICE_NAMESPACE = "ui-settings-general";
 var WELCOME_NOTICE_FIELD = "welcomeNoticeVersion";
@@ -83316,12 +83320,12 @@ function normalizeThemeNamespace(namespace) {
   };
 }
 
-// packages/plugin/src/workspace-transfer-limits.ts
+// src/workspace-transfer-limits.ts
 function workspaceUploadMaxBytes(mode2) {
   return mode2 === "LAN" || mode2 === "P2P" ? 1024 * 1024 * 1024 : 20 * 1024 * 1024;
 }
 
-// packages/plugin/src/remote-file-upload.ts
+// src/remote-file-upload.ts
 import { constants } from "node:fs";
 import { open as open2 } from "node:fs/promises";
 import { randomUUID as randomUUID2 } from "node:crypto";
@@ -83378,10 +83382,10 @@ async function uploadRemoteFile(client, sessionId, localPath, name2, signal, ass
   }
 }
 
-// packages/plugin/src/remote-session-tools.ts
+// src/remote-session-tools.ts
 import { basename as basename2, isAbsolute as isAbsolute2 } from "node:path";
 
-// packages/plugin/src/remote-file-download.ts
+// src/remote-file-download.ts
 import { mkdir, mkdtemp, open as open3, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join as join2 } from "node:path";
@@ -83439,7 +83443,7 @@ async function downloadRemoteFile(gateway, sessionId, path, signal, assertCurren
   }
 }
 
-// packages/plugin/src/remote-session-tools.ts
+// src/remote-session-tools.ts
 import { createHash } from "node:crypto";
 var id2 = external_exports.string().min(1).max(256);
 var MAX_REMOTE_WORKSPACES = 512;
@@ -83851,10 +83855,10 @@ var ObservedState = class {
   }
 };
 
-// packages/plugin/src/server-api.ts
+// src/server-api.ts
 import { platform } from "node:os";
 
-// packages/plugin/src/server-credentials.ts
+// src/server-credentials.ts
 import { chmod, mkdir as mkdir2, readFile as readFile2, rename, rm as rm2, stat, writeFile } from "node:fs/promises";
 import { dirname as dirname2, join as join3 } from "node:path";
 var credentialSchema = external_exports.object({
@@ -83970,10 +83974,10 @@ async function readPrivateJson(path) {
   return JSON.parse(await readFile2(path, "utf8"));
 }
 
-// packages/plugin/src/config.ts
+// src/config.ts
 import { hostname as hostname3 } from "node:os";
 
-// node_modules/@deepseek-ai/cosmokit/lib/index.js
+// ../../node_modules/@deepseek-ai/cosmokit/lib/index.js
 function isNullable(value) {
   return value === null || value === void 0;
 }
@@ -84198,7 +84202,7 @@ var Time;
   Time2.template = template;
 })(Time || (Time = {}));
 
-// node_modules/@deepseek-ai/schemastery/lib/index.mjs
+// ../../node_modules/@deepseek-ai/schemastery/lib/index.mjs
 var kSchema = Symbol.for("schemastery");
 var kValidationError = Symbol.for("ValidationError");
 globalThis.__schemastery_index__ ??= 0;
@@ -84839,12 +84843,13 @@ defineMethod("transform", [
   "preserve"
 ], ({ inner }, isInner) => inner.toString(isInner));
 
-// packages/plugin/src/config.ts
-var DEFAULT_REMOTE_SERVER_URL = "https://dsh.r2049.cn";
+// src/config.ts
+var DEFAULT_REMOTE_SERVER_URL = process.env.DSH_REMOTE_DEFAULT_SERVER?.trim() ?? "";
 var entryConfigSchema = Schema.object({
   enabled: Schema.boolean(),
   role: Schema.union(["host", "client", "both"]),
   serverUrl: Schema.string(),
+  serverFingerprint: Schema.string(),
   deviceName: Schema.string(),
   terminal: Schema.object({ enabled: Schema.boolean() }),
   remoteTools: Schema.object({ enabled: Schema.boolean() }),
@@ -84889,6 +84894,7 @@ var configSchema = external_exports.object({
   enabled: external_exports.boolean().optional(),
   role: external_exports.enum(["host", "client", "both"]).optional(),
   serverUrl: external_exports.string().url().optional(),
+  serverFingerprint: external_exports.string().trim().min(32).max(128).optional(),
   deviceName: external_exports.string().trim().min(1).max(80).optional(),
   terminal: external_exports.object({ enabled: external_exports.boolean().optional() }).strict().optional(),
   remoteTools: external_exports.object({ enabled: external_exports.boolean().optional() }).strict().optional(),
@@ -84920,6 +84926,7 @@ function resolveConfig(input4 = {}, env = process.env) {
   const reconnect = typeof parsed.reconnect === "object" ? parsed.reconnect : {};
   const configuredServerUrl = parsed.serverUrl ?? env.DSH_REMOTE_SERVER;
   const serverUrl = configuredServerUrl === void 0 ? void 0 : normalizeServerUrl(configuredServerUrl);
+  const serverFingerprint = parsed.serverFingerprint ?? env.DSH_REMOTE_SERVER_FINGERPRINT;
   const initialDelayMs = reconnect.initialDelayMs ?? 4e3;
   const maxDelayMs = reconnect.maxDelayMs ?? 3e4;
   if (maxDelayMs < initialDelayMs) {
@@ -84929,6 +84936,7 @@ function resolveConfig(input4 = {}, env = process.env) {
     enabled: parsed.enabled ?? true,
     role: parsed.role ?? "host",
     ...serverUrl === void 0 ? {} : { serverUrl },
+    ...serverFingerprint === void 0 ? {} : { serverFingerprint },
     deviceName: parsed.deviceName ?? env.DSH_REMOTE_DEVICE_NAME ?? hostname3(),
     hostControl: { enabled: parsed.hostControl?.enabled ?? true },
     terminal: { enabled: parsed.terminal?.enabled ?? (env.DSH_REMOTE_TERMINAL_ENABLED === void 0 || env.DSH_REMOTE_TERMINAL_ENABLED === "true") },
@@ -85006,10 +85014,10 @@ function normalizeServerUrl(value) {
   return url2.origin;
 }
 
-// packages/plugin/src/version.ts
+// src/version.ts
 var PLUGIN_VERSION = "0.6.4";
 
-// packages/plugin/src/server-api.ts
+// src/server-api.ts
 var TERMINAL_CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/u;
 var HostServerApi = class {
   constructor(serverUrl, store, fetchImplementation = fetch, role2 = "host") {
@@ -85065,6 +85073,22 @@ var HostServerApi = class {
         inboundOnly: result.inboundOnly,
         ...validateTokens(result.tokens)
       });
+    });
+  }
+  /** v0 node summary: canonical name, nodeId and both identity bindings. */
+  async nodeSelf() {
+    return this.request("/api/v1/nodes/self");
+  }
+  /** Revoke both identities of this node (v0 "exit mesh"). */
+  async revokeNodeSelf() {
+    return this.request("/api/v1/nodes/self", { method: "DELETE" });
+  }
+  /** Rename this node. The Server accepts only the owning device's token. */
+  async renameSelf(name2) {
+    const identity3 = this.requireIdentity();
+    return this.request(`/api/v1/devices/${encodeURIComponent(identity3.deviceId)}/name`, {
+      method: "POST",
+      body: JSON.stringify({ name: name2 })
     });
   }
   currentAuthorization() {
@@ -85590,7 +85614,9 @@ function parseHostDevice(value) {
     ...typeof item.online === "boolean" ? { online: item.online } : {},
     ...typeof item.lastSeenAt === "number" && Number.isSafeInteger(item.lastSeenAt) ? { lastSeenAt: item.lastSeenAt } : {},
     ...typeof item.clientVersion === "string" ? { clientVersion: item.clientVersion } : {},
-    ...typeof item.harnessVersion === "string" ? { harnessVersion: item.harnessVersion } : {}
+    ...typeof item.harnessVersion === "string" ? { harnessVersion: item.harnessVersion } : {},
+    ...typeof item.nodeId === "string" ? { nodeId: item.nodeId } : {},
+    ...typeof item.nodeName === "string" ? { nodeName: item.nodeName } : {}
   };
 }
 function parseAuthorizedPeer(value) {
@@ -85636,7 +85662,7 @@ function requireRecord(value, name2) {
   return value;
 }
 
-// packages/plugin/src/terminal-carrier-compat.ts
+// src/terminal-carrier-compat.ts
 var identity2 = external_exports.string().regex(/^[A-Za-z0-9_:-]{1,256}$/);
 var attachmentArgs = external_exports.object({ agentId: identity2, id: identity2, attachmentId: identity2 }).strict();
 var dimensions = { cols: external_exports.number().int().min(1).max(1e3), rows: external_exports.number().int().min(1).max(1e3) };
@@ -85860,7 +85886,7 @@ function isRecord10(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// packages/plugin/src/typert-gateway-switch.ts
+// src/typert-gateway-switch.ts
 var REMOTE_COMMAND_METHODS = ["execute", "list"];
 var LOCAL_ONLY_NAMESPACES = /* @__PURE__ */ new Set(["dynamicCordisRunner"]);
 var ALL_REMOTE_COMMANDS = { execute: true, list: true };
@@ -86098,11 +86124,11 @@ function normalizeTerminalEnvironment(endpoint, value) {
   return { ...value, maxBufferedBytes: 256 * 1024 };
 }
 
-// packages/plugin/src/werift-rtc.ts
+// src/werift-rtc.ts
 import { createSocket as createSocket4 } from "node:dgram";
 import { networkInterfaces as networkInterfaces2 } from "node:os";
 
-// packages/plugin/src/native-rtc-helper.ts
+// src/native-rtc-helper.ts
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { delimiter, dirname as dirname3, join as join4 } from "node:path";
@@ -86628,7 +86654,7 @@ process.stdin.on('end', () => {
 })
 `;
 
-// packages/plugin/src/werift-rtc.ts
+// src/werift-rtc.ts
 var cachedFactory;
 var cachedWerift;
 var cachedNativeFactory;
@@ -87171,15 +87197,16 @@ function isPrivate(ip) {
   return parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
 }
 
-// packages/plugin/src/client-runtime.ts
+// src/client-runtime.ts
 var ClientModeRuntime = class {
-  constructor(config2, identities, server, typertGateway, logger2, host, rtcFactoryProvider = loadNodeRtcFactory) {
+  constructor(config2, identities, server, typertGateway, logger2, host, rtcFactoryProvider = loadNodeRtcFactory, createWebSocket) {
     this.config = config2;
     this.identities = identities;
     this.server = server;
     this.logger = logger2;
     this.host = host;
     this.rtcFactoryProvider = rtcFactoryProvider;
+    this.createWebSocket = createWebSocket;
     const owner = this;
     this.reconnect = new ClientReconnect(config2.reconnect);
     this.connection = new ClientConnection({
@@ -87210,7 +87237,8 @@ var ClientModeRuntime = class {
       },
       get identities() {
         return owner.identities;
-      }
+      },
+      ...this.createWebSocket === void 0 ? {} : { createWebSocket: this.createWebSocket }
     });
     this.control = new ClientControl({
       detailedStatus: (...args) => owner.detailedStatus(...args),
@@ -88179,11 +88207,11 @@ var ClientModeRuntime = class {
   }
 };
 
-// packages/plugin/src/control-runtime.ts
+// src/control-runtime.ts
 import { hostname as hostname4 } from "node:os";
 import { execFileSync as execFileSync2 } from "node:child_process";
 
-// packages/plugin/src/pairing-contract.ts
+// src/pairing-contract.ts
 var pairingDeviceSchema = external_exports.object({
   deviceId: external_exports.string().min(1).max(128),
   name: external_exports.string().max(128),
@@ -88233,7 +88261,7 @@ var savedPairingSchema = external_exports.object({
   localSaved: external_exports.boolean()
 }).strict();
 
-// packages/plugin/src/identity-store.ts
+// src/identity-store.ts
 import { createHash as createHash5 } from "node:crypto";
 import { chmod as chmod2, lstat, mkdir as mkdir3, readFile as readFile3, readdir, rename as rename2, rm as rm3, stat as stat2, unlink, writeFile as writeFile2 } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
@@ -89064,7 +89092,7 @@ async function removeStaleTemporaries(directory) {
   }));
 }
 
-// packages/plugin/src/control-stream.ts
+// src/control-stream.ts
 var STATUS_STREAM_SAMPLE_INTERVAL_MS = 1500;
 var STATUS_STREAM_HEARTBEAT_INTERVAL_MS = 15e3;
 var STATUS_STREAM_RETRY_MS = 3e3;
@@ -89207,14 +89235,14 @@ var ControlStatusStream = class {
   }
 };
 
-// packages/plugin/src/codex/domain.ts
+// src/codex/domain.ts
 import { randomUUID as randomUUID13 } from "node:crypto";
 import { accessSync, constants as constants2, existsSync as existsSync2, readdirSync as readdirSync2, readFileSync, statSync as statSync2 } from "node:fs";
 import { readdir as readdir2, realpath, stat as stat3 } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
 import { basename as basename4, isAbsolute as isAbsolute3, join as join6, relative, resolve as resolve2 } from "node:path";
 
-// packages/plugin/src/codex/app-server.ts
+// src/codex/app-server.ts
 import { spawn as spawn2 } from "node:child_process";
 import { Buffer as Buffer2 } from "node:buffer";
 var APP_SERVER_REQUEST_TIMEOUT_MS = 6e4;
@@ -89467,7 +89495,7 @@ function isRecord12(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// packages/plugin/src/codex/method-policy.ts
+// src/codex/method-policy.ts
 var id3 = external_exports.string().min(1).max(256);
 var cursor2 = external_exports.string().min(1).max(4096).nullable().optional();
 var textInput = external_exports.object({
@@ -89580,7 +89608,7 @@ function threadIdFromParams(params) {
   return typeof params.threadId === "string" ? params.threadId : void 0;
 }
 
-// packages/plugin/src/compact-history.ts
+// src/compact-history.ts
 var LIMIT = 512;
 var object2 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 var summary2 = (value) => {
@@ -89632,7 +89660,7 @@ function compactHistory(value) {
   return project(value);
 }
 
-// packages/plugin/src/codex/history-preview.ts
+// src/codex/history-preview.ts
 import { randomUUID as randomUUID12 } from "node:crypto";
 var object3 = (v) => v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
 var details = /* @__PURE__ */ new WeakMap();
@@ -89695,7 +89723,7 @@ async function previewCall(peer, input4, invoke) {
   return preview;
 }
 
-// packages/plugin/src/codex/peer-bridge.ts
+// src/codex/peer-bridge.ts
 import { Buffer as Buffer3 } from "node:buffer";
 var streamOpenSchema = external_exports.object({
   streamId: external_exports.string().min(1).max(128),
@@ -89975,7 +90003,7 @@ function concatChunks(chunks, totalBytes) {
   return output2;
 }
 
-// packages/plugin/src/codex/domain.ts
+// src/codex/domain.ts
 var APPROVAL_TTL_MS = 5 * 6e4;
 var DEFAULT_RESTART_DELAYS_MS = [1e3, 2e3, 4e3, 8e3, 15e3];
 var CODEX_PAGE_LIMIT2 = 100;
@@ -91282,7 +91310,7 @@ function isUnmaterializedThreadError(error62) {
   return error62 instanceof RpcError && error62.code === CODEX_THREAD_UNMATERIALIZED;
 }
 
-// packages/plugin/src/acp/adapters/session-models.ts
+// src/acp/adapters/session-models.ts
 var AcpSessionModelState = class {
   constructor(backend) {
     this.backend = backend;
@@ -91361,7 +91389,7 @@ function record8(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// packages/plugin/src/acp/adapters/cursor-process.ts
+// src/acp/adapters/cursor-process.ts
 import { spawn as spawn3 } from "node:child_process";
 import { Buffer as Buffer4 } from "node:buffer";
 var ACP_REQUEST_TIMEOUT_MS = 6e4;
@@ -91681,7 +91709,7 @@ function isRecord15(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// packages/plugin/src/acp/history-events.ts
+// src/acp/history-events.ts
 function acpHistoryEvents(messages, sessionId, provider) {
   const events = [];
   const tools = /* @__PURE__ */ new Map();
@@ -91799,7 +91827,7 @@ function acpHistoryEvents(messages, sessionId, provider) {
   return events;
 }
 
-// packages/plugin/src/acp/adapters/isolated-process.ts
+// src/acp/adapters/isolated-process.ts
 var IsolatedAcpClient = class {
   constructor(binary, logger2, options = {}, factory = () => new CursorAcpClient(
     binary,
@@ -92078,15 +92106,15 @@ var IsolatedAcpClient = class {
   }
 };
 
-// packages/plugin/src/workspace-bridge.ts
+// src/workspace-bridge.ts
 import { realpath as realpath2, lstat as lstat2, readdir as readdir3, open as open4, stat as stat4, watch } from "node:fs/promises";
 import { isAbsolute as isAbsolute5, join as join8, relative as relative2, resolve as resolve3 } from "node:path";
 
-// packages/plugin/src/remote-terminal-controller.ts
+// src/remote-terminal-controller.ts
 var import_headless = __toESM(require_xterm_headless(), 1);
 var import_addon_serialize = __toESM(require_addon_serialize(), 1);
 
-// packages/plugin/src/remote-terminal-provider.ts
+// src/remote-terminal-provider.ts
 import { spawn as spawn4 } from "node:child_process";
 import { access } from "node:fs/promises";
 import { constants as constants3 } from "node:fs";
@@ -92231,7 +92259,7 @@ function subprocessTerminalSpawner(subprocess) {
   }, { shells: (signal) => discoverTerminalShells(subprocess, signal) });
 }
 
-// packages/plugin/src/remote-terminal-controller.ts
+// src/remote-terminal-controller.ts
 var MAX_INPUT_BYTES = 64 * 1024;
 var MAX_COLS = 240;
 var MAX_ROWS = 100;
@@ -92671,7 +92699,7 @@ function dimension(value, max) {
   return value;
 }
 
-// packages/plugin/src/workspace-bridge.ts
+// src/workspace-bridge.ts
 var MAX_READ_BYTES = 4 * 1024 * 1024;
 var WorkspaceBridgeState = class extends RemoteTerminalState {
 };
@@ -92903,14 +92931,14 @@ function readLimit(args) {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? Math.min(value, MAX_READ_BYTES) : MAX_READ_BYTES;
 }
 
-// packages/plugin/src/codex/session-id.ts
+// src/codex/session-id.ts
 function parseCodexSessionId(value) {
   if (typeof value !== "string") return void 0;
   const match = /^codex:([A-Za-z0-9][A-Za-z0-9._-]{0,255})$/.exec(value);
   return match === null ? void 0 : { sessionId: value, threadId: match[1] };
 }
 
-// packages/plugin/src/terminal-policy.ts
+// src/terminal-policy.ts
 var TERMINAL_CALLS = /* @__PURE__ */ new Set([
   "terminal/environment",
   "terminal/shells",
@@ -92987,7 +93015,7 @@ var TerminalPolicy = class _TerminalPolicy {
   }
 };
 
-// packages/plugin/src/acp/workspace-tools.ts
+// src/acp/workspace-tools.ts
 var AcpWorkspaceTools = class {
   constructor(bridge, terminal) {
     this.bridge = bridge;
@@ -93025,16 +93053,16 @@ var AcpWorkspaceTools = class {
   }
 };
 
-// packages/plugin/src/acp/gateway.ts
+// src/acp/gateway.ts
 import { randomUUID as randomUUID15 } from "node:crypto";
 import { readdir as readdir4, realpath as realpath5, stat as stat5 } from "node:fs/promises";
 import { homedir as homedir6 } from "node:os";
 import { basename as basename6, isAbsolute as isAbsolute7, join as join12, relative as relative4, resolve as resolve5 } from "node:path";
 
-// packages/plugin/src/acp/adapters/claude-process.ts
+// src/acp/adapters/claude-process.ts
 import { Buffer as Buffer5 } from "node:buffer";
 
-// packages/plugin/src/acp/adapters/claude-history.ts
+// src/acp/adapters/claude-history.ts
 function claudeHistoryEvents(messages, sessionId, provider = "claude") {
   const events = [];
   const tools = /* @__PURE__ */ new Map();
@@ -93159,7 +93187,7 @@ function claudeHistoryEvents(messages, sessionId, provider = "claude") {
   return events;
 }
 
-// packages/plugin/src/acp/adapters/claude-process.ts
+// src/acp/adapters/claude-process.ts
 var ClaudeAcpClient = class extends CursorAcpClient {
   live = /* @__PURE__ */ new Map();
   loads = /* @__PURE__ */ new Map();
@@ -93282,7 +93310,7 @@ var ClaudeAcpClient = class extends CursorAcpClient {
   }
 };
 
-// packages/plugin/src/acp/adapters/hermes-process.ts
+// src/acp/adapters/hermes-process.ts
 var HERMES_ACP_COMMAND = "hermes";
 var HERMES_ACP_ARGS = ["acp"];
 var HermesAcpClient = class extends ClaudeAcpClient {
@@ -93291,11 +93319,11 @@ var HermesAcpClient = class extends ClaudeAcpClient {
   }
 };
 
-// packages/plugin/src/acp/adapters/pi-process.ts
+// src/acp/adapters/pi-process.ts
 var PiAcpClient = class extends IsolatedAcpClient {
 };
 
-// packages/plugin/src/acp/adapters/antigravity/models.ts
+// src/acp/adapters/antigravity/models.ts
 import { execFile } from "node:child_process";
 import { promisify as promisify2 } from "node:util";
 var exec = promisify2(execFile);
@@ -93353,7 +93381,7 @@ function agySelectionArgs(catalog, modelId, effort) {
   };
 }
 
-// packages/plugin/src/acp/adapters/antigravity/image-store.ts
+// src/acp/adapters/antigravity/image-store.ts
 import { promises as fs, realpathSync as realpathSync2, constants as constants4 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as join9, basename as basename5 } from "node:path";
@@ -93455,12 +93483,12 @@ async function readAgyImage(sessionId, path, root2 = AGY_IMAGE_ROOT) {
   }
 }
 
-// packages/plugin/src/acp/adapters/antigravity-process.ts
+// src/acp/adapters/antigravity-process.ts
 import { spawn as spawn5 } from "node:child_process";
 import { Buffer as Buffer6 } from "node:buffer";
 import { existsSync as existsSync3 } from "node:fs";
 
-// packages/plugin/src/acp/adapters/antigravity/transcript-watcher.ts
+// src/acp/adapters/antigravity/transcript-watcher.ts
 import { promises as fs2 } from "node:fs";
 import { join as join10 } from "node:path";
 import { EventEmitter as EventEmitter2 } from "node:events";
@@ -93604,7 +93632,7 @@ var TranscriptWatcher = class extends EventEmitter2 {
   }
 };
 
-// packages/plugin/src/acp/adapters/antigravity-process.ts
+// src/acp/adapters/antigravity-process.ts
 var ACP_PROMPT_TIMEOUT_MS2 = 10 * 6e4;
 var ACP_START_TIMEOUT_MS2 = 2e4;
 var MAX_STDERR_CAPTURE_BYTES3 = 4 * 1024;
@@ -94192,12 +94220,12 @@ function withoutSelectionArgs(args) {
   return filtered;
 }
 
-// packages/plugin/src/acp/adapters/opencode-process.ts
+// src/acp/adapters/opencode-process.ts
 import { spawn as spawn6 } from "node:child_process";
 import { Buffer as Buffer7 } from "node:buffer";
 import { realpath as realpath4 } from "node:fs/promises";
 
-// packages/plugin/src/acp/adapters/opencode-native-api.ts
+// src/acp/adapters/opencode-native-api.ts
 import { randomBytes as randomBytes12 } from "node:crypto";
 import { createServer as createServer3 } from "node:net";
 import { realpath as realpath3 } from "node:fs/promises";
@@ -94312,7 +94340,7 @@ function unavailable() {
   return new RpcError("OPENCODE_ARCHIVE_UNAVAILABLE", "OpenCode did not confirm the archive operation. Check the Host OpenCode version and retry after refreshing its session list.");
 }
 
-// packages/plugin/src/acp/adapters/opencode-process.ts
+// src/acp/adapters/opencode-process.ts
 var ACP_REQUEST_TIMEOUT_MS2 = 6e4;
 var ACP_PROMPT_TIMEOUT_MS3 = 10 * 6e4;
 var ACP_START_TIMEOUT_MS3 = 2e4;
@@ -94756,7 +94784,7 @@ function isRecord17(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// packages/plugin/src/acp/method-policy.ts
+// src/acp/method-policy.ts
 var id5 = external_exports.string().min(1).max(256);
 var cwd = external_exports.string().min(1).max(4096);
 var mode = external_exports.enum(["agent", "plan", "ask"]);
@@ -94862,7 +94890,7 @@ function isSessionMutation(method) {
   return method === "session/prompt" || method === "session/cancel" || method === "dsh/selectModel" || method === "dsh/selectPermission" || method === "dsh/toolCall";
 }
 
-// packages/plugin/src/acp/adapters/antigravity/transcript-loader.ts
+// src/acp/adapters/antigravity/transcript-loader.ts
 import { promises as fs3 } from "node:fs";
 import { isAbsolute as isAbsolute6, join as join11, relative as relative3, resolve as resolve4, sep } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -95170,7 +95198,7 @@ async function transcriptPath(baseDir, conversationId) {
   }
 }
 
-// packages/plugin/src/acp/peer-bridge.ts
+// src/acp/peer-bridge.ts
 import { Buffer as Buffer8 } from "node:buffer";
 var streamOpenSchema2 = external_exports.object({
   streamId: external_exports.string().min(1).max(128),
@@ -95522,7 +95550,7 @@ function concatChunks2(chunks, totalBytes) {
   return output2;
 }
 
-// packages/plugin/src/acp/gateway.ts
+// src/acp/gateway.ts
 var APPROVAL_TTL_MS2 = 5 * 6e4;
 var BACKEND_STABLE_MS = 3e4;
 var DEFAULT_RESTART_DELAYS_MS2 = [1e3, 2e3, 4e3, 8e3, 15e3];
@@ -96905,7 +96933,7 @@ function isRecord19(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// packages/plugin/src/acp/backend-installer.ts
+// src/acp/backend-installer.ts
 import { execFile as execFile3, execFileSync } from "node:child_process";
 import { existsSync as existsSync4, constants as constants5, accessSync as accessSync2, statSync as statSync3 } from "node:fs";
 import { homedir as homedir7 } from "node:os";
@@ -97243,7 +97271,7 @@ async function installOrConfigureBackend(backendId, options = {}) {
   throw new Error(`Installation of ${spec.name} completed but executable could not be verified.`);
 }
 
-// packages/plugin/src/control-runtime.ts
+// src/control-runtime.ts
 var PluginControlRuntime = class {
   constructor(config2, identityDirectory, settings, client, host, switchServer, updates, useDefaultStorage = false) {
     this.config = config2;
@@ -97869,7 +97897,7 @@ function fail5(error62) {
   };
 }
 
-// packages/plugin/src/logging.ts
+// src/logging.ts
 var levels = ["debug", "info", "warn", "error"];
 var secretKey = /authorization|cookie|token|secret|private|shared|ciphertext|payload|prompt|source|workspace|output|registrationCode|deviceCode/i;
 var SafeLogger = class {
@@ -97903,7 +97931,7 @@ function redact(value, key = "") {
   return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [childKey, redact(child, childKey)]));
 }
 
-// packages/plugin/src/host-pairing.ts
+// src/host-pairing.ts
 import { createHash as createHash7, createHmac as createHmac6, createPrivateKey as createPrivateKey4, createPublicKey as createPublicKey2, diffieHellman as diffieHellman2, hkdfSync, randomBytes as randomBytes13, createCipheriv as createCipheriv5, createDecipheriv as createDecipheriv4 } from "node:crypto";
 import { join as join14 } from "node:path";
 import { rm as rm4 } from "node:fs/promises";
@@ -98131,7 +98159,7 @@ var HostPairing = class {
   }
 };
 
-// packages/plugin/src/workspace-upload.ts
+// src/workspace-upload.ts
 import { randomUUID as randomUUID16 } from "node:crypto";
 import { constants as constants6 } from "node:fs";
 import { link, lstat as lstat3, open as open5, realpath as realpath6, stat as stat6, unlink as unlink2 } from "node:fs/promises";
@@ -98328,7 +98356,7 @@ function validName(name2) {
   return Buffer.byteLength(name2, "utf8") <= 220 && name2 !== "." && name2 !== ".." && !/[/\\\x00-\x1f\x7f<>:"|?*]/u.test(name2) && !/[. ]$/u.test(name2) && !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/iu.test(name2) && !name2.startsWith(".dsh-upload-");
 }
 
-// packages/plugin/src/workspace-upload-authority.ts
+// src/workspace-upload-authority.ts
 function workspaceUploadRootResolver(gateway, supportsHarnessSessions, codex, acp) {
   return async (sessionId, signal) => {
     signal.throwIfAborted();
@@ -98349,7 +98377,7 @@ function unavailable2() {
   return new RpcError("UPLOAD_WORKSPACE_UNAVAILABLE", "The session workspace is unavailable.");
 }
 
-// packages/plugin/src/connection-controller.ts
+// src/connection-controller.ts
 var ConnectionController = class {
   constructor(identities, createRouter, logger2) {
     this.identities = identities;
@@ -98378,7 +98406,7 @@ var ConnectionController = class {
       await channel.close("SECURE_CHANNEL_FAILED");
       throw new ConnectionRejectedError("SECURE_CHANNEL_FAILED", "The connection id is already bound to another peer.");
     }
-    const replaced = [...this.active.values()].filter((connection2) => connection2.channel.peerDeviceId === channel.peerDeviceId || connection2.channel.security.connectionId === connectionId);
+    const replaced = [...this.active.values()].filter((connection2) => connection2.channel.security.connectionId === connectionId);
     if (replaced.length > 0) {
       this.logger?.warn("replacing active peer connection", {
         peerDeviceId: shortId2(channel.peerDeviceId),
@@ -98564,7 +98592,7 @@ function shortId2(value) {
   return value.length <= 12 ? value : `${value.slice(0, 8)}\u2026${value.slice(-4)}`;
 }
 
-// packages/plugin/src/rpc-router.ts
+// src/rpc-router.ts
 var wireRequestSchema = external_exports.object({ method: external_exports.string().min(1), params: external_exports.unknown() }).strict();
 var emptyParamsSchema = external_exports.object({}).strict();
 var historyConfigureSchema = external_exports.object({ compact: external_exports.boolean() }).strict();
@@ -98817,12 +98845,12 @@ function errorResponse2(requestId, error62) {
   );
 }
 
-// packages/plugin/src/file-viewer-contract.ts
+// src/file-viewer-contract.ts
 var REMOTE_FILE_CHUNK_BYTES = 512 * 1024;
 var MAX_REMOTE_FILE_LOCATOR_CHARS = 4096;
 var MAX_REMOTE_DIRECTORY_ENTRIES = 1e3;
 
-// packages/plugin/src/file-viewer-bridge.ts
+// src/file-viewer-bridge.ts
 var locatorSchema = external_exports.string().min(1).max(MAX_REMOTE_FILE_LOCATOR_CHARS);
 var callSchema2 = external_exports.discriminatedUnion("endpoint", [
   external_exports.object({
@@ -98937,7 +98965,7 @@ function isOversizedListing(value) {
   return typeof value === "object" && value !== null && "entries" in value && Array.isArray(value.entries) && value.entries.length > MAX_REMOTE_DIRECTORY_ENTRIES;
 }
 
-// packages/plugin/src/server-connection.ts
+// src/server-connection.ts
 var DEFAULT_WEBRTC_NEGOTIATE_TIMEOUT_MS = 12e3;
 var HostServerConnection = class {
   constructor(config2, identity3, identities, api, connections, logger2, createWebSocket = (url2) => new WebSocket(url2), rtcFactoryProvider, hostCapabilities = () => [], harnessVersion) {
@@ -100258,12 +100286,12 @@ function closeCode(code) {
   return "CONNECTION_FAILED";
 }
 
-// packages/plugin/src/harness-remote-bridge.ts
+// src/harness-remote-bridge.ts
 import { randomUUID as randomUUID17 } from "node:crypto";
 import { lstat as lstat4, realpath as realpath7, stat as stat8 } from "node:fs/promises";
 import { dirname as dirname7, isAbsolute as isAbsolute10, join as join16, parse as parse4, relative as relative5, resolve as resolve8, sep as sep2 } from "node:path";
 
-// packages/plugin/src/remote-directory-browser.ts
+// src/remote-directory-browser.ts
 import { mkdir as mkdir4, readdir as readdir5, stat as stat7 } from "node:fs/promises";
 import { homedir as homedir8, platform as platform2 } from "node:os";
 import { basename as basename7, dirname as dirname6, isAbsolute as isAbsolute9, parse as parse3, resolve as resolve7 } from "node:path";
@@ -100314,7 +100342,7 @@ function crumbs(path) {
   return result;
 }
 
-// packages/plugin/src/harness-remote-bridge.ts
+// src/harness-remote-bridge.ts
 var endpointSchema = external_exports.string().min(1).max(128).regex(/^(?:\$events(?:\/result)?|[A-Za-z0-9_$.-]+\/[A-Za-z0-9_$.-]+)$/);
 var callSchema3 = external_exports.object({ endpoint: endpointSchema, payload: external_exports.unknown() }).strict();
 var streamOpenSchema3 = external_exports.object({
@@ -101456,11 +101484,11 @@ function remoteOwnedBundleRow(row, plugin) {
   return !plugin && (!Array.isArray(row.rows) || row.rows.some((value) => !isRecord22(value) || remoteModule(value.moduleName)) || Array.isArray(row.overrides) && row.overrides.some((value) => remoteModule(value)));
 }
 
-// packages/plugin/src/service.ts
+// src/service.ts
 import { execFileSync as execFileSync3 } from "node:child_process";
 import { existsSync as existsSync5 } from "node:fs";
 
-// packages/plugin/src/codex-workspace-bridge.ts
+// src/codex-workspace-bridge.ts
 var CodexWorkspaceBridge = class extends WorkspaceBridge {
   constructor(resolveCwd, terminalEnabled, state2 = new WorkspaceBridgeState(), spawnTerminal = pipeTerminalSpawner()) {
     super(resolveCwd, terminalEnabled, state2, spawnTerminal, {
@@ -101477,9 +101505,9 @@ var CodexWorkspaceBridge = class extends WorkspaceBridge {
   }
 };
 
-// packages/plugin/src/service.ts
+// src/service.ts
 var HostPluginRuntime = class {
-  constructor(config2, identities, logger2, localGateway, fileViewerHost, terminalSpawner, pluginRoutes, schedule) {
+  constructor(config2, identities, logger2, localGateway, fileViewerHost, terminalSpawner, pluginRoutes, schedule, injectedServerApi, webSocketFactory) {
     this.config = config2;
     this.identities = identities;
     this.logger = logger2;
@@ -101488,6 +101516,8 @@ var HostPluginRuntime = class {
     this.terminalSpawner = terminalSpawner;
     this.pluginRoutes = pluginRoutes;
     this.schedule = schedule;
+    this.injectedServerApi = injectedServerApi;
+    this.webSocketFactory = webSocketFactory;
     this.terminalEnabled = config2.terminal.enabled;
     this.loopbackPorts = [...config2.loopback.ports];
     this.codex = new CodexRemoteDomain(config2.codex, logger2);
@@ -101549,7 +101579,7 @@ var HostPluginRuntime = class {
       );
     }, this.logger);
     if (config2.serverUrl !== void 0) {
-      this.serverApi = new HostServerApi(config2.serverUrl, new ServerCredentialStore(identities.directory));
+      this.serverApi = this.injectedServerApi ?? new HostServerApi(config2.serverUrl, new ServerCredentialStore(identities.directory));
     }
   }
   connections;
@@ -101879,7 +101909,7 @@ var HostPluginRuntime = class {
       this.serverApi,
       this.connections,
       this.logger,
-      void 0,
+      this.webSocketFactory,
       this.config.forceRelay ? void 0 : () => loadNodeRtcFactory({ routeTargets: this.config.serverUrl === void 0 ? [] : [this.config.serverUrl] }),
       () => this.hostCapabilities(),
       this.harnessVersion
@@ -101989,7 +102019,99 @@ function isPlainRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// packages/plugin/src/plugin-route-dispatcher.ts
+// src/pinned-tls.ts
+import { createHash as createHash8, timingSafeEqual as timingSafeEqual2, X509Certificate as X509Certificate3 } from "node:crypto";
+import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
+import { checkServerIdentity as checkServerIdentity2 } from "node:tls";
+function fingerprintBytes(fingerprint3) {
+  const normalized = fingerprint3.trim().replace(/-/g, "+").replace(/_/g, "/");
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(normalized)) throw new Error("Invalid certificate fingerprint.");
+  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+  const bytes = Buffer.from(padded, "base64");
+  if (bytes.length !== 32) throw new Error("Certificate fingerprint must be a SHA-256 digest.");
+  return bytes;
+}
+function publicKeyBytes(certificate) {
+  if (certificate.pubkey !== void 0) return certificate.pubkey;
+  return new X509Certificate3(certificate.raw).publicKey.export({ type: "spki", format: "der" });
+}
+function verifyPinned(certificate, expected) {
+  const actual = createHash8("sha256").update(publicKeyBytes(certificate)).digest();
+  return actual.length === expected.length && timingSafeEqual2(actual, expected) ? void 0 : new Error("Server certificate public key does not match the pinned fingerprint.");
+}
+function createPinnedFetch(fingerprint3) {
+  if (fingerprint3.trim() === "") return (input4, init) => fetch(input4, init);
+  const expected = fingerprintBytes(fingerprint3);
+  const agent = new HttpsAgent({
+    keepAlive: true,
+    // Pinning replaces CA verification: the check below is the authentication
+    // decision, so a private CA or the system store is not consulted.
+    rejectUnauthorized: false,
+    checkServerIdentity: (host, certificate) => {
+      const identity3 = checkServerIdentity2(host, certificate);
+      if (identity3 !== void 0) return identity3;
+      return verifyPinned(certificate, expected);
+    }
+  });
+  const pinned = async (input4, init = {}) => {
+    const url2 = new URL(typeof input4 === "string" ? input4 : input4 instanceof URL ? input4.href : input4.url);
+    if (url2.protocol !== "https:") return fetch(input4, init);
+    const method = init.method ?? (typeof input4 === "object" && "method" in input4 ? input4.method : "GET");
+    const headers = {};
+    new Headers(init.headers ?? (typeof input4 === "object" && "headers" in input4 ? input4.headers : void 0)).forEach((value, key) => {
+      headers[key] = value;
+    });
+    const body = init.body;
+    return await new Promise((resolve9, reject) => {
+      const request = httpsRequest(url2, { method, headers, agent, signal: init.signal ?? void 0 }, (response) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        response.on("end", () => {
+          const responseHeaders = {};
+          for (const [key, value] of Object.entries(response.headers)) {
+            if (value === void 0) continue;
+            responseHeaders[key] = Array.isArray(value) ? value.join(", ") : String(value);
+          }
+          resolve9(new Response(Buffer.concat(chunks), {
+            status: response.statusCode ?? 502,
+            statusText: response.statusMessage ?? "",
+            headers: responseHeaders
+          }));
+        });
+        response.on("error", reject);
+      });
+      request.on("error", reject);
+      if (body !== void 0 && body !== null) {
+        if (typeof body === "string" || Buffer.isBuffer(body)) request.write(body);
+        else reject(new Error("Pinned fetch only supports string or Buffer request bodies."));
+      }
+      request.end();
+    });
+  };
+  return pinned;
+}
+function createPinnedWebSocketFactory(fingerprint3) {
+  if (fingerprint3.trim() === "") {
+    return (url2) => new import_websocket.default(url2);
+  }
+  const expected = fingerprintBytes(fingerprint3);
+  const agent = new HttpsAgent({
+    keepAlive: true,
+    rejectUnauthorized: false,
+    checkServerIdentity: (host, certificate) => {
+      const identity3 = checkServerIdentity2(host, certificate);
+      if (identity3 !== void 0) return identity3;
+      return verifyPinned(certificate, expected);
+    }
+  });
+  return (url2) => new import_websocket.default(url2, { agent });
+}
+function createPinnedAdaptiveWebSocket(fingerprint3) {
+  const factory = createPinnedWebSocketFactory(fingerprint3);
+  return (url2) => factory(url2);
+}
+
+// src/plugin-route-dispatcher.ts
 function createPluginRouteDispatcher(readConnection, readPort, peer) {
   let cookie;
   return async (route, body, signal) => {
@@ -102044,7 +102166,7 @@ function withSignal(pending, signal) {
   });
 }
 
-// packages/plugin/src/remote-tools.ts
+// src/remote-tools.ts
 var emptyInput = external_exports.object({}).strict();
 var workspaceInput = external_exports.object({ hostId: external_exports.string().min(1).max(256) }).strict();
 var string8 = { type: "string" };
@@ -102196,7 +102318,7 @@ function installRemoteDiscoveryTools(ctx, resolve9) {
   });
 }
 
-// packages/plugin/src/hmr-safe-settings.ts
+// src/hmr-safe-settings.ts
 var PUMP_KEY = Symbol.for("ds-harness-remote.hmr-safe-settings-pump");
 function createPump() {
   const queue = [];
@@ -102239,7 +102361,7 @@ function runHmrSafe(run, hmr) {
   });
 }
 
-// packages/plugin/src/update-check.ts
+// src/update-check.ts
 var DIST_TAG_URLS = [
   "https://registry.npmjs.org/-/package/ds-harness-remote/dist-tags",
   "https://registry.npmmirror.com/-/package/ds-harness-remote/dist-tags"
@@ -102341,7 +102463,7 @@ var PluginUpdateChecker = class {
   }
 };
 
-// packages/plugin/src/tui-event-source.ts
+// src/tui-event-source.ts
 async function assertRemoteEventSource(gateway) {
   const peerGateway = gateway.createPeer?.();
   if (peerGateway?.peer === void 0) {
@@ -102366,7 +102488,7 @@ async function assertRemoteEventSource(gateway) {
   }
 }
 
-// packages/plugin/src/owner-peer.ts
+// src/owner-peer.ts
 function ownerPeerConstructor(connectionExports) {
   const candidate = typeof connectionExports.Peer === "function" ? connectionExports.Peer : connectionExports.OperatorPeer;
   return typeof candidate === "function" ? candidate : void 0;
@@ -102389,7 +102511,7 @@ function createOwnerPeerFactory(ctx, constructor, connection) {
   };
 }
 
-// packages/plugin/src/remote-file-content-provider.ts
+// src/remote-file-content-provider.ts
 var REMOTE_FILE_SAVE_AS_MAX_BYTES = 100 * 1024 * 1024;
 var REMOTE_FILE_FAST_SAVE_AS_MAX_BYTES = 1024 * 1024 * 1024;
 function createRemoteFileContentProvider(call, options = {}) {
@@ -102462,7 +102584,7 @@ function decodeBase64(value) {
   return bytes;
 }
 
-// packages/plugin/src/cli.ts
+// src/cli.ts
 import { stat as stat9 } from "node:fs/promises";
 import { hostname as hostname5 } from "node:os";
 import { join as join17 } from "node:path";
@@ -102549,7 +102671,7 @@ Waiting for authorization...
 }
 async function status(args, runtime) {
   if (args.length !== 0) throw new CliUsageError("Usage: ds-harness-remote status");
-  const serverUrl = selectedServer();
+  const serverUrl = selectedServer(runtime.env);
   const root2 = await prepareDefaultIdentityDirectory({ env: runtime.env });
   const directory = serverStorageDirectory(root2, serverUrl, "host");
   const lines = [
@@ -102599,7 +102721,7 @@ Run "ds-harness-remote login" to authorize this Host.
 }
 async function logout(args, runtime) {
   if (args.length !== 0) throw new CliUsageError("Usage: ds-harness-remote logout");
-  const serverUrl = selectedServer();
+  const serverUrl = selectedServer(runtime.env);
   const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname5();
   let root2;
   try {
@@ -102652,7 +102774,7 @@ async function resetIdentity(args, runtime) {
   if (roleArg !== void 0 && roleArg !== "host" && roleArg !== "client" && roleArg !== "all") {
     throw new CliUsageError("Usage: ds-harness-remote reset-identity [host|client|all]");
   }
-  const serverUrl = selectedServer();
+  const serverUrl = selectedServer(runtime.env);
   const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname5();
   const roles = roleArg === "client" ? ["client"] : roleArg === "host" ? ["host"] : ["host", "client"];
   await resetDefaultIdentityRoles(roles, serverUrl, deviceName, {
@@ -102667,7 +102789,7 @@ async function resetIdentity(args, runtime) {
   return 0;
 }
 async function hostContext(runtime) {
-  const serverUrl = selectedServer();
+  const serverUrl = selectedServer(runtime.env);
   const root2 = await prepareDefaultIdentityDirectory({ env: runtime.env });
   const directory = serverStorageDirectory(root2, serverUrl, "host");
   const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname5();
@@ -102676,8 +102798,12 @@ async function hostContext(runtime) {
   const api = runtime.createHostApi(serverUrl, new ServerCredentialStore(directory));
   return { api, identities, identity: identity3, deviceName };
 }
-function selectedServer() {
-  return normalizeServerUrl(DEFAULT_REMOTE_SERVER_URL);
+function selectedServer(env = process.env) {
+  const configured = (env.DSH_REMOTE_DEFAULT_SERVER ?? DEFAULT_REMOTE_SERVER_URL).trim();
+  if (configured === "") {
+    throw new Error("\u672A\u914D\u7F6E\u9ED8\u8BA4\u670D\u52A1\u5668\uFF1A\u8BF7\u8BBE\u7F6E DSH_REMOTE_DEFAULT_SERVER \u73AF\u5883\u53D8\u91CF\uFF0C\u6216\u5728\u63D2\u4EF6\u8BBE\u7F6E\u91CC\u586B\u5199\u670D\u52A1\u5668\u5730\u5740\u3002");
+  }
+  return normalizeServerUrl(configured);
 }
 function resolveDependencies(input4) {
   return {
@@ -102734,7 +102860,7 @@ function helpText() {
     "  ds-harness-remote reset-identity [host|client|all]",
     "",
     "login uses an available QR provider (preferring Zhihu). Use login list to see available providers.",
-    `The Server is ${DEFAULT_REMOTE_SERVER_URL}.`,
+    `The Server is ${DEFAULT_REMOTE_SERVER_URL || "(not configured; set DSH_REMOTE_DEFAULT_SERVER)"}.`,
     "Host configuration is not exposed by this CLI yet. Restart the Harness instance after login or logout.",
     ""
   ].join("\n");
@@ -102758,7 +102884,7 @@ async function exists3(path) {
 var CliUsageError = class extends Error {
 };
 
-// packages/plugin/src/acp.ts
+// src/acp.ts
 var AcpGateway = class {
   constructor(adapters) {
     this.adapters = adapters;
@@ -102800,7 +102926,7 @@ var AcpGateway = class {
   }
 };
 
-// packages/plugin/src/index.ts
+// src/index.ts
 var name = "ds-harness-remote";
 var legacyLoaderModuleNames = /* @__PURE__ */ new Set(["@dsh-remote/plugin"]);
 var pluginSettingsNamespace = "ds-harness-remote";
@@ -102954,6 +103080,10 @@ async function activate(ctx, readConfig, entryId, requireRemoteEvents = false) {
       directory: config3.serverUrl === void 0 ? defaultIdentityDirectory : serverStorageDirectory(defaultIdentityDirectory, config3.serverUrl, "host"),
       role: "host"
     });
+    const pinnedFetch = config3.serverFingerprint === void 0 ? void 0 : createPinnedFetch(config3.serverFingerprint);
+    const pinnedWebSocket = config3.serverFingerprint === void 0 ? void 0 : createPinnedWebSocketFactory(config3.serverFingerprint);
+    const pinnedAdaptiveWebSocket = config3.serverFingerprint === void 0 ? void 0 : createPinnedAdaptiveWebSocket(config3.serverFingerprint);
+    const hostServerApi = config3.serverUrl === void 0 || pinnedFetch === void 0 ? void 0 : new HostServerApi(config3.serverUrl, new ServerCredentialStore(hostIdentities.directory), pinnedFetch);
     const runtime2 = new HostPluginRuntime(
       config3,
       hostIdentities,
@@ -102966,7 +103096,9 @@ async function activate(ctx, readConfig, entryId, requireRemoteEvents = false) {
         () => ctx.get("webServer")?.port,
         peer
       ),
-      schedule
+      schedule,
+      hostServerApi,
+      pinnedWebSocket
     );
     let clientRuntime2;
     if (config3.serverUrl !== void 0 && connection !== void 0) {
@@ -102977,10 +103109,12 @@ async function activate(ctx, readConfig, entryId, requireRemoteEvents = false) {
       clientRuntime2 = new ClientModeRuntime(
         config3,
         clientIdentities,
-        new ClientServerApi(config3.serverUrl, new ServerCredentialStore(clientIdentities.directory)),
+        new ClientServerApi(config3.serverUrl, new ServerCredentialStore(clientIdentities.directory), pinnedFetch),
         nativeTypertGateway,
         logger2,
-        runtime2
+        runtime2,
+        void 0,
+        pinnedAdaptiveWebSocket
       );
     }
     return { runtime: runtime2, clientRuntime: clientRuntime2 };
@@ -103189,6 +103323,7 @@ export {
   AcpPeerBridge,
   AcpRemoteGateway,
   CODEX_APP_ALLOWLIST,
+  ClientConnection,
   ClientModeError,
   ClientModeRuntime,
   ClientSecureTransport,
@@ -103212,19 +103347,27 @@ export {
   IdentityStore,
   PluginControlRuntime,
   RemoteFileViewerBridge,
+  RemoteSessionTools,
   RemoteTypertGateway2 as RemoteTypertGateway,
   RpcError,
   RpcRouter,
+  SafeLogger,
   ServerApiError,
   ServerCredentialStore,
   ServerCredentialsInvalidError,
   TypertGatewaySwitch,
   apply,
   applyTuiHost,
+  createOwnerPeerFactory,
+  createPinnedAdaptiveWebSocket,
+  createPinnedFetch,
+  createPinnedWebSocketFactory,
   createRemoteFileContentProvider,
   fingerprint2 as fingerprint,
   name,
+  ownerPeerConstructor,
   prepareDefaultIdentityDirectory,
+  readRemoteWorkspaceBaseline,
   resetDefaultIdentityRoles,
   resolveConfig,
   runCli,

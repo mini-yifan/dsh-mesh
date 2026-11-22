@@ -6,6 +6,7 @@ import { ThemeProvider, useColorTheme } from './theme'
 import { LoginPanel } from './LoginPanel'
 import { DevicesPage } from './DevicesPage'
 import { HomePage } from './HomePage'
+import { PortalApp } from './portal-main'
 import { api, RequestError, type Account } from './api'
 import 'antd/dist/reset.css'
 import './upstream.css'
@@ -65,4 +66,21 @@ function App() {
     {content}
   </Layout></ConfigProvider>
 }
-createRoot(document.getElementById('root')!).render(<ThemeProvider><App /></ThemeProvider>)
+/**
+ * Hosted mode renders an entirely separate surface (email-code login, device
+ * portal, link approval) with its own orb-styled design tokens. Detected from
+ * `/health` before the first paint so the personal UI never flashes.
+ */
+function Root() {
+  const [mode, setMode] = useState<'loading' | 'personal' | 'account'>('loading')
+  useEffect(() => {
+    fetch('/health', { headers: { accept: 'application/json' } })
+      .then(response => response.json())
+      .then((body: { mode?: string }) => setMode(body.mode === 'account' ? 'account' : 'personal'))
+      .catch(() => setMode('personal'))
+  }, [])
+  if (mode === 'loading') return null
+  if (mode === 'account') return <ThemeProvider><PortalApp /></ThemeProvider>
+  return <ThemeProvider><App /></ThemeProvider>
+}
+createRoot(document.getElementById('root')!).render(<Root />)

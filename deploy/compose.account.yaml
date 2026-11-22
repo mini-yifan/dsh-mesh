@@ -1,0 +1,58 @@
+# Hosted (account) mode.
+#
+# Differences from the personal compose file:
+#   - Caddy terminates TLS with automatic public certificates.
+#   - The server publishes the portal and the device control plane on 443.
+#   - The account SQLite database lives in its own volume so it can be backed up
+#     independently of the device state file.
+#
+# Start with:
+#   cp server.env.example server.env   # then set DSH_MESH_MODE=account and fill in mail
+#   docker compose -f compose.account.yaml up -d --build
+
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    env_file: ./server.env
+    environment:
+      DSH_SERVER_HOST: 0.0.0.0
+      DSH_SERVER_PORT: 8080
+      DSH_SERVER_DATA_FILE: /data/state.json
+      DSH_MESH_ACCOUNT_DB: /data/accounts.sqlite3
+      # Caddy is the only hop in front of us, so it is the one trusted proxy.
+      DSH_SERVER_TRUSTED_PROXY_IPS: 172.16.0.0/12
+    # No host port: only Caddy reaches this container.
+    expose:
+      - "8080"
+    volumes:
+      - server-data:/data
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.account:/etc/caddy/Caddyfile:ro
+      # Uncomment and set the domain in Caddyfile.account to use a custom build
+      # with a DNS plugin instead of the HTTP challenge.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  server-data:
+  caddy-data:
+  caddy-config:

@@ -39,7 +39,7 @@ body:
       options:
         - "Android APK (GitHub Release / Pre-release)"
         - "DSH Desktop Plugin (Marketplace)"
-        - "Hosted Web Client (dsh.r2049.cn/app)"
+        - "Self-hosted Web Client"
         - "Self-hosted Docker Server"
         - "npm / CLI package (ds-harness-remote)"
         - "Built from source"

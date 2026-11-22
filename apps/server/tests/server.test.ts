@@ -21,6 +21,7 @@ import {
   normalizeMaxFramesPerSec,
   normalizeIp,
   normalizeTrustedProxyIps,
+  isTrustedProxy,
   parseHelloTimeout,
   parseHeartbeatInterval,
   parseHeartbeatDisconnect,
@@ -422,12 +423,33 @@ describe('control authorization and encrypted relay', () => {
     expect((await (await socket(d, { accessToken: accountToken })).next('error')).code).toBe('AUTH_INVALID')
     expect((await (await socket(d, { role: 'host' })).next('error')).code).toBe('AUTH_INVALID')
   })
-  it('replaces a device socket without removing the new connection', async () => {
-    const d = await device(), old = await socket(d); await old.next('hello.ack')
+  it('replaces a Host socket without removing the new connection', async () => {
+    const d = await device('host'), old = await socket(d); await old.next('hello.ack')
     const closed = once(old.ws, 'close'), current = await socket(d)
     await current.next('hello.ack'); expect((await closed)[0]).toBe(4003)
     current.send('ping', { nonce: 'new-socket' }); expect(await current.next('pong')).toEqual({ nonce: 'new-socket' })
   })
+  it('keeps one Client control connection per peer and three peers concurrently', async () => {
+    const client = await device('client')
+    const hosts = await Promise.all([device('host'), device('host'), device('host')])
+    const hostWires = await Promise.all(hosts.map(host => socket(host)))
+    await Promise.all(hostWires.map(wire => wire.next('hello.ack')))
+    const clientWires = await Promise.all(hosts.map(() => socket(client)))
+    await Promise.all(clientWires.map(wire => wire.next('hello.ack')))
+    for (const [index, wire] of clientWires.entries()) {
+      wire.send('connect.request', { hostDeviceId: hosts[index]!.deviceId, preferredTransports: ['relay'] })
+    }
+    const incoming = await Promise.all(hostWires.map(wire => wire.next('connect.incoming')))
+    for (const [index, wire] of hostWires.entries()) {
+      expect(incoming[index].clientDeviceId).toBe(client.deviceId)
+      wire.send('connect.accepted', { connectionId: incoming[index].connectionId })
+    }
+    for (const wire of clientWires) expect((await wire.next('connect.accepted')).connectionId).toBeDefined()
+    for (const [index, wire] of clientWires.entries()) {
+      wire.send('ping', { nonce: `peer-${index}` })
+      expect(await wire.next('pong')).toEqual({ nonce: `peer-${index}` })
+    }
+  }, 15000)
   it('keeps concurrent clients isolated and tears down revoked connections', async () => {
     const ctx = await connection(), second = await device(), wire = await socket(second); await wire.next('hello.ack')
     wire.send('connect.request', { hostDeviceId: ctx.h.deviceId, preferredTransports: ['relay'] })
@@ -695,16 +717,34 @@ describe('reverse-proxy client IP rate limiting', () => {
     expect(normalizeIp('::ffff:7f00:1')).toBe('127.0.0.1')
     expect(normalizeIp('0:0:0:0:0:ffff:127.0.0.1')).toBe('127.0.0.1')
     expect(normalizeIp('2001:0DB8:0000:0000:0000:0000:0000:0001')).toBe('2001:db8::1')
-    expect([...normalizeTrustedProxyIps(['127.0.0.1', '::ffff:127.0.0.1', '2001:db8::2'])]).toEqual(['127.0.0.1', '2001:db8::2'])
+    expect(normalizeTrustedProxyIps(['127.0.0.1', '::ffff:127.0.0.1', '2001:db8::2']).map(entry => entry.address))
+      .toEqual(['127.0.0.1', '2001:db8::2'])
     for (const invalid of ['', '10.0.0.0/8', '10.0.0.1:8080', '[::1]:8080', 'client.example.com', '1.2.3.4, 5.6.7.8', 'fe80::1%eth0']) {
       expect(normalizeIp(invalid)).toBeNull()
     }
   })
 
-  it('rejects invalid trusted proxy IP lists at startup', () => {
-    for (const invalid of ['10.0.0.0/8', 'proxy.example.com', '127.0.0.1:8080', '999.1.1.1', '::1/128', '']) {
+  it('rejects invalid trusted proxy entries at startup', () => {
+    for (const invalid of ['proxy.example.com', '127.0.0.1:8080', '999.1.1.1', '10.0.0.0/33', '2001:db8::/129', 'not/a/cidr']) {
       expect(() => createRemoteServer({ account, password, dataFile: join(dir, 'invalid.json'), publicUrl: 'http://localhost:8080', trustedProxyIps: [invalid] })).toThrow(/DSH_SERVER_TRUSTED_PROXY_IPS/)
     }
+  })
+
+  it('accepts CIDR ranges for container deployments', () => {
+    // Docker assigns the proxy an address inside its bridge network, so a range
+    // is the only entry that can be written before the container exists.
+    const ranges = normalizeTrustedProxyIps(['172.16.0.0/12'])
+    expect(isTrustedProxy('172.18.0.5', ranges)).toBe(true)
+    expect(isTrustedProxy('172.31.255.254', ranges)).toBe(true)
+    expect(isTrustedProxy('172.15.0.1', ranges)).toBe(false)
+    expect(isTrustedProxy('10.0.0.1', ranges)).toBe(false)
+    // A bare literal still matches exactly, not as a prefix.
+    const literal = normalizeTrustedProxyIps(['127.0.0.1'])
+    expect(isTrustedProxy('127.0.0.1', literal)).toBe(true)
+    expect(isTrustedProxy('127.0.0.2', literal)).toBe(false)
+    // /32 and /128 behave like literals.
+    expect(isTrustedProxy('10.1.2.3', normalizeTrustedProxyIps(['10.1.2.3/32']))).toBe(true)
+    expect(isTrustedProxy('10.1.2.4', normalizeTrustedProxyIps(['10.1.2.3/32']))).toBe(false)
   })
 
   it('keeps client B working after client A exhausts the 20/min login limit', async () => {
@@ -716,10 +756,10 @@ describe('reverse-proxy client IP rate limiting', () => {
     expect((await request('/auth/login', 'POST', { email: account, password }, undefined, B)).status).toBe(200)
   }, 15000)
 
-  it('keeps client B working after client A exhausts the 240/min API limit', async () => {
+  it('keeps client B working after client A exhausts the 1200/min API limit', async () => {
     await restart()
     const A = forwarded('10.30.0.1'), B = forwarded('10.30.0.2')
-    for (let i = 0; i < 240; i++) expect((await request('/auth/me', 'GET', undefined, undefined, A)).status).toBe(401)
+    for (let i = 0; i < 1200; i++) expect((await request('/auth/me', 'GET', undefined, undefined, A)).status).toBe(401)
     expect((await request('/auth/me', 'GET', undefined, undefined, A)).status).toBe(429)
     expect((await request('/auth/login', 'POST', { email: account, password }, undefined, B)).status).toBe(200)
   }, 30000)
@@ -799,7 +839,7 @@ describe('gateway hello timeout and diagnostics', () => {
 
     const ack = await wire.next('hello.ack')
     expect(ack.protocol).toBe(1)
-    expect(ack.heartbeatIntervalMs).toBe(25000)
+    expect(ack.heartbeatIntervalMs).toBe(10000)
   })
 })
 
@@ -909,16 +949,17 @@ describe('structured logger and sensitive data redaction', () => {
     expect(parseHelloTimeout('invalid')).toBe(5000)
 
     // Heartbeat interval
-    expect(parseHeartbeatInterval(undefined)).toBe(25000)
+    expect(parseHeartbeatInterval(undefined)).toBe(10000)
     expect(parseHeartbeatInterval('30000')).toBe(30000)
-    expect(parseHeartbeatInterval('1000')).toBe(25000)
-    expect(parseHeartbeatInterval('150000')).toBe(25000)
+    expect(parseHeartbeatInterval('1000')).toBe(10000)
+    expect(parseHeartbeatInterval('150000')).toBe(10000)
 
-    // Heartbeat disconnect
-    expect(parseHeartbeatDisconnect(undefined, 25000)).toBe(75000)
-    expect(parseHeartbeatDisconnect('80000', 25000)).toBe(80000)
-    expect(parseHeartbeatDisconnect('40000', 25000)).toBe(75000)
-    expect(parseHeartbeatDisconnect('50000', 30000)).toBe(90000)
+    // Heartbeat disconnect: fallback gives four intervals of tolerance, and a
+    // configured value below 4x is rejected (40000 is the floor at 10s).
+    expect(parseHeartbeatDisconnect(undefined, 10000)).toBe(40000)
+    expect(parseHeartbeatDisconnect('80000', 10000)).toBe(80000)
+    expect(parseHeartbeatDisconnect('40000', 25000)).toBe(100000)
+    expect(parseHeartbeatDisconnect('50000', 30000)).toBe(120000)
 
     // Log level
     expect(parseLogLevel(undefined)).toBe('info')
@@ -981,7 +1022,7 @@ describe('gateway handshake state machine', () => {
     const live = await socket(d)
     expect((await live.next('hello.ack')).protocol).toBe(1)
     await closed
-    expect(app.gateway.peers.get(d.deviceId)).toBeDefined()
+    expect(app.gateway.isOnline(d.deviceId)).toBe(true)
     live.send('ping', { nonce: 'still-authenticated' })
     expect(await live.next('pong')).toEqual({ nonce: 'still-authenticated' })
   }, 15000)
@@ -990,7 +1031,7 @@ describe('gateway handshake state machine', () => {
 describe('gateway timing configuration normalization', () => {
   it('maps NaN, Infinity and out-of-range programmatic values to safe defaults', () => {
     expect(normalizeGatewayOptions({})).toEqual({
-      helloTimeoutMs: 5000, heartbeatIntervalMs: 25000, heartbeatDisconnectMs: 75000, forceTerminateGraceMs: 1000,
+      helloTimeoutMs: 5000, heartbeatIntervalMs: 10000, heartbeatDisconnectMs: 40000, forceTerminateGraceMs: 1000,
     })
     expect(normalizeGatewayOptions({
       helloTimeoutMs: Number.NaN,
@@ -998,22 +1039,22 @@ describe('gateway timing configuration normalization', () => {
       heartbeatDisconnectMs: -1,
       forceTerminateGraceMs: 0,
     })).toEqual({
-      helloTimeoutMs: 5000, heartbeatIntervalMs: 25000, heartbeatDisconnectMs: 75000, forceTerminateGraceMs: 1000,
+      helloTimeoutMs: 5000, heartbeatIntervalMs: 10000, heartbeatDisconnectMs: 40000, forceTerminateGraceMs: 1000,
     })
     expect(normalizeGatewayOptions({ helloTimeoutMs: 59 }).helloTimeoutMs).toBe(5000)
     expect(normalizeGatewayOptions({ helloTimeoutMs: 60001 }).helloTimeoutMs).toBe(5000)
     expect(normalizeGatewayOptions({ helloTimeoutMs: '2500' as unknown as number }).helloTimeoutMs).toBe(2500)
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 300_000 }).heartbeatIntervalMs).toBe(25000)
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 300_000 }).heartbeatIntervalMs).toBe(10000)
     expect(normalizeGatewayOptions({ forceTerminateGraceMs: 50 }).forceTerminateGraceMs).toBe(1000)
     expect(normalizeGatewayOptions({ forceTerminateGraceMs: 10001 }).forceTerminateGraceMs).toBe(1000)
   })
 
-  it('keeps the disconnect threshold at twice the interval and inside its ceiling', () => {
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000 }).heartbeatDisconnectMs).toBe(90000)
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 59000 }).heartbeatDisconnectMs).toBe(90000)
+  it('falls back to four intervals and rejects thresholds below two', () => {
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000 }).heartbeatDisconnectMs).toBe(120000)
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 59000 }).heartbeatDisconnectMs).toBe(120000)
     expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 60001 }).heartbeatDisconnectMs).toBe(60001)
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 600_001 }).heartbeatDisconnectMs).toBe(90000)
-    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 120_000 }).heartbeatDisconnectMs).toBe(360_000)
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 30000, heartbeatDisconnectMs: 600_001 }).heartbeatDisconnectMs).toBe(120000)
+    expect(normalizeGatewayOptions({ heartbeatIntervalMs: 120_000 }).heartbeatDisconnectMs).toBe(480_000)
   })
 
   it('normalizes unsafe values handed to createRemoteServer', () => {
@@ -1024,8 +1065,8 @@ describe('gateway timing configuration normalization', () => {
     })
     try {
       expect(unsafe.gateway.helloTimeoutMs).toBe(5000)
-      expect(unsafe.gateway.heartbeatIntervalMs).toBe(25000)
-      expect(unsafe.gateway.heartbeatDisconnectMs).toBe(75000)
+      expect(unsafe.gateway.heartbeatIntervalMs).toBe(10000)
+      expect(unsafe.gateway.heartbeatDisconnectMs).toBe(40000)
       expect(unsafe.gateway.forceTerminateGraceMs).toBe(1000)
     } finally {
       unsafe.gateway.close()
@@ -1037,8 +1078,8 @@ describe('gateway timing configuration normalization', () => {
     const spy = vi.spyOn(console, 'warn').mockImplementation((message: unknown) => { warnings.push(String(message)) })
     try {
       expect(parseHelloTimeout('not-a-number-CANARY7')).toBe(5000)
-      expect(parseHeartbeatInterval('CANARY7')).toBe(25000)
-      expect(parseHeartbeatDisconnect('CANARY7', 25000)).toBe(75000)
+      expect(parseHeartbeatInterval('CANARY7')).toBe(10000)
+      expect(parseHeartbeatDisconnect('CANARY7', 10000)).toBe(40000)
       expect(parseLogLevel('CANARY7')).toBe('info')
     } finally {
       spy.mockRestore()

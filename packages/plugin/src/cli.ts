@@ -154,7 +154,7 @@ async function login(args: readonly string[], runtime: CliRuntime): Promise<numb
 
 async function status(args: readonly string[], runtime: CliRuntime): Promise<number> {
   if (args.length !== 0) throw new CliUsageError('Usage: ds-harness-remote status')
-  const serverUrl = selectedServer()
+  const serverUrl = selectedServer(runtime.env)
   const root = await prepareDefaultIdentityDirectory({ env: runtime.env })
   const directory = serverStorageDirectory(root, serverUrl, 'host')
   const lines = [
@@ -200,7 +200,7 @@ async function status(args: readonly string[], runtime: CliRuntime): Promise<num
 
 async function logout(args: readonly string[], runtime: CliRuntime): Promise<number> {
   if (args.length !== 0) throw new CliUsageError('Usage: ds-harness-remote logout')
-  const serverUrl = selectedServer()
+  const serverUrl = selectedServer(runtime.env)
   const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname()
   let root: string
   try {
@@ -257,7 +257,7 @@ async function resetIdentity(args: readonly string[], runtime: CliRuntime): Prom
   if (roleArg !== undefined && roleArg !== 'host' && roleArg !== 'client' && roleArg !== 'all') {
     throw new CliUsageError('Usage: ds-harness-remote reset-identity [host|client|all]')
   }
-  const serverUrl = selectedServer()
+  const serverUrl = selectedServer(runtime.env)
   const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname()
   const roles: RemoteDeviceRole[] = roleArg === 'client' ? ['client'] : roleArg === 'host' ? ['host'] : ['host', 'client']
   await resetDefaultIdentityRoles(roles, serverUrl, deviceName, {
@@ -277,7 +277,7 @@ async function hostContext(runtime: CliRuntime): Promise<{
   identity: HostIdentity
   deviceName: string
 }> {
-  const serverUrl = selectedServer()
+  const serverUrl = selectedServer(runtime.env)
   const root = await prepareDefaultIdentityDirectory({ env: runtime.env })
   const directory = serverStorageDirectory(root, serverUrl, 'host')
   const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname()
@@ -287,8 +287,19 @@ async function hostContext(runtime: CliRuntime): Promise<{
   return { api, identities, identity, deviceName }
 }
 
-function selectedServer(): string {
-  return normalizeServerUrl(DEFAULT_REMOTE_SERVER_URL)
+/**
+ * Resolve the server this CLI invocation talks to.
+ *
+ * Order: `DSH_REMOTE_DEFAULT_SERVER` from the runtime env (so a caller or a test
+ * can inject one), then the build-time default. An empty result is an error
+ * rather than a silent request to `/api/...` on the local machine.
+ */
+function selectedServer(env: NodeJS.ProcessEnv = process.env): string {
+  const configured = (env.DSH_REMOTE_DEFAULT_SERVER ?? DEFAULT_REMOTE_SERVER_URL).trim()
+  if (configured === '') {
+    throw new Error('未配置默认服务器：请设置 DSH_REMOTE_DEFAULT_SERVER 环境变量，或在插件设置里填写服务器地址。')
+  }
+  return normalizeServerUrl(configured)
 }
 
 function resolveDependencies(input: RemoteCliDependencies): CliRuntime {
@@ -360,7 +371,7 @@ function helpText(): string {
     '  ds-harness-remote reset-identity [host|client|all]',
     '',
     'login uses an available QR provider (preferring Zhihu). Use login list to see available providers.',
-    `The Server is ${DEFAULT_REMOTE_SERVER_URL}.`,
+    `The Server is ${DEFAULT_REMOTE_SERVER_URL || '(not configured; set DSH_REMOTE_DEFAULT_SERVER)'}.`,
     'Host configuration is not exposed by this CLI yet. Restart the Harness instance after login or logout.',
     '',
   ].join('\n')

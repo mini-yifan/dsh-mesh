@@ -57,6 +57,9 @@ export interface ServerHostDevice {
   name: string
   platform: string
   membershipId: string
+  /** v0 node identity; optional for upstream Server compatibility. */
+  nodeId?: string
+  nodeName?: string
   online?: boolean
   lastSeenAt?: number
   clientVersion?: string
@@ -118,6 +121,25 @@ export class HostServerApi {
       return this.store.save({ serverUrl: this.baseUrl, deviceId: identity.deviceId,
         authorizationMethod: 'device_pairing', account: result.account, accountKind: result.accountKind,
         pairingRestricted: result.pairingRestricted, inboundOnly: result.inboundOnly, ...validateTokens(result.tokens) })
+    })
+  }
+
+  /** v0 node summary: canonical name, nodeId and both identity bindings. */
+  async nodeSelf<TResult = unknown>(): Promise<TResult> {
+    return this.request<TResult>('/api/v1/nodes/self')
+  }
+
+  /** Revoke both identities of this node (v0 "exit mesh"). */
+  async revokeNodeSelf(): Promise<unknown> {
+    return this.request('/api/v1/nodes/self', { method: 'DELETE' })
+  }
+
+  /** Rename this node. The Server accepts only the owning device's token. */
+  async renameSelf(name: string): Promise<unknown> {
+    const identity = this.requireIdentity()
+    return this.request(`/api/v1/devices/${encodeURIComponent(identity.deviceId)}/name`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
     })
   }
 
@@ -736,6 +758,8 @@ function parseHostDevice(value: unknown): ServerHostDevice {
     ...(typeof item.lastSeenAt === 'number' && Number.isSafeInteger(item.lastSeenAt) ? { lastSeenAt: item.lastSeenAt } : {}),
     ...(typeof item.clientVersion === 'string' ? { clientVersion: item.clientVersion } : {}),
     ...(typeof item.harnessVersion === 'string' ? { harnessVersion: item.harnessVersion } : {}),
+    ...(typeof item.nodeId === 'string' ? { nodeId: item.nodeId } : {}),
+    ...(typeof item.nodeName === 'string' ? { nodeName: item.nodeName } : {}),
   }
 }
 

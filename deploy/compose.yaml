@@ -1,0 +1,35 @@
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    env_file: ./server.env
+    environment:
+      DSH_SERVER_HOST: 0.0.0.0
+      DSH_SERVER_PORT: 8080
+      DSH_SERVER_DATA_FILE: /data/state.json
+    ports:
+      # Admin page only. Reach it with: ssh -L 8080:127.0.0.1:8080 dsh-mesh
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - server-data:/data
+    restart: unless-stopped
+    init: true
+
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  server-data:
+  caddy-data:
+  caddy-config:

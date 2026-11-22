@@ -1,0 +1,52 @@
+{
+  "name": "@dsh-mesh/plugin",
+  "version": "0.1.8",
+  "description": "Orb Mesh v0 DSH plugin: pairing, multi-peer tree, remote sessions and device_agent.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./device-agent": {
+      "types": "./dist/device-agent.d.ts",
+      "import": "./dist/device-agent.js",
+      "default": "./dist/device-agent.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "default": "./dist/types.js"
+    },
+    "./package.json": "./package.json",
+    "./return-files": {
+      "types": "./dist/return-files.d.ts",
+      "import": "./dist/return-files.js",
+      "default": "./dist/return-files.js"
+    }
+  },
+  "files": [
+    "dist",
+    "dsh-plugin.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "pack:phone": "python3 scripts/pack-phone.py"
+  },
+  "dependencies": {
+    "@dsh-mesh/mesh": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.0",
+    "typescript": "^5.7.3"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

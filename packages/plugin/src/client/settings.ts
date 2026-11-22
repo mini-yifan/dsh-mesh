@@ -1,5 +1,6 @@
 import { createHostPairingPanel } from './pairing.js'
 import { createServerNotice } from './server-notice.js'
+import { DEFAULT_REMOTE_SERVER_URL } from '../config.js'
 import QRCode from 'qrcode'
 import type { LocalizedMessage, Translate } from '../client-locale.js'
 import type { OAuthProviderInfo } from '../server-api.js'
@@ -122,7 +123,7 @@ export function createRemotePluginOptions(React: ClientReact) {
 
     const applyView = (view: PluginSettingsView, updateAssociations = true): void => {
       setSettingsView(view)
-      if (!serverDraftEdited.current) setServerUrl(view.config.serverUrl ?? 'https://dsh.r2049.cn')
+      if (!serverDraftEdited.current) setServerUrl(view.config.serverUrl ?? DEFAULT_REMOTE_SERVER_URL)
       setTerminalEnabled(view.config.terminal?.enabled ?? true)
       setDebugLogging(view.config.logLevel === 'debug')
       setRemoteToolsEnabled(view.config.remoteTools?.enabled ?? true)
@@ -352,7 +353,7 @@ export function createRemotePluginOptions(React: ClientReact) {
       try {
         const result = await props.control<PluginConfigureResult>('settings.configure', {
           role: 'client',
-          serverUrl: serverUrl.trim() || 'https://dsh.r2049.cn',
+          serverUrl: serverUrl.trim() || DEFAULT_REMOTE_SERVER_URL,
           email: loginEmail.trim(),
           password: loginPassword,
         })
@@ -814,13 +815,13 @@ export function createRemotePluginOptions(React: ClientReact) {
                     }, t(savingServer ? 'saving' : 'save')),
                     React.createElement('button', {
                       type: 'button', disabled: busy || savingServer || !writable,
-                      onClick: () => { serverDraftEdited.current = true; setServerUrl('https://dsh.r2049.cn'); void saveLoginServer('https://dsh.r2049.cn') },
+                      onClick: () => { serverDraftEdited.current = true; setServerUrl(DEFAULT_REMOTE_SERVER_URL); void saveLoginServer(DEFAULT_REMOTE_SERVER_URL) },
                     }, t('restoreDefaultServiceAddress')),
                     React.createElement('button', {
                       type: 'button', disabled: busy || savingServer || !writable,
                       onClick: () => {
                         serverDraftEdited.current = false
-                        setServerUrl(savedServerUrl ?? 'https://dsh.r2049.cn')
+                        setServerUrl(savedServerUrl ?? DEFAULT_REMOTE_SERVER_URL)
                         setEditingServer(false)
                       },
                     }, t('cancelServiceAddressEdit')))

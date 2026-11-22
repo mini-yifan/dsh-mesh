@@ -1,0 +1,4 @@
+# The consumer installs the two rows explicitly:
+#   app-level:  - id: dsh-mesh  name: '@dsh-mesh/plugin'  config: {...}
+#   preset:     - id: tool-device-agent  name: '@dsh-mesh/plugin/device-agent'
+[]

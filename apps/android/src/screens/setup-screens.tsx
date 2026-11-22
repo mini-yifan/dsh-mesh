@@ -32,8 +32,11 @@ import { useThemedStyles } from '../ui/use-themed-styles'
 import { strings as zhCN, type LanguagePreference } from '../locales/i18n'
 import type { ThemePreference, TypographyDensity } from '../ui/theme'
 
-/** Default DSH Remote Server; a build can override it via EXPO_PUBLIC_DSH_REMOTE_SERVER. */
-const defaultServerUrl = 'https://dsh.r2049.cn'
+/**
+ * Default DSH Remote Server. A build sets EXPO_PUBLIC_DSH_REMOTE_SERVER; the
+ * published tree ships no endpoint so a fork never points at someone else's.
+ */
+const defaultServerUrl = ''
 const updateUrl = 'https://github.com/liguobao/ds-harness-remote/releases/latest'
 const releaseApiUrl = 'https://api.github.com/repos/liguobao/ds-harness-remote/releases/latest'
 const developerUrl = 'https://www.zhihu.com/people/codelover'

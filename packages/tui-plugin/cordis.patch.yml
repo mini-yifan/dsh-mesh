@@ -39,7 +39,9 @@
       config:
         enabled: true
         role: host
-        serverUrl: https://dsh.r2049.cn
+        # Empty: the sign-in form starts blank. A distribution may set this to
+        # its own endpoint; the published tree ships no default.
+        serverUrl: ''
         codex:
           enabled: true
           binary: codex

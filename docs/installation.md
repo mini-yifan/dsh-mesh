@@ -27,7 +27,7 @@ The Remote sidebar version badge remains a notice linking to release notes. Inst
 Download and inspect the script first. This example reads the token privately inside a root shell rather than putting it in command arguments or shell history:
 
 ```sh
-curl -fsSL https://dsh.r2049.cn/app/install.sh -o install.sh
+curl -fsSL https://YOUR_SERVER/app/install.sh -o install.sh
 # Inspect the downloaded script before running:
 sudo -H bash -c '
   read -r -s -p "One-time Host registration token: " token; printf "\n"
@@ -83,7 +83,7 @@ Older installer releases used `/opt/dsh-remote` and `dsh-remote-<profile>.servic
 Run as a normal user:
 
 ```sh
-curl -fsSL https://dsh.r2049.cn/app/install.sh | bash
+curl -fsSL https://YOUR_SERVER/app/install.sh | bash
 ```
 
 The installer prefers Desktop's official launcher under `~/Applications` or `/Applications`, otherwise `dsh` on PATH. Both present is valid; neither present fails. It does not install Desktop, DSH or Node.js, or create services.
@@ -134,6 +134,6 @@ Use Desktop Plugin management on Desktop. Runtime directories, profiles, device 
 
 ## Download source and validation limits
 
-If the domain is unavailable, replace `https://dsh.r2049.cn/app` with `https://raw.githubusercontent.com/liguobao/ds-harness-remote/main/scripts`.
+If the domain is unavailable, replace `https://YOUR_SERVER/app` with `https://raw.githubusercontent.com/liguobao/ds-harness-remote/main/scripts`.
 
 Smoke checks with mocked downloads/systemctl and temporary target directories are not clean-server installation, production token redemption or reboot acceptance. Verify the service on the target server and confirm the Host is online in a client. Repository updates do not deploy hosted scripts automatically.

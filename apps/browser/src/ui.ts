@@ -91,6 +91,7 @@ export class Ui {
       ${this.renderHeader(false)}
       <section class="authorizationContent" aria-labelledby="authorization-title">
         <div class="authorizationIntro"><h1 id="authorization-title">${escapeHtml(copy.title)}</h1><p>${escapeHtml(copy.overview)}</p></div>
+        <label class="serverField"><span>${escapeHtml(copy.serverLabel)}</span><input id="serverUrl" type="url" spellcheck="false" autocomplete="off" placeholder="${escapeHtml(copy.serverPlaceholder)}" value="${escapeHtml(this.state.settings?.serverUrl ?? '')}" ${this.state.authorizationBusy ? 'disabled' : ''}></label>
         <button class="primary" id="authorizeWeb" type="button" ${this.state.authorizationBusy ? 'disabled' : ''}>${escapeHtml(this.state.authorizationBusy ? copy.authorizing : copy.authorize)}${icon('ExternalLink', 16)}</button>
         ${error === undefined ? '' : `<div class="error" role="alert">${escapeHtml(error)}</div>`}
         <p class="authorizationNote">${escapeHtml(copy.note)}</p>
@@ -110,7 +111,13 @@ export class Ui {
     if (!this.state.authorized) {
       document.getElementById('authorizeWeb')?.addEventListener('click', () => {
         this.localError = undefined
-        void sendCommand('authorizeFromWeb').catch(error => this.showError(error))
+        // Persist the address before authorizing: the worker needs it to request
+        // the matching host permission and then exchange the web session.
+        const input = document.getElementById('serverUrl') as HTMLInputElement | null
+        const value = input?.value.trim() ?? ''
+        void sendCommand('setServerUrl', { serverUrl: value })
+          .then(() => sendCommand('authorizeFromWeb'))
+          .catch(error => this.showError(error))
       })
       return
     }
@@ -168,10 +175,12 @@ function launcherCopy() {
 function authorizationCopy() {
   if (navigator.language.toLowerCase().startsWith('zh')) return {
     title: '一次连接，随时可用。', overview: '登录 Remote Web，查看设备并继续工作。', authorize: '使用 Web 登录', authorizing: '正在连接…',
+    serverLabel: '服务器地址', serverPlaceholder: 'https://your-mesh-server.example.com',
     note: '尚未登录时，会先打开 Remote Web；登录后回到插件继续。',
   }
   return {
     title: 'Connect once. Ready whenever you are.', overview: 'Sign in to Remote Web to see your devices and continue working.', authorize: 'Use Web sign-in', authorizing: 'Connecting…',
+    serverLabel: 'Server address', serverPlaceholder: 'https://your-mesh-server.example.com',
     note: 'If needed, sign in to Remote Web first, then return here to continue.',
   }
 }

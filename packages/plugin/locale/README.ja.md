@@ -1,6 +1,6 @@
 # DS Harness Remote
 
-[公式サイト](https://dsh.r2049.cn/) · [Web クライアント](https://dsh.r2049.cn/app) · [iOS ベータ](https://github.com/liguobao/ds-harness-remote/issues/20) · [Android ダウンロード](https://github.com/liguobao/ds-harness-remote/releases/latest)
+[公式サイト](https://mesh.example.test/) · [Web クライアント](https://YOUR_SERVER/app) · [iOS ベータ](https://github.com/liguobao/ds-harness-remote/issues/20) · [Android ダウンロード](https://github.com/liguobao/ds-harness-remote/releases/latest)
 
 **P2P ネットワークで直接接続**し、別のパソコン、ブラウザー、スマートフォンから、作業用パソコン上の DeepSeek Harness を引き続き使えます。ワークスペース、セッション、ツール、プロジェクト設定は元のパソコンに保持されます。
 
@@ -15,7 +15,7 @@
 ## 使い始めるには
 
 1. 作業用パソコンにプラグインをインストールして有効化し、サイドバーの **Remote** からログインします。
-2. 別のパソコンの Remote、[ブラウザー](https://dsh.r2049.cn/app)、または [Android アプリ](https://github.com/liguobao/ds-harness-remote/releases/latest)で同じアカウントにログインします。
+2. 別のパソコンの Remote、[ブラウザー](https://YOUR_SERVER/app)、または [Android アプリ](https://github.com/liguobao/ds-harness-remote/releases/latest)で同じアカウントにログインします。
 3. オンラインのホストとワークスペースを選択します。作業用パソコンは起動し、インターネットに接続したままにしてください。
 
 [詳しい使い方](https://github.com/liguobao/ds-harness-remote/blob/main/README.ja.md) · [セルフホスティング](https://github.com/liguobao/ds-harness-remote/blob/main/apps/server/README.md) · [問題を報告](https://github.com/liguobao/ds-harness-remote/issues)

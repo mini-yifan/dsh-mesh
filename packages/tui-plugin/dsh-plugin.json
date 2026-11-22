@@ -1,6 +1,6 @@
 {
   "$schema": "https://dsh.community/schemas/dsh-plugin-0.15.json",
-  "id": "com.r2049.ds-harness-remote-tui",
+  "id": "dev.dshmesh.harness-remote-tui",
   "name": "ds-harness-remote-tui",
   "version": "0.1.0-alpha.0",
   "manifestVersion": "0.15",

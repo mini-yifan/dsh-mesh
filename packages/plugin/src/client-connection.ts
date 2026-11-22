@@ -38,6 +38,8 @@ export interface ClientConnectionContext {
   readonly rtcFactoryProvider: (options?: WeriftFactoryOptions) => Promise<RtcPeerConnectionFactory | undefined>
   readonly logger: SafeLogger
   readonly identities: IdentityStore
+  /** Pin/custom-TLS WebSocket factory shared by all peers. */
+  readonly createWebSocket?: (url: string) => WebSocket
 }
 
 export class ClientConnection {
@@ -90,6 +92,7 @@ export class ClientConnection {
           refreshAccessToken: async () => (await this.context.server.authenticate(identity)).accessToken,
           targetDeviceId,
           forceRelay: this.context.config.forceRelay || attempt === 'relay',
+          ...(this.context.createWebSocket === undefined ? {} : { createWebSocket: this.context.createWebSocket }),
           preferredTransports: preferredTransportsForAttempt(attempt),
           negotiateTimeoutMs: attempt === 'direct' ? DIRECT_WEBRTC_NEGOTIATE_TIMEOUT_MS : undefined,
           ...(rtcFactory === undefined || attempt === 'relay' ? {} : { rtcFactory }),

@@ -1,0 +1,55 @@
+{
+  "name": "@dsh-mesh/mesh",
+  "version": "0.1.0",
+  "description": "Orb Mesh v0 device plugin: pairing, multi-peer tree, remote sessions and device_agent.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./device-agent": {
+      "types": "./dist/device-agent.d.ts",
+      "import": "./dist/device-agent.js",
+      "default": "./dist/device-agent.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "default": "./dist/types.js"
+    },
+    "./return-files": {
+      "types": "./dist/return-files.d.ts",
+      "import": "./dist/return-files.js",
+      "default": "./dist/return-files.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.5",
+    "@dsh-remote/client-core": "workspace:*",
+    "@dsh-remote/protocol": "workspace:*",
+    "@dsh-remote/webrtc": "workspace:*",
+    "ds-harness-remote": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1 <5 || >=4.0.5-alpha.1 <4.0.6-0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@types/node": "^24.9.0",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

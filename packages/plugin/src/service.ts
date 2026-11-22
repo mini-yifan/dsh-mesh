@@ -24,7 +24,7 @@ import {
   type OAuthQrPollResult,
   type OAuthQrSession,
 } from './server-api.js'
-import { HostServerConnection } from './server-connection.js'
+import { HostServerConnection, type WebSocketFactory } from './server-connection.js'
 import { ServerCredentialStore } from './server-credentials.js'
 import { HarnessRemoteBridge, type ScheduleCreateService } from './harness-remote-bridge.js'
 import type { PluginRouteDispatcher } from './plugin-route-bridge.js'
@@ -95,6 +95,21 @@ export class HostPluginRuntime {
     private readonly pluginRoutes?: (peer?: unknown) => PluginRouteDispatcher | undefined,
     /** Host `schedule` service; absent on Hosts whose composition omits reminders. */
     private readonly schedule?: ScheduleCreateService,
+    /** Pre-built API with a pinned fetch; omitted for the legacy default fetch. */
+    private readonly injectedServerApi?: HostServerApi,
+    /** Pinned WebSocket factory for the Host control connection. */
+    private readonly webSocketFactory?: WebSocketFactory,
+    /**
+     * Local admission policy for inbound peers. Supplied by the embedding
+     * product (the Mesh plugin) so the machine owner's `allowIncoming` /
+     * `allowedCallers` preferences are actually enforced.
+     */
+    private readonly admitPeer?: (peer: {
+      deviceId: string
+      name: string
+      platform: string
+      membershipId: string
+    }) => boolean,
   ) {
     this.terminalEnabled = config.terminal.enabled
     this.loopbackPorts = [...config.loopback.ports]
@@ -162,7 +177,8 @@ export class HostPluginRuntime {
       )
     }, this.logger)
     if (config.serverUrl !== undefined) {
-      this.serverApi = new HostServerApi(config.serverUrl, new ServerCredentialStore(identities.directory))
+      this.serverApi = this.injectedServerApi
+        ?? new HostServerApi(config.serverUrl, new ServerCredentialStore(identities.directory))
     }
   }
 
@@ -503,12 +519,13 @@ export class HostPluginRuntime {
       this.serverApi!,
       this.connections,
       this.logger,
-      undefined,
+      this.webSocketFactory,
       this.config.forceRelay
         ? undefined
         : () => loadNodeRtcFactory({ routeTargets: this.config.serverUrl === undefined ? [] : [this.config.serverUrl] }),
       () => this.hostCapabilities(),
       this.harnessVersion,
+      this.admitPeer,
     )
   }
 

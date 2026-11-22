@@ -13,7 +13,15 @@ import type { Credentials, DeviceIdentity } from './types.js'
 
 const IDENTITY_KEY = 'dshRemote.identity.v1'
 const CREDENTIALS_KEY = 'dshRemote.credentials.v1'
-const DEFAULT_SERVER_URL = 'https://dsh.r2049.cn'
+/**
+ * Server offered on first run.
+ *
+ * A distribution sets `DEFAULT_SERVER_URL` at build time; the published tree
+ * ships an empty default so a fork never points at someone else's server. The
+ * user picks the address, and the extension requests access to that origin at
+ * runtime (`optional_host_permissions`) instead of hardcoding one domain.
+ */
+const DEFAULT_SERVER_URL = ''
 
 async function storageGet<T>(key: string): Promise<T | undefined> {
   const result = await chrome.storage.local.get(key)
@@ -37,7 +45,7 @@ class Background {
     this.credentials = await this.loadCredentials()
     this.state = {
       ...emptyState,
-      settings: { serverUrl: DEFAULT_SERVER_URL },
+      settings: { serverUrl: this.credentials?.serverUrl ?? DEFAULT_SERVER_URL },
       authorized: this.credentials !== undefined,
       ...(this.credentials === undefined ? {} : { account: this.credentials.account }),
     }
@@ -54,6 +62,23 @@ class Background {
 
   async command(action: string, payload: Record<string, unknown>): Promise<void> {
     switch (action) {
+      case 'setServerUrl': {
+        // Accept only an http(s) origin. Stored before authorization so the
+        // worker can request exactly that host permission.
+        const raw = String(payload.serverUrl ?? '').trim()
+        if (raw === '') throw new Error('请输入服务器地址。')
+        let origin: string
+        try {
+          const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`)
+          if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('unsupported')
+          origin = url.origin
+        } catch {
+          throw new Error('服务器地址格式不正确。')
+        }
+        this.state = { ...this.state, settings: { serverUrl: origin }, authorizationError: undefined }
+        this.broadcast()
+        return
+      }
       case 'authorizeFromWeb':
         await this.authorizeFromWeb()
         return
@@ -92,7 +117,10 @@ class Background {
 
   private async runWebAuthorization(): Promise<void> {
     const authEpoch = ++this.authEpoch
-    const api = new ServerApi(DEFAULT_SERVER_URL)
+    const target = this.state.settings?.serverUrl || DEFAULT_SERVER_URL
+    if (target === '') throw new Error('还没有设置服务器地址。')
+    await ensureHostPermission(target)
+    const api = new ServerApi(target)
     const identity = this.identity ?? await this.loadIdentity()
     this.identity = identity
     const webToken = await readWebAccountToken(api.baseUrl)
@@ -104,7 +132,7 @@ class Background {
     this.credentials = credentials
     this.state = {
       ...this.state,
-      settings: { serverUrl: DEFAULT_SERVER_URL },
+      settings: { serverUrl: credentials.serverUrl },
       authorized: true,
       account: credentials.account,
       authorizationError: undefined,
@@ -224,7 +252,11 @@ class Background {
     if (stored === undefined) return undefined
     try {
       const parsed = JSON.parse(stored) as Credentials
-      return parsed.serverUrl === DEFAULT_SERVER_URL
+      // Any configured origin is valid now; only the shape is enforced.
+      const validOrigin = (() => {
+        try { return new URL(parsed.serverUrl).protocol === 'https:' } catch { return false }
+      })()
+      return validOrigin
         && typeof parsed.deviceId === 'string'
         && typeof parsed.account === 'string'
         && typeof parsed.accessToken === 'string'
@@ -244,6 +276,20 @@ class Background {
     }
     await new ServerApi(credentials.serverUrl, accessToken).removeSelf()
   }
+}
+
+/**
+ * Ask for access to the server origin the user configured.
+ *
+ * MV3 will not let the worker fetch a host it has no permission for, and
+ * `optional_host_permissions` is granted per origin — the prompt must happen in
+ * a user gesture, which is why this runs during the click handler.
+ */
+async function ensureHostPermission(serverUrl: string): Promise<void> {
+  const origin = `${new URL(serverUrl).origin}/*`
+  if (await chrome.permissions.contains({ origins: [origin] })) return
+  const granted = await chrome.permissions.request({ origins: [origin] })
+  if (!granted) throw new Error('没有获得访问该服务器的权限。')
 }
 
 function errorMessage(error: unknown): string {

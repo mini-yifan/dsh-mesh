@@ -18,6 +18,7 @@
 ## 权威文档
 
 - [Server 设计说明](server.md)：定义外部 Server 的职责、API、安全边界、数据模型和部署要求；完整站点设计；最小自部署子集见上述运行文档。
+- [账号模式（托管部署）](server-accounts.md)：`DSH_MESH_MODE=account` 的多租户设计——邮箱验证码登录、设备授权轮询、账号隔离、数据模型与运维要点；个人模式不受影响。
 - [Host Plugin 接入指南](plugin-integration.md)：定义账号登录、Host 授权注册、设备凭证轮换、WebSocket 和本地状态隔离要求。
 - [Remote Protocol v1](protocol.md)：定义 Host、Server、Client 的线协议，是本仓库 Plugin、Client 和共享协议包的实现依据。
 - [产品与功能设计](design/README.md)：当前产品、Plugin、共享能力和界面设计；线协议以 protocol.md 为准。
@@ -51,6 +52,7 @@
 - **实现或审查 Plugin**：读[功能设计](design/plugin/functional-design.md)和[Host 接入指南](plugin-integration.md)。
 - **实现外部 Server**：以[协议](protocol.md)为线协议权威，再参考[Server 设计](server.md)。
 - **跟踪尚未完成的工作**：读[开发任务](TODO.md)。
+- **重新打包 `@dsh-mesh/plugin` 并把它推到电脑端/手机端**：读 [插件包说明](../packages/mesh-plugin/README.md)，跨仓库的完整顺序见 `dsh-orb-cordis/docs/21-packaging-and-deploy.md`。
 
 文档优先级：`protocol.md` 的线协议约束高于示例代码；Server 设计发生变化时必须同步检查协议兼容性和版本号。
 
