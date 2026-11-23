@@ -4,11 +4,22 @@ import { MeshError, type MeshService } from './service.js'
 
 export const MESH_ROUTE_PREFIX = '/.dsh-mesh/v1'
 
+interface AdmittedPeerLike {
+  readonly principal?: {
+    readonly kind?: string
+  }
+}
+
 interface WebServerLike {
   register(route: {
     kind: 'prefix'
     path: string
-    handler(req: IncomingMessage, res: ServerResponse): void | Promise<void>
+    /**
+     * Explicit route auth policy for Harness >=0.2.3-alpha.2 (where `required`
+     * is also the default). Older hosts ignore this property.
+     */
+    auth?: 'anonymous' | 'required' | 'deny'
+    handler(req: IncomingMessage, res: ServerResponse, peer?: AdmittedPeerLike): void | Promise<void>
   }): () => void | Promise<void>
   /**
    * The webServer's own Context. An app-level plugin (the phone runtime loads
@@ -87,25 +98,35 @@ export function registerMeshRoutes(
   return webServer.register({
     kind: 'prefix',
     path: MESH_ROUTE_PREFIX,
-    handler: async (req, res) => {
+    auth: 'required',
+    handler: async (req, res, peer) => {
       try {
-        /*
-         * Fail closed. These routes expose pairing, prefs, session prompts and a
-         * Computer Use test hook; each one is a privileged local action. The
-         * host's own connection service normally guards them, so a missing
-         * service or a missing method means the guard cannot run — and treating
-         * that as "allowed" would turn a version skew into a local
-         * privilege-escalation hole.
-         */
-        const guard = typeof connection?.requestRejection === 'function'
-          ? connection
-          : guardFromWebServer()
-        const rejection = typeof guard?.requestRejection === 'function'
-          ? guard.requestRejection({ headers: req.headers })
-          : 401
-        if (rejection !== undefined) {
-          json(res, rejection, { error: 'unauthorized', message: 'This request is not authenticated.' })
-          return
+        if (peer !== undefined) {
+          // On Harness >=0.2.3-alpha.2, `webServer` enforces `webserver/authorize`
+          // and passes the admitted `peer` directly (`connection.requestRejection`
+          // was removed and `connection.admit` fails without `connection.authentication`).
+          if (peer.principal?.kind !== 'owner') {
+            json(res, 403, { error: 'forbidden', message: 'Owner access is required.' })
+            return
+          }
+        } else {
+          /*
+           * Fail closed on <=0.2.2 and the phone runtime, where `webServer`
+           * invokes `handler(req, res)` without a `peer`. These routes expose
+           * pairing, prefs, session prompts and a Computer Use test hook; each
+           * one is a privileged local action. A missing service or missing
+           * method means the guard cannot run — never treat that as allowed.
+           */
+          const guard = typeof connection?.requestRejection === 'function'
+            ? connection
+            : guardFromWebServer()
+          const rejection = typeof guard?.requestRejection === 'function'
+            ? guard.requestRejection({ headers: req.headers })
+            : 401
+          if (rejection !== undefined) {
+            json(res, rejection, { error: 'unauthorized', message: 'This request is not authenticated.' })
+            return
+          }
         }
         const url = new URL(req.url ?? '/', 'http://dsh.internal')
         const path = url.pathname.slice(MESH_ROUTE_PREFIX.length) || '/'

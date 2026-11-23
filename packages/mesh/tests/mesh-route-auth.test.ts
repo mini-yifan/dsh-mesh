@@ -89,6 +89,25 @@ describe('registerMeshRoutes authentication', () => {
     expect(h.status).toBe(403)
   })
 
+  it('registers auth: required and accepts an admitted owner peer on >=0.2.3 without requestRejection', async () => {
+    const registered: Array<{
+      auth?: string
+      handler(req: IncomingMessage, res: ServerResponse, peer?: { principal?: { kind?: string } }): void | Promise<void>
+    }> = []
+    const webServer = { register: (route: never) => { registered.push(route); return () => undefined } }
+    registerMeshRoutes(webServer, undefined, fakeService())
+    expect(registered[0].auth).toBe('required')
+
+    const owner = harness()
+    await registered[0].handler(owner.req, owner.res, { principal: { kind: 'owner' } })
+    expect(owner.status).toBe(200)
+
+    const viewer = harness()
+    await registered[0].handler(viewer.req, viewer.res, { principal: { kind: 'viewer' } })
+    expect(viewer.status).toBe(403)
+    expect(viewer.body()).toContain('Owner access is required')
+  })
+
   it('does not register anything without a webServer', () => {
     expect(registerMeshRoutes(undefined, undefined, fakeService())()).toBeUndefined()
   })
